@@ -16,6 +16,11 @@ class Employee() : Aggregate<EmployeeEventType>() {
             startDate = it.startDate
         }
 
+        on<HiredEvent> {
+            aggregateId = it.aggregateId
+            startDate = it.startDate
+        }
+
         StartDateChangedEvent::class then {
             startDate = it.newStartDate
         }

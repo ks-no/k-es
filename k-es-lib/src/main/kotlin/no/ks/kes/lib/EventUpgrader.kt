@@ -3,7 +3,7 @@ package no.ks.kes.lib
 import kotlin.reflect.KClass
 
 object EventUpgrader {
-     fun < T : Event> upgradeTo(event: Event, targetClass: KClass<T>): T {
+    fun <T : Event> upgradeTo(event: Event, targetClass: KClass<T>): T {
         var upgraded = event
         while (!targetClass.isInstance(upgraded) && upgraded.upgrade() != null)
             upgraded = upgraded.upgrade()!!
@@ -14,7 +14,7 @@ object EventUpgrader {
             return upgraded as T
     }
 
-    fun upgrade(event: Event): Event{
+    fun upgrade(event: Event): Event {
         var upgraded = event
         while (upgraded.upgrade() != null) {;
             upgraded = upgraded.upgrade()!!
