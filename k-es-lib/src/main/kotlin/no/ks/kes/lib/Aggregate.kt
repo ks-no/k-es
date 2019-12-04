@@ -24,7 +24,7 @@ abstract class Aggregate<EVENT_TYPE : Event> {
 fun <EVENT_TYPE : Event, T : Aggregate<EVENT_TYPE>> T.withCurrentEventNumber(currentEventNumber: Long): T =
         apply { this.currentEventNumber = currentEventNumber }
 
-public fun <EVENT_TYPE : Event, T : Aggregate<EVENT_TYPE>> T.applyEvent(event: EVENT_TYPE, eventNumber: Long): T =
+fun <EVENT_TYPE : Event, T : Aggregate<EVENT_TYPE>> T.applyEvent(event: EVENT_TYPE, eventNumber: Long): T =
         applicators[EventUtil.getEventType(event::class)]
                 ?.invoke(this, event)
                 ?.withCurrentEventNumber(eventNumber) as T?
