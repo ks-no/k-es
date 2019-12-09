@@ -8,6 +8,4 @@ object EventUtil {
             aggEvent.findAnnotation<EventType>()
                     ?.value
                     ?: throw RuntimeException(String.format("The event %s is not annotated with @EventType", aggEvent.simpleName))
-
-
 }

@@ -6,6 +6,7 @@ import com.github.msemys.esjc.EventStore
 import mu.KotlinLogging
 
 private val log = KotlinLogging.logger {}
+
 class EsjcEventSubscriber(private val eventStore: EventStore) {
     fun subscribeByCategory(category: String, hwm: Long, listener: CatchUpSubscriptionListener) =
             eventStore.subscribeToStreamFrom(

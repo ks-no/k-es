@@ -5,7 +5,9 @@ import com.github.msemys.esjc.CatchUpSubscriptionListener
 import com.github.msemys.esjc.ResolvedEvent
 import com.github.msemys.esjc.SubscriptionDropReason
 import mu.KotlinLogging
-import no.ks.kes.lib.*
+import no.ks.kes.lib.EventSerdes
+import no.ks.kes.lib.EventWrapper
+import no.ks.kes.lib.Projection
 
 
 private val log = KotlinLogging.logger {}
@@ -45,7 +47,7 @@ class EsjcEventProjector(
 
     override fun onLiveProcessingStarted(subscription: CatchUpSubscription) {
         log.info("We're live!")
-        projections.forEach{it.onLive()}
+        projections.forEach { it.onLive() }
     }
 
 }

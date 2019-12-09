@@ -5,11 +5,11 @@ import io.kotlintest.specs.StringSpec
 import no.ks.kes.lib.EventUtil.getEventType
 import no.ks.kes.lib.testdomain.HiredEvent
 
-internal class EventUtilTest: StringSpec() {
+internal class EventUtilTest : StringSpec() {
 
     init {
         "Test that the event type is correctly retrieved from the event annotation" {
-            getEventType(HiredEvent::class) shouldBe  "Hired"
+            getEventType(HiredEvent::class) shouldBe "Hired"
         }
     }
 }

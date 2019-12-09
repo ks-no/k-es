@@ -6,8 +6,8 @@ internal object EsjcEventUtil {
     fun isIgnorableEvent(resolvedEvent: ResolvedEvent): Boolean =
             with(resolvedEvent) {
                 event == null ||
-                event.eventType == null ||
-                event.eventType.isEmpty() ||
-                event.eventType.startsWith("$")
+                        event.eventType == null ||
+                        event.eventType.isEmpty() ||
+                        event.eventType.startsWith("$")
             }
 }

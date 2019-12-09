@@ -48,8 +48,10 @@ internal class CmdHandlerTest : StringSpec() {
                 every { read(hireCmd.aggregateId, ofType(Employee::class)) } returns Employee().apply { aggregateId = UUID.randomUUID() }
             }
 
-            shouldThrow<IllegalStateException> { CmdHandler<EmployeeEventType, Employee>(mockk(), readerMock)
-                    .handle(hireCmd)}
+            shouldThrow<IllegalStateException> {
+                CmdHandler<EmployeeEventType, Employee>(mockk(), readerMock)
+                        .handle(hireCmd)
+            }
                     .message shouldContain "The employee has already been created!"
         }
 
@@ -72,7 +74,9 @@ internal class CmdHandlerTest : StringSpec() {
                             expectedEventNumber = 0,
                             events = capture(writenEventsCapture),
                             useOptimisticLocking = true
-                    ) } returns Unit  }
+                    )
+                } returns Unit
+            }
 
             CmdHandler<EmployeeEventType, Employee>(writerMock, readerMock)
                     .handle(hireCmd).apply {

@@ -11,9 +11,8 @@ abstract class Projection {
         return
     }
 
-    protected inline fun <reified E : Event> on(crossinline consumer: (E) -> Any?) {
-        onWrapper<E> { consumer.invoke(it.event) }
-    }
+    protected inline fun <reified E : Event> on(crossinline consumer: (E) -> Any?) =
+            onWrapper<E> { consumer.invoke(it.event) }
 
     protected inline fun <reified E : Event> onWrapper(crossinline consumer: (EventWrapper<E>) -> Any?) {
         @Suppress("UNCHECKED_CAST")
