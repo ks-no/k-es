@@ -12,6 +12,6 @@ class StartDatesProjection : Projection() {
     }
 
     init {
-        HiredEvent::class project {  startDates.put(it.aggregateId, it.startDate) }
+        on<HiredEvent> { startDates.put(it.aggregateId, it.startDate) }
     }
 }

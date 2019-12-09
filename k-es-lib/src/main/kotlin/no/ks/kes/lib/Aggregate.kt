@@ -1,21 +1,14 @@
 package no.ks.kes.lib
 
-import kotlin.reflect.KClass
-
 abstract class Aggregate<EVENT_TYPE : Event> {
     var applicators: MutableMap<String, (Aggregate<EVENT_TYPE>, EVENT_TYPE) -> Aggregate<EVENT_TYPE>> = mutableMapOf()
         private set
     var currentEventNumber: Long = 0
         internal set
 
-    infix fun <E : EVENT_TYPE> KClass<E>.then(applicatorFunction: (E) -> Unit) {
-        applicators[EventUtil.getEventType(this)] =
-                { a: Aggregate<EVENT_TYPE>, e: EVENT_TYPE -> applicatorFunction(EventUpgrader.upgradeTo(e, this)); a }
-    }
-
-    inline fun <reified E : Event> on(crossinline applicatorFunction: (E) -> Unit) {
+    inline fun <reified E : Event> on(crossinline consumer: (E) -> Unit) {
         applicators[EventUtil.getEventType(E::class)] =
-                { a: Aggregate<EVENT_TYPE>, e: EVENT_TYPE -> applicatorFunction(EventUpgrader.upgradeTo(e, E::class)); a }
+                { a: Aggregate<EVENT_TYPE>, e: EVENT_TYPE -> consumer(EventUpgrader.upgradeTo(e, E::class)); a }
     }
 
     abstract val aggregateType: String

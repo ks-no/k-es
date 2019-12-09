@@ -11,12 +11,12 @@ class Employee() : Aggregate<EmployeeEventType>() {
     var startDate: LocalDate? = null
 
     init {
-        HiredEvent::class then {
+        on<HiredEvent> {
             aggregateId = it.aggregateId
             startDate = it.startDate
         }
 
-        StartDateChangedEvent::class then {
+        on<StartDateChangedEvent> {
             startDate = it.newStartDate
         }
     }
