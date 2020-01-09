@@ -12,6 +12,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import no.ks.kes.esjc.jackson.JacksonEventSerdes
 import no.ks.kes.esjc.testdomain.HiredEvent
+import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -24,7 +25,8 @@ internal class EsjcEventWriterTest : StringSpec() {
 
             val event = HiredEvent(
                     aggregateId = UUID.randomUUID(),
-                    startDate = LocalDate.now()
+                    startDate = LocalDate.now(),
+                    timestamp = Instant.now()
             )
 
             val capturedEventData = slot<List<EventData>>()

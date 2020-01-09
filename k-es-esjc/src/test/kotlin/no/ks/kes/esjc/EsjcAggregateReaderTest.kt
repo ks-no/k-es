@@ -13,6 +13,7 @@ import no.ks.kes.esjc.jackson.JacksonEventSerdes
 import no.ks.kes.esjc.testdomain.Employee
 import no.ks.kes.esjc.testdomain.HiredEvent
 import no.ks.kes.esjc.testdomain.StartDateChangedEvent
+import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 import java.util.stream.Stream
@@ -23,11 +24,13 @@ class EsjcAggregateReaderTest : StringSpec() {
             val eventSerdes = JacksonEventSerdes(setOf(HiredEvent::class, StartDateChangedEvent::class))
             val hired = HiredEvent(
                     aggregateId = UUID.randomUUID(),
-                    startDate = LocalDate.now()
+                    startDate = LocalDate.now(),
+                    timestamp = Instant.now()
             )
             val startDateChanged = StartDateChangedEvent(
                     aggregateId = UUID.randomUUID(),
-                    newStartDate = LocalDate.now().plusDays(1)
+                    newStartDate = LocalDate.now().plusDays(1),
+                    timestamp = Instant.now()
             )
 
             val eventStoreMock = mockk<EventStore>()

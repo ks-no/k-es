@@ -17,7 +17,7 @@ class EsjcEventWriter(
         private val streamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String,
         private val deserializer: EventSerdes
 ) : EventWriter {
-    override fun write(aggregateType: String, aggregateId: UUID, expectedEventNumber: Long, events: List<Event>, useOptimisticLocking: Boolean) {
+    override fun write(aggregateType: String, aggregateId: UUID, expectedEventNumber: Long, events: List<Event<*>>, useOptimisticLocking: Boolean) {
         val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
         try {
             eventStore.appendToStream(

@@ -8,7 +8,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import no.ks.kes.lib.testdomain.Employee
-import no.ks.kes.lib.testdomain.EmployeeEventType
 import no.ks.kes.lib.testdomain.HireCmd
 import java.time.LocalDate
 import java.util.*
@@ -30,7 +29,7 @@ internal class CmdHandlerTest : StringSpec() {
                 every { write("employee", hireCmd.aggregateId, 0, any(), true) } returns
                         Unit
             }
-            CmdHandler<EmployeeEventType, Employee>(writer, readerMock)
+            CmdHandler(writer, readerMock)
                     .handle(hireCmd).apply {
                         aggregateId shouldBe hireCmd.aggregateId
                         startDate shouldBe hireCmd.startDate
@@ -49,7 +48,7 @@ internal class CmdHandlerTest : StringSpec() {
             }
 
             shouldThrow<IllegalStateException> {
-                CmdHandler<EmployeeEventType, Employee>(mockk(), readerMock)
+                CmdHandler(mockk(), readerMock)
                         .handle(hireCmd)
             }
                     .message shouldContain "The employee has already been created!"
@@ -65,7 +64,7 @@ internal class CmdHandlerTest : StringSpec() {
                 every { read(hireCmd.aggregateId, ofType(Employee::class)) } returns Employee()
             }
 
-            val writenEventsCapture = slot<List<EmployeeEventType>>()
+            val writenEventsCapture = slot<List<Event<Employee>>>()
             val writerMock = mockk<EventWriter>().apply {
                 every {
                     write(
@@ -78,7 +77,7 @@ internal class CmdHandlerTest : StringSpec() {
                 } returns Unit
             }
 
-            CmdHandler<EmployeeEventType, Employee>(writerMock, readerMock)
+            CmdHandler(writerMock, readerMock)
                     .handle(hireCmd).apply {
                         aggregateId shouldBe hireCmd.aggregateId
                         startDate shouldBe hireCmd.startDate

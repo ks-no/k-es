@@ -2,8 +2,8 @@ package no.ks.kes.lib
 
 import java.util.*
 
-interface Cmd<E : Event, A : Aggregate<out E>> {
-    fun execute(aggregate: A): List<E>
+interface Cmd<A : Aggregate> {
+    fun execute(aggregate: A): List<Event<A>>
     val aggregateId: UUID
     fun initAggregate(): A
     fun useOptimisticLocking(): Boolean = true

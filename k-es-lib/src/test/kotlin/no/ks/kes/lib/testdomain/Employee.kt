@@ -4,7 +4,7 @@ import no.ks.kes.lib.Aggregate
 import java.time.LocalDate
 import java.util.*
 
-class Employee : Aggregate<EmployeeEventType>() {
+class Employee : Aggregate() {
     override val aggregateType = "employee"
 
     var aggregateId: UUID? = null

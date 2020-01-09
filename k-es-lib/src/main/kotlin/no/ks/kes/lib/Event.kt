@@ -1,9 +1,10 @@
 package no.ks.kes.lib
 
+import java.time.Instant
 import java.util.*
 
-interface Event {
+interface Event<A: Aggregate> {
     val aggregateId: UUID
-    val timestamp: Long
-    fun upgrade(): Event? = null
+    val timestamp: Instant
+    fun upgrade(): Event<A>? = null
 }

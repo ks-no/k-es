@@ -1,24 +1,25 @@
 package no.ks.kes.lib
 
-abstract class Aggregate<EVENT_TYPE : Event> {
-    var applicators: MutableMap<String, (Aggregate<EVENT_TYPE>, EVENT_TYPE) -> Aggregate<EVENT_TYPE>> = mutableMapOf()
+abstract class Aggregate {
+    var applicators: MutableMap<String, (Aggregate, Event<*>) -> Aggregate> = mutableMapOf()
         private set
     var currentEventNumber: Long = 0
         internal set
 
-    inline fun <reified E : Event> on(crossinline consumer: (E) -> Unit) {
+    inline fun <reified E : Event<*>> on(crossinline consumer: (E) -> Unit) {
         applicators[EventUtil.getEventType(E::class)] =
-                { a: Aggregate<EVENT_TYPE>, e: EVENT_TYPE -> consumer(EventUpgrader.upgradeTo(e, E::class)); a }
+                { a, e -> consumer(EventUpgrader.upgradeTo(e, E::class)); a }
     }
 
     abstract val aggregateType: String
 }
 
-fun <EVENT_TYPE : Event, T : Aggregate<EVENT_TYPE>> T.withCurrentEventNumber(currentEventNumber: Long): T =
+fun <A : Aggregate> A.withCurrentEventNumber(currentEventNumber: Long): A =
         apply { this.currentEventNumber = currentEventNumber }
 
-fun <EVENT_TYPE : Event, T : Aggregate<EVENT_TYPE>> T.applyEvent(event: EVENT_TYPE, eventNumber: Long): T =
+@Suppress("UNCHECKED_CAST")
+fun <E : Event<A>, A : Aggregate> A.applyEvent(event: E, eventNumber: Long): A =
         applicators[EventUtil.getEventType(event::class)]
                 ?.invoke(this, event)
-                ?.withCurrentEventNumber(eventNumber) as T?
+                ?.withCurrentEventNumber(eventNumber) as A?
                 ?: this

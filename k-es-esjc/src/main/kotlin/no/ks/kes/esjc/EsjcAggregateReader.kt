@@ -14,7 +14,7 @@ class EsjcAggregateReader(
         private val deserializer: EventSerdes,
         private val esjcStreamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String
 ) : AggregateReader {
-    override fun <E : Event, T : Aggregate<E>> read(aggregateId: UUID, aggregate: T): T =
+    override fun <A : Aggregate> read(aggregateId: UUID, aggregate: A): A =
             try {
                 eventStore.streamEventsForward(
                         esjcStreamIdGenerator.invoke(aggregate.aggregateType, aggregateId),
@@ -26,7 +26,7 @@ class EsjcAggregateReader(
                         .filter { !EsjcEventUtil.isIgnorableEvent(it) }
                         .fold(aggregate, { a, e ->
                             @Suppress("UNCHECKED_CAST")
-                            a.applyEvent(deserializer.deserialize(e.event.data, e.event.eventType) as E, e.event.eventNumber)
+                            a.applyEvent(deserializer.deserialize(e.event.data, e.event.eventType) as Event<A>, e.event.eventNumber)
                         })
             } catch (e: StreamNotFoundException) {
                 aggregate.withCurrentEventNumber(-1)

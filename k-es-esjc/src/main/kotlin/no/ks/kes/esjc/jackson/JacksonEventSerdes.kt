@@ -9,7 +9,7 @@ import no.ks.kes.lib.EventSerdes
 import no.ks.kes.lib.EventUtil
 import kotlin.reflect.KClass
 
-class JacksonEventSerdes(events: Set<KClass<out Event>>,
+class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
                                     private val objectMapper: ObjectMapper = ObjectMapper()
                                             .registerModule(Jdk8Module())
                                             .registerModule(JavaTimeModule())
@@ -19,7 +19,7 @@ class JacksonEventSerdes(events: Set<KClass<out Event>>,
             .map { EventUtil.getEventType(it) to it }
             .toMap()
 
-    override fun deserialize(eventData: ByteArray, eventType: String): Event =
+    override fun deserialize(eventData: ByteArray, eventType: String): Event<*> =
             try {
                 objectMapper.readValue(
                         eventData,
@@ -30,7 +30,7 @@ class JacksonEventSerdes(events: Set<KClass<out Event>>,
                 throw  RuntimeException("Error during deserialization of eventType $eventType", e)
             }
 
-    override fun serialize(event: Event): ByteArray =
+    override fun serialize(event: Event<*>): ByteArray =
             try {
                 objectMapper.writeValueAsBytes(event)
             } catch (e: Exception) {

@@ -10,6 +10,7 @@ import io.mockk.mockk
 import no.ks.kes.esjc.jackson.JacksonEventSerdes
 import no.ks.kes.esjc.testdomain.HiredEvent
 import no.ks.kes.esjc.testdomain.StartDatesProjection
+import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
@@ -20,7 +21,8 @@ internal class EsjcEventProjectorTest : StringSpec() {
             val startDatesProjection = StartDatesProjection()
             val event = HiredEvent(
                     aggregateId = UUID.randomUUID(),
-                    startDate = LocalDate.now()
+                    startDate = LocalDate.now(),
+                    timestamp = Instant.now()
             )
 
             val hired = EventRecord.newBuilder()

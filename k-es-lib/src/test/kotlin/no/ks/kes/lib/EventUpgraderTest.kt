@@ -3,13 +3,15 @@ package no.ks.kes.lib
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import no.ks.kes.lib.EventUpgrader.upgradeTo
+import no.ks.kes.lib.testdomain.Employee
+import java.time.Instant
 import java.util.*
 
 internal class EventUpgraderTest : StringSpec() {
 
     init {
         "Test that the upgrade method of an event is executed, and that the upgraded event is returned" {
-            val oldEvent = OldEvent(UUID.randomUUID(), 0L)
+            val oldEvent = OldEvent(UUID.randomUUID(), Instant.now())
             upgradeTo(oldEvent, NewEvent::class).apply {
                 aggregateId shouldBe oldEvent.aggregateId
                 timestamp shouldBe oldEvent.timestamp
@@ -17,9 +19,9 @@ internal class EventUpgraderTest : StringSpec() {
         }
     }
 
-    private data class OldEvent(override val aggregateId: UUID, override val timestamp: Long) : Event {
-        override fun upgrade(): Event? = NewEvent(aggregateId, timestamp)
+    private data class OldEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<Employee> {
+        override fun upgrade(): Event<Employee>? = NewEvent(aggregateId, timestamp)
     }
 
-    private data class NewEvent(override val aggregateId: UUID, override val timestamp: Long) : Event
+    private data class NewEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<Employee>
 }
