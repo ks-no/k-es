@@ -4,5 +4,5 @@ import no.ks.kes.lib.EventType
 import java.time.LocalDate
 import java.util.*
 
-@EventType("StartDatePushedBack")
+@EventType("StartDateChangedEvent")
 data class StartDateChangedEvent(override val aggregateId: UUID, val newStartDate: LocalDate) : EmployeeEventType()

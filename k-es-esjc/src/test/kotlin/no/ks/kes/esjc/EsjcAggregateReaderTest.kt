@@ -12,6 +12,7 @@ import io.mockk.mockk
 import no.ks.kes.esjc.jackson.JacksonEventSerdes
 import no.ks.kes.esjc.testdomain.Employee
 import no.ks.kes.esjc.testdomain.HiredEvent
+import no.ks.kes.esjc.testdomain.StartDateChangedEvent
 import java.time.LocalDate
 import java.util.*
 import java.util.stream.Stream
@@ -19,17 +20,22 @@ import java.util.stream.Stream
 class EsjcAggregateReaderTest : StringSpec() {
     init {
         "Test that the reader can retrieve and deserialize aggregate events from the event-store" {
-            val eventSerdes = JacksonEventSerdes(setOf(HiredEvent::class))
-            val event = HiredEvent(
+            val eventSerdes = JacksonEventSerdes(setOf(HiredEvent::class, StartDateChangedEvent::class))
+            val hired = HiredEvent(
                     aggregateId = UUID.randomUUID(),
                     startDate = LocalDate.now()
             )
+            val startDateChanged = StartDateChangedEvent(
+                    aggregateId = UUID.randomUUID(),
+                    newStartDate = LocalDate.now().plusDays(1)
+            )
+
             val eventStoreMock = mockk<EventStore>()
                     .apply {
                         every { streamEventsForward(any(), any(), any(), any()) } returns
                                 Stream.of(ResolvedEvent(EventStoreClientMessages.ResolvedIndexedEvent.newBuilder()
                                         .setEvent(EventStoreClientMessages.EventRecord.newBuilder()
-                                                .setData(ByteString.copyFrom(eventSerdes.serialize(event)))
+                                                .setData(ByteString.copyFrom(eventSerdes.serialize(hired)))
                                                 .setDataContentType(1)
                                                 .setEventStreamId(UUID.randomUUID().toString())
                                                 .setEventNumber(0)
@@ -37,7 +43,18 @@ class EsjcAggregateReaderTest : StringSpec() {
                                                 .setEventType("Hired")
                                                 .setMetadataContentType(1)
                                                 .build())
-                                        .build()))
+                                        .build()),
+                                        ResolvedEvent(EventStoreClientMessages.ResolvedIndexedEvent.newBuilder()
+                                                .setEvent(EventStoreClientMessages.EventRecord.newBuilder()
+                                                        .setData(ByteString.copyFrom(eventSerdes.serialize(startDateChanged)))
+                                                        .setDataContentType(1)
+                                                        .setEventStreamId(UUID.randomUUID().toString())
+                                                        .setEventNumber(0)
+                                                        .setEventId(ByteString.copyFrom(UUID.randomUUID().toString(), "UTF-8"))
+                                                        .setEventType("StartDateChangedEvent")
+                                                        .setMetadataContentType(1)
+                                                        .build())
+                                                .build()))
                     }
 
             EsjcAggregateReader(
@@ -47,8 +64,8 @@ class EsjcAggregateReaderTest : StringSpec() {
             )
                     .read(UUID.randomUUID(), Employee())
                     .apply {
-                        aggregateId shouldBe event.aggregateId
-                        startDate shouldBe event.startDate
+                        aggregateId shouldBe hired.aggregateId
+                        startDate shouldBe startDateChanged.newStartDate
                     }
         }
 
@@ -59,7 +76,7 @@ class EsjcAggregateReaderTest : StringSpec() {
                                 every<Stream<ResolvedEvent>?> { streamEventsForward(any(), any(), any(), any()) } throws
                                         StreamNotFoundException("some message")
                             },
-                    deserializer = JacksonEventSerdes(setOf(HiredEvent::class)),
+                    deserializer = JacksonEventSerdes(setOf(HiredEvent::class, StartDateChangedEvent::class)),
                     esjcStreamIdGenerator = { t, id -> "$t.$id" }
             )
                     .read(UUID.randomUUID(), Employee())

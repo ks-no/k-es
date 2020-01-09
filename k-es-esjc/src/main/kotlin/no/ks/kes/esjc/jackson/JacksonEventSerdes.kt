@@ -9,7 +9,7 @@ import no.ks.kes.lib.EventSerdes
 import no.ks.kes.lib.EventUtil
 import kotlin.reflect.KClass
 
-class JacksonEventSerdes<T : Event>(events: Set<KClass<T>>,
+class JacksonEventSerdes(events: Set<KClass<out Event>>,
                                     private val objectMapper: ObjectMapper = ObjectMapper()
                                             .registerModule(Jdk8Module())
                                             .registerModule(JavaTimeModule())
