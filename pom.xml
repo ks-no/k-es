@@ -34,7 +34,7 @@
         <jackson.version>2.10.1</jackson.version>
         <slf4j.version>1.7.26</slf4j.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-        <maven-source-plugin.version>3.2.0</maven-source-plugin.version>
+        <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
         <maven-versions-plugin.version>2.7</maven-versions-plugin.version>
         <scijava-maven-plugin.version>1.1.1</scijava-maven-plugin.version>
         <maven-enforcer-plugin.version>3.0.0-M3</maven-enforcer-plugin.version>
