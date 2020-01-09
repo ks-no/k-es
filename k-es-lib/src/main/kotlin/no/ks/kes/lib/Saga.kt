@@ -15,24 +15,20 @@ abstract class Saga<P> {
         onWrapper<E> { consumer.invoke(this, it.event) }
     }
 
-    protected val projectors: MutableMap<String, (EventWrapper<*>, P) -> Any?> = mutableMapOf()
-
-    open fun onLive() {
-        return
-    }
+    protected val mutators: MutableMap<String, (EventWrapper<*>, P) -> Any?> = mutableMapOf()
 
     protected inline fun <reified E : Event<*>> onWrapper(crossinline consumer: P.(EventWrapper<E>) -> Unit) {
         @Suppress("UNCHECKED_CAST")
-        projectors[EventUtil.getEventType(E::class)] = { e, p ->
+        mutators[EventUtil.getEventType(E::class)] = { e, p ->
             consumer.invoke(p, e as EventWrapper<E>)
         }
     }
 
     fun accept(wrapper: EventWrapper<*>, payload: P): P {
-        projectors[EventUtil.getEventType(wrapper.event::class)]
+        mutators[EventUtil.getEventType(wrapper.event::class)]
                 ?.invoke(wrapper, payload)
         log.info("Event ${EventUtil.getEventType(wrapper.event::class)} on aggregate ${wrapper.event.aggregateId} " +
-                "received by projection ${this::class.simpleName}")
+                "received by saga ${this::class.simpleName}")
         return payload
     }
 
