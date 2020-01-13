@@ -2,7 +2,7 @@ package no.ks.kes.lib
 
 import mu.KotlinLogging
 
-internal val log = KotlinLogging.logger {}
+private val log = KotlinLogging.logger {}
 
 abstract class Projection {
     protected val projectors: MutableMap<String, (EventWrapper<*>) -> Any?> = mutableMapOf()

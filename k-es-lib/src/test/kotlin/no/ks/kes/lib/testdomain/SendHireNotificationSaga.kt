@@ -1,15 +1,12 @@
-package no.ks.kes.sagalib.testdomain
+package no.ks.kes.lib.testdomain
 
-import no.ks.kes.lib.testdomain.AddToPayrollCmd
-import no.ks.kes.lib.testdomain.AddedToPayroll
-import no.ks.kes.lib.testdomain.HiredEvent
-import no.ks.kes.sagalib.Saga
+import no.ks.kes.lib.Saga
 
 
 class SendHireNotificationSaga : Saga<SagaState>()
- {
+{
     init {
-        createOn<HiredEvent> {
+        initOn<HiredEvent> {
             it.aggregateId.toString() to SagaState(false)
         }
 

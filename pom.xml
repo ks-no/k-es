@@ -12,7 +12,6 @@
     <modules>
         <module>k-es-esjc</module>
         <module>k-es-lib</module>
-        <module>k-es-saga-lib</module>
         <module>k-es-saga-jdbc</module>
     </modules>
 
@@ -54,11 +53,6 @@
             <dependency>
                 <groupId>no.ks</groupId>
                 <artifactId>k-es-lib</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>no.ks</groupId>
-                <artifactId>k-es-saga-lib</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
