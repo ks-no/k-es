@@ -4,10 +4,10 @@ import com.github.msemys.esjc.EventData
 import com.github.msemys.esjc.EventStore
 import com.github.msemys.esjc.ExpectedVersion
 import mu.KotlinLogging
-import no.ks.kes.sagajdbc.Event
-import no.ks.kes.sagajdbc.EventSerdes
-import no.ks.kes.sagajdbc.AnnotationUtil
-import no.ks.kes.sagajdbc.EventWriter
+import no.ks.kes.lib.Event
+import no.ks.kes.lib.EventSerdes
+import no.ks.kes.lib.AnnotationUtil
+import no.ks.kes.lib.EventWriter
 import java.util.*
 
 private val log = KotlinLogging.logger {}

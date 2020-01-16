@@ -1,8 +1,6 @@
 package no.ks.kes.sagajdbc
 
-import mu.KotlinLogging
-
-private val log = KotlinLogging.logger {}
+import no.ks.kes.lib.*
 
 class SagaManager(eventSubscriber: EventSubscriber, private val sagaRepository: SagaRepository, private val sagaSerdes: SagaSerdes, sagas: Set<Saga<*>>) {
     private val subscriptions = sagas
@@ -39,8 +37,9 @@ class SagaManager(eventSubscriber: EventSubscriber, private val sagaRepository: 
             .groupBy { it.first }
 
     init {
-        eventSubscriber.onEvent { event ->
+        eventSubscriber.subscribe(sagaRepository.getCurrentHwm()) { event ->
             subscriptions[event.event::class]?.forEach { it.second.invoke(event) }
+            sagaRepository.updateHwm(event.eventNumber)
         }
     }
 

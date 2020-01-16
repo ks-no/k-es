@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import no.ks.kes.sagajdbc.Event
-import no.ks.kes.sagajdbc.EventSerdes
-import no.ks.kes.sagajdbc.AnnotationUtil
+import no.ks.kes.lib.Event
+import no.ks.kes.lib.EventSerdes
+import no.ks.kes.lib.AnnotationUtil
 import kotlin.reflect.KClass
 
 class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,

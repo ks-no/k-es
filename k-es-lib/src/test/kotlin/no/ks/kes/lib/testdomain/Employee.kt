@@ -1,4 +1,4 @@
-package no.ks.kes.esjc.testdomain
+package no.ks.kes.lib.testdomain
 
 import no.ks.kes.lib.Aggregate
 import java.time.LocalDate

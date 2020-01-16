@@ -1,7 +1,7 @@
 package no.ks.kes.esjc.testdomain
 
-import no.ks.kes.sagajdbc.Event
-import no.ks.kes.sagajdbc.EventType
+import no.ks.kes.lib.Event
+import no.ks.kes.lib.EventType
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*

@@ -1,4 +1,4 @@
-package no.ks.kes.esjc.testdomain
+package no.ks.kes.lib.testdomain
 
 import no.ks.kes.lib.Event
 import java.time.Instant
@@ -13,6 +13,7 @@ data class HireCmd(override val aggregateId: UUID, val startDate: LocalDate) : E
                 listOf(HiredEvent(
                         aggregateId = aggregateId,
                         startDate = startDate,
-                        timestamp = Instant.now()
-                ))
+                        timestamp = Instant.now(),
+                        recruitedBy = UUID.randomUUID())
+                )
 }

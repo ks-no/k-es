@@ -5,8 +5,12 @@ import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import no.ks.kes.sagajdbc.testdomain.ConfidentialityAgreementAccepted
-import no.ks.kes.sagajdbc.testdomain.HiredEvent
+import no.ks.kes.lib.EventSubscriber
+import no.ks.kes.lib.EventWrapper
+import no.ks.kes.lib.Saga
+import no.ks.kes.lib.SagaName
+import no.ks.kes.lib.testdomain.ConfidentialityAgreementAccepted
+import no.ks.kes.lib.testdomain.HiredEvent
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*

@@ -35,7 +35,7 @@ internal class EsjcEventProjectorTest : StringSpec() {
                     .setMetadataContentType(1)
                     .build()
 
-            EsjcEventProjector(serdes, setOf(startDatesProjection), { }, { _, _ -> }).onEvent(mockk(), ResolvedEvent(EventStoreClientMessages.ResolvedIndexedEvent.newBuilder()
+            EsjcEventListener(serdes, setOf(startDatesProjection), { }, { _, _ -> }).onEvent(mockk(), ResolvedEvent(EventStoreClientMessages.ResolvedIndexedEvent.newBuilder()
                     .setLink(hired)
                     .setEvent(hired)
                     .build()))
