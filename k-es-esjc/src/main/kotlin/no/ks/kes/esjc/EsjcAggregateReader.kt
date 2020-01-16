@@ -2,7 +2,7 @@ package no.ks.kes.esjc
 
 import com.github.msemys.esjc.EventStore
 import com.github.msemys.esjc.operation.StreamNotFoundException
-import no.ks.kes.lib.*
+import no.ks.kes.sagajdbc.*
 import java.util.*
 import kotlin.streams.asSequence
 

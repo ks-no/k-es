@@ -37,10 +37,19 @@
             <version>5.2.2.RELEASE</version>
         </dependency>
 
+        <dependency>
+            <groupId>no.ks</groupId>
+            <artifactId>k-es-lib</artifactId>
+            <classifier>tests</classifier>
+            <type>test-jar</type>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
 
         <dependency>
             <groupId>no.ks</groupId>
-            <artifactId>k-es-saga-lib</artifactId>
+            <artifactId>k-es-lib</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kotlintest</groupId>

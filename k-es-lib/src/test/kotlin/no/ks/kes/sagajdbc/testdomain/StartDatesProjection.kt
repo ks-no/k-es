@@ -1,4 +1,4 @@
-package no.ks.kes.esjc.testdomain
+package no.ks.kes.sagajdbc.testdomain
 
 import no.ks.kes.sagajdbc.Projection
 import java.time.LocalDate

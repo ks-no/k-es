@@ -5,9 +5,9 @@ import com.github.msemys.esjc.CatchUpSubscriptionListener
 import com.github.msemys.esjc.ResolvedEvent
 import com.github.msemys.esjc.SubscriptionDropReason
 import mu.KotlinLogging
-import no.ks.kes.lib.EventSerdes
-import no.ks.kes.lib.EventWrapper
-import no.ks.kes.lib.Projection
+import no.ks.kes.sagajdbc.EventSerdes
+import no.ks.kes.sagajdbc.EventWrapper
+import no.ks.kes.sagajdbc.Projection
 
 
 private val log = KotlinLogging.logger {}

@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import no.ks.kes.lib.Event
-import no.ks.kes.lib.EventSerdes
-import no.ks.kes.lib.EventUtil
+import no.ks.kes.sagajdbc.Event
+import no.ks.kes.sagajdbc.EventSerdes
+import no.ks.kes.sagajdbc.AnnotationUtil
 import kotlin.reflect.KClass
 
 class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
@@ -16,7 +16,7 @@ class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
                                             .registerModule(KotlinModule())
 ) : EventSerdes {
     private val events = events
-            .map { EventUtil.getEventType(it) to it }
+            .map { AnnotationUtil.getEventType(it) to it }
             .toMap()
 
     override fun deserialize(eventData: ByteArray, eventType: String): Event<*> =
