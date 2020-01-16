@@ -7,5 +7,6 @@ interface SagaRepository {
     fun save(correlationId: UUID, sagaSerializationId: String, data: ByteArray)
     fun getCurrentHwm(): Long
     fun updateHwm(eventNumber: Long)
+    abstract fun update(sagaStates: Any)
 
 }
