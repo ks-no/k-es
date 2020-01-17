@@ -7,7 +7,7 @@ abstract class Aggregate {
         internal set
 
     inline fun <reified E : Event<*>> on(crossinline consumer: (E) -> Unit) {
-        applicators[AnnotationUtil.getEventType(E::class)] =
+        applicators[AnnotationUtil.getSerializationId(E::class)] =
                 { a, e -> consumer(EventUpgrader.upgradeTo(e, E::class)); a }
     }
 
@@ -19,7 +19,7 @@ fun <A : Aggregate> A.withCurrentEventNumber(currentEventNumber: Long): A =
 
 @Suppress("UNCHECKED_CAST")
 fun <E : Event<A>, A : Aggregate> A.applyEvent(event: E, eventNumber: Long): A =
-        applicators[AnnotationUtil.getEventType(event::class)]
+        applicators[AnnotationUtil.getSerializationId(event::class)]
                 ?.invoke(this, event)
                 ?.withCurrentEventNumber(eventNumber) as A?
                 ?: this

@@ -10,7 +10,6 @@ import no.ks.kes.lib.testdomain.HiredEvent
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
-import kotlin.reflect.KClass
 
 class SagaManagerTest: StringSpec() {
 
@@ -18,7 +17,7 @@ class SagaManagerTest: StringSpec() {
         "test that an event with an initializer with conforming correlation id is initialized when the event arrives" {
             data class SomeSagaState(val someId: UUID)
 
-            @SagaName("foo")
+            @SerializationId("foo")
             class SomeSaga: Saga<SomeSagaState>(SomeSagaState::class){
                 init {
                     initOn<HiredEvent>({it.aggregateId}) { SomeSagaState(it.aggregateId) }
@@ -33,26 +32,23 @@ class SagaManagerTest: StringSpec() {
             )
 
             val subSlot = slot<(EventWrapper<*>) -> Unit>()
-            val sagaStateSlot = slot<SomeSagaState>()
+            val sagaStateSlot = slot<Set<SagaRepository.SagaUpsert.SagaInsert>>()
             val eventSubscriber = mockk<EventSubscriber>().apply { every { subscribe(capture(subSlot)) } returns Unit}
             val sagaRepository = mockk<SagaRepository>().apply {
-                every { update(any(), any()) } returns Unit
+                every { update(any(), capture(sagaStateSlot)) } returns Unit
                 every { getCurrentHwm() } returns 0L
             }
-            val sagaSerdes = mockk<SagaSerdes>().apply {
-                every { serialize(capture(sagaStateSlot)) } returns ByteArray(10)
-            }
 
-            SagaManager(eventSubscriber, sagaRepository, sagaSerdes, setOf(SomeSaga()))
+            SagaManager(eventSubscriber, sagaRepository, setOf(SomeSaga()))
             subSlot.captured.invoke(EventWrapper(event, 0L))
 
-            sagaStateSlot.captured.someId shouldBe event.aggregateId
+            sagaStateSlot.captured.single().newState shouldBe SomeSagaState(event.aggregateId)
         }
 
         "test that a handler in an initialized saga is invoked when the specified event with a conforming correlation-id arrives" {
             data class SomeSagaState(val someId: UUID, val accepted: Boolean = false)
 
-            @SagaName("foo")
+            @SerializationId("foo")
             class SomeSaga: Saga<SomeSagaState>(SomeSagaState::class){
                 init {
                     initOn<HiredEvent>({it.aggregateId}) { SomeSagaState(it.aggregateId) }
@@ -66,23 +62,19 @@ class SagaManagerTest: StringSpec() {
             )
 
             val subSlot = slot<(EventWrapper<*>) -> Unit>()
-            val sagaStateSlot = slot<SomeSagaState>()
+            val sagaStateSlot = slot<Set<SagaRepository.SagaUpsert.SagaUpdate>>()
             val eventSubscriber = mockk<EventSubscriber>().apply { every { subscribe(capture(subSlot)) } returns Unit}
             val sagaRepository = mockk<SagaRepository>().apply {
-                every { update(any(), any()) } returns Unit
+                every { update(any(), capture(sagaStateSlot)) } returns Unit
                 every { getCurrentHwm() } returns 0L
-                every { get(eq(event.aggregateId), "foo") } returns ByteArray(10)
-            }
-            val sagaSerdes = mockk<SagaSerdes>().apply {
-                every { deserialize(eq(ByteArray(10)), eq(SomeSagaState::class as KClass<Any>)) } returns SomeSagaState(event.aggregateId)
-                every { serialize(capture(sagaStateSlot)) } returns ByteArray(10)
+                every { getSagaState(eq(event.aggregateId), "foo", SomeSagaState::class) } returns SomeSagaState(event.aggregateId, false)
             }
 
-            SagaManager(eventSubscriber, sagaRepository, sagaSerdes, setOf(SomeSaga()))
+
+            SagaManager(eventSubscriber, sagaRepository, setOf(SomeSaga()))
             subSlot.captured.invoke(EventWrapper(event, 0L))
 
-            sagaStateSlot.captured.someId shouldBe event.aggregateId
-            sagaStateSlot.captured.accepted shouldBe true
+            sagaStateSlot.captured.single().newState shouldBe SomeSagaState(event.aggregateId, true)
         }
     }
 }

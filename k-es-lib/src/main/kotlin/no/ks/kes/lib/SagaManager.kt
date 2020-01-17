@@ -1,22 +1,22 @@
 package no.ks.kes.lib
 
-class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaRepository, sagaSerdes: SagaSerdes, sagas: Set<Saga<*>>) {
+class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaRepository, sagas: Set<Saga<*>>) {
     private val subscriptions = sagas
             .map { it.getConfiguration() }
             .flatMap { saga ->
                 saga.onEvents
                         .map { onEvent ->
                             onEvent.eventClass to { e: EventWrapper<Event<*>> ->
-                                sagaRepository.get(onEvent.correlationId(e), AnnotationUtil.getSagaType(saga.sagaClass))
+                                sagaRepository.getSagaState(onEvent.correlationId(e), AnnotationUtil.getSerializationId(saga.sagaClass), saga.stateClass)
                                         ?.let {
-                                            onEvent.handler.invoke(e, Saga.SagaContext(sagaSerdes.deserialize(it, saga.stateClass)))
+                                            onEvent.handler.invoke(e, Saga.SagaContext(it))
                                         }
                                         ?.let {
                                             if (it.first != null || it.second.isNotEmpty())
-                                                SagaRepository.NewSagaState(
+                                                SagaRepository.SagaUpsert.SagaUpdate(
                                                         correlationId = onEvent.correlationId(e),
-                                                        sagaSerializationId = AnnotationUtil.getSagaType(saga.sagaClass),
-                                                        data = if (it.first != null) sagaSerdes.serialize(it.first!!) else null,
+                                                        serializationId = AnnotationUtil.getSerializationId(saga.sagaClass),
+                                                        newState = it.first,
                                                         commands = it.second
                                                 )
                                             else
@@ -29,10 +29,10 @@ class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaReposito
                                     saga.initializer.handler(e, Saga.InitContext())
                                             .let {
                                                 if (it.first != null)
-                                                    SagaRepository.NewSagaState(
+                                                    SagaRepository.SagaUpsert.SagaInsert(
                                                             correlationId = saga.initializer.correlationId(e),
-                                                            sagaSerializationId = AnnotationUtil.getSagaType(saga.sagaClass),
-                                                            data = sagaSerdes.serialize(it.first!!),
+                                                            serializationId = AnnotationUtil.getSerializationId(saga.sagaClass),
+                                                            newState = it.first!!,
                                                             commands = it.second
                                                     )
                                                 else

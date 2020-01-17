@@ -26,7 +26,7 @@ class EsjcEventWriter(
                     events.map {
                         EventData.newBuilder()
                                 .jsonData(deserializer.serialize(it))
-                                .type(AnnotationUtil.getEventType(it::class))
+                                .type(AnnotationUtil.getSerializationId(it::class))
                                 .build()
                     })
                     .get().also {

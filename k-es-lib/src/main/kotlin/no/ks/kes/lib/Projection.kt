@@ -16,15 +16,15 @@ abstract class Projection {
 
     protected inline fun <reified E : Event<*>> onWrapper(crossinline consumer: (EventWrapper<E>) -> Any?) {
         @Suppress("UNCHECKED_CAST")
-        projectors[AnnotationUtil.getEventType(E::class)] = { e ->
+        projectors[AnnotationUtil.getSerializationId(E::class)] = { e ->
             consumer.invoke(e as EventWrapper<E>)
         }
     }
 
     fun accept(wrapper: EventWrapper<*>) {
-        projectors[AnnotationUtil.getEventType(wrapper.event::class)]
+        projectors[AnnotationUtil.getSerializationId(wrapper.event::class)]
                 ?.invoke(wrapper)
-        log.info("Event ${AnnotationUtil.getEventType(wrapper.event::class)} on aggregate ${wrapper.event.aggregateId} " +
+        log.info("Event ${AnnotationUtil.getSerializationId(wrapper.event::class)} on aggregate ${wrapper.event.aggregateId} " +
                 "received by projection ${this::class.simpleName}")
     }
 }

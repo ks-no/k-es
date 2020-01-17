@@ -16,7 +16,7 @@ class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
                                             .registerModule(KotlinModule())
 ) : EventSerdes {
     private val events = events
-            .map { AnnotationUtil.getEventType(it) to it }
+            .map { AnnotationUtil.getSerializationId(it) to it }
             .toMap()
 
     override fun deserialize(eventData: ByteArray, eventType: String): Event<*> =

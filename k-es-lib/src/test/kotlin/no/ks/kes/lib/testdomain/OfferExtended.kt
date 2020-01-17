@@ -1,12 +1,12 @@
 package no.ks.kes.lib.testdomain
 
 import no.ks.kes.lib.Event
-import no.ks.kes.lib.EventType
+import no.ks.kes.lib.SerializationId
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
-@EventType("AddedToPayroll")
+@SerializationId("AddedToPayroll")
 data class OfferExtended(
         override val aggregateId: UUID,
         val respondByDate: LocalDate,

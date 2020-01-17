@@ -1,18 +1,105 @@
 package no.ks.kes.sagajdbc
 
+import no.ks.kes.lib.AnnotationUtil
+import no.ks.kes.lib.CmdSerdes
 import no.ks.kes.lib.SagaRepository
+import no.ks.kes.lib.SagaStateSerdes
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.support.TransactionTemplate
 import java.util.*
+import javax.sql.DataSource
+import kotlin.reflect.KClass
 
-class JdbcSagaRepository : SagaRepository {
-    override fun get(correlationId: UUID, sagaSerializationId: String): ByteArray? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+object SagaTable {
+    val name = "saga";
+
+    val correlationId = "correlationId";
+    val serializationId = "serializationId";
+    val data = "data";
+}
+
+object CmdTable {
+    val name = "cmd";
+
+    val serializationId = "serializationId";
+    val data = "data";
+}
+
+object HwmTable {
+    val name = "hwm";
+
+    val hwm = "hwm"
+}
+
+class JdbcSagaRepository(
+        dataSource: DataSource,
+        private val transactionManager: PlatformTransactionManager,
+        private val sagaStateSerdes: SagaStateSerdes<String>,
+        private val cmdSerdes: CmdSerdes<String>
+) : SagaRepository {
+    private val template = NamedParameterJdbcTemplate(dataSource);
+
+    override fun <T : Any> getSagaState(correlationId: UUID, serializationId: String, sagaStateClass: KClass<T>): T? {
+        return template.queryForObject(
+                "SELECT ${SagaTable.correlationId} FROM ${SagaTable.name} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
+                mutableMapOf(
+                        SagaTable.correlationId to correlationId,
+                        SagaTable.serializationId to serializationId
+                ),
+                String::class.java
+        )
+                ?.let {
+                    sagaStateSerdes.deserialize(it, sagaStateClass)
+                }
     }
 
-    override fun getCurrentHwm(): Long {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun getCurrentHwm(): Long =
+            template.queryForObject(
+                    "SELECT ${HwmTable.hwm} FROM ${HwmTable.name}",
+                    mutableMapOf<String, Any>(),
+                    Long::class.java
+            ) ?: error("No hwm found in ${SagaTable.name}_HWM")
+
+    override fun update(hwm: Long, states: Set<SagaRepository.SagaUpsert>) {
+        TransactionTemplate(transactionManager).executeWithoutResult {
+            template.batchUpdate(
+                    "INSERT INTO ${SagaTable.name} (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data})",
+                    states.filterIsInstance<SagaRepository.SagaUpsert.SagaInsert>()
+                            .map {
+                                mutableMapOf(
+                                        SagaTable.correlationId to it.correlationId,
+                                        SagaTable.serializationId to it.serializationId,
+                                        SagaTable.data to sagaStateSerdes.serialize(it.newState))
+                            }
+                            .toTypedArray()
+            )
+
+            template.batchUpdate(
+                    "UPDATE ${SagaTable.name} SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} =: ${SagaTable.serializationId}",
+                    states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
+                            .filter { it.newState != null }
+                            .map {
+                                mutableMapOf(
+                                        SagaTable.correlationId to it.correlationId,
+                                        SagaTable.serializationId to it.serializationId,
+                                        SagaTable.data to sagaStateSerdes.serialize(it.newState!!))
+                            }
+                            .toTypedArray()
+            )
+
+            template.batchUpdate(
+                    "INSERT INTO ${CmdTable.name} (${CmdTable.serializationId}, ${CmdTable.data}) VALUES (:${CmdTable.serializationId}, :${CmdTable.data})",
+                    states.flatMap { it.commands }.map {
+                        mutableMapOf(
+                                CmdTable.serializationId to AnnotationUtil.getSerializationId(it::class),
+                                CmdTable.data to cmdSerdes.serialize(it))
+                    }
+                            .toTypedArray())
+
+            template.update("UPDATE ${HwmTable.name} SET ${HwmTable.hwm} = :${HwmTable.hwm}",
+                    mutableMapOf(HwmTable.hwm to hwm))
+        }
     }
 
-    override fun update(hwm: Long, states: Set<SagaRepository.NewSagaState>) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
 }
