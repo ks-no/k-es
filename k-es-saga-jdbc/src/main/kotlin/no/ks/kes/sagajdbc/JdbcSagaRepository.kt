@@ -5,40 +5,41 @@ import no.ks.kes.lib.CmdSerdes
 import no.ks.kes.lib.SagaRepository
 import no.ks.kes.lib.SagaStateSerdes
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import java.util.*
 import javax.sql.DataSource
 import kotlin.reflect.KClass
 
-object SagaTable {
-    val name = "saga";
+private object SagaTable {
+    val name = "saga"
 
-    val correlationId = "correlationId";
-    val serializationId = "serializationId";
-    val data = "data";
+    val correlationId = "correlationId"
+    val serializationId = "serializationId"
+    val data = "data"
 }
 
-object CmdTable {
-    val name = "cmd";
+private object CmdTable {
+    val name = "cmd"
 
-    val serializationId = "serializationId";
-    val data = "data";
+    val serializationId = "serializationId"
+    val data = "data"
 }
 
-object HwmTable {
-    val name = "hwm";
+private object HwmTable {
+    val name = "hwm"
 
     val hwm = "hwm"
 }
 
 class JdbcSagaRepository(
         dataSource: DataSource,
-        private val transactionManager: PlatformTransactionManager,
         private val sagaStateSerdes: SagaStateSerdes<String>,
         private val cmdSerdes: CmdSerdes<String>
 ) : SagaRepository {
-    private val template = NamedParameterJdbcTemplate(dataSource);
+    private val template = NamedParameterJdbcTemplate(dataSource)
+    private val transactionManager = DataSourceTransactionManager(dataSource)
 
     override fun <T : Any> getSagaState(correlationId: UUID, serializationId: String, sagaStateClass: KClass<T>): T? {
         return template.queryForObject(
@@ -64,7 +65,7 @@ class JdbcSagaRepository(
     override fun update(hwm: Long, states: Set<SagaRepository.SagaUpsert>) {
         TransactionTemplate(transactionManager).executeWithoutResult {
             template.batchUpdate(
-                    "INSERT INTO ${SagaTable.name} (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data})",
+                    "INSERT INTO ${SagaTable.name} (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, :${SagaTable.serializationId}, :${SagaTable.data})",
                     states.filterIsInstance<SagaRepository.SagaUpsert.SagaInsert>()
                             .map {
                                 mutableMapOf(
@@ -76,7 +77,7 @@ class JdbcSagaRepository(
             )
 
             template.batchUpdate(
-                    "UPDATE ${SagaTable.name} SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} =: ${SagaTable.serializationId}",
+                    "UPDATE ${SagaTable.name} SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
                     states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
                             .filter { it.newState != null }
                             .map {

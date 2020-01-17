@@ -46,6 +46,7 @@
         <mockk.version>1.9.3</mockk.version>
         <kotlintest-runner-junit.version>3.4.2</kotlintest-runner-junit.version>
         <jacoco-maven-plugin.version>0.8.5</jacoco-maven-plugin.version>
+        <junit.jupiter.version>5.5.2</junit.jupiter.version>
     </properties>
 
     <dependencyManagement>
@@ -55,7 +56,12 @@
                 <artifactId>k-es-lib</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
             <dependency>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-stdlib-jdk8</artifactId>
