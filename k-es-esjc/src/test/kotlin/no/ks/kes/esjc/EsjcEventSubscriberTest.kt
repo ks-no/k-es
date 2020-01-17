@@ -2,6 +2,7 @@ package no.ks.kes.esjc
 
 import com.github.msemys.esjc.CatchUpSubscriptionListener
 import com.github.msemys.esjc.EventStore
+import io.kotlintest.matchers.instanceOf
 import io.kotlintest.specs.StringSpec
 import io.mockk.mockk
 import io.mockk.verify
@@ -12,13 +13,12 @@ internal class EsjcEventSubscriberTest : StringSpec() {
     init {
         "Test that we correctly generate event subscriptions" {
             val hwm = ThreadLocalRandom.current().nextLong()
-            val listener = mockk<CatchUpSubscriptionListener>()
             val category = UUID.randomUUID().toString()
 
             val eventStoreMock = mockk<EventStore>(relaxed = true)
 
-            EsjcEventSubscriber(eventStoreMock).subscribeByCategory(category, hwm, listener)
-            verify(exactly = 1) { eventStoreMock.subscribeToStreamFrom("\$ce-$category", eq(hwm), any(), eq(listener)) }
+            EsjcEventSubscriber(eventStoreMock, hwm, category, mockk()).subscribe { run {} }
+            verify(exactly = 1) { eventStoreMock.subscribeToStreamFrom("\$ce-$category", eq(hwm), any(), ofType<CatchUpSubscriptionListener>()) }
         }
     }
 }

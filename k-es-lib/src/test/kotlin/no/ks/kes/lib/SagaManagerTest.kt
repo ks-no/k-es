@@ -1,14 +1,10 @@
-package no.ks.kes.sagajdbc
+package no.ks.kes.lib
 
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import no.ks.kes.lib.EventSubscriber
-import no.ks.kes.lib.EventWrapper
-import no.ks.kes.lib.Saga
-import no.ks.kes.lib.SagaName
 import no.ks.kes.lib.testdomain.ConfidentialityAgreementAccepted
 import no.ks.kes.lib.testdomain.HiredEvent
 import java.time.Instant
@@ -25,7 +21,7 @@ class SagaManagerTest: StringSpec() {
             @SagaName("foo")
             class SomeSaga: Saga<SomeSagaState>(SomeSagaState::class){
                 init {
-                    initOn<HiredEvent>({aggregateId}) { SomeSagaState(it.aggregateId) }
+                    initOn<HiredEvent>({it.aggregateId}) { SomeSagaState(it.aggregateId) }
                 }
             }
 
@@ -38,9 +34,10 @@ class SagaManagerTest: StringSpec() {
 
             val subSlot = slot<(EventWrapper<*>) -> Unit>()
             val sagaStateSlot = slot<SomeSagaState>()
-            val eventSubscriber = mockk<EventSubscriber>().apply { every { onEvent(capture(subSlot)) } returns Unit}
+            val eventSubscriber = mockk<EventSubscriber>().apply { every { subscribe(capture(subSlot)) } returns Unit}
             val sagaRepository = mockk<SagaRepository>().apply {
-                every { save(eq(event.aggregateId), "foo", eq(ByteArray(10))) } returns Unit
+                every { update(any(), any()) } returns Unit
+                every { getCurrentHwm() } returns 0L
             }
             val sagaSerdes = mockk<SagaSerdes>().apply {
                 every { serialize(capture(sagaStateSlot)) } returns ByteArray(10)
@@ -58,8 +55,8 @@ class SagaManagerTest: StringSpec() {
             @SagaName("foo")
             class SomeSaga: Saga<SomeSagaState>(SomeSagaState::class){
                 init {
-                    initOn<HiredEvent>({aggregateId}) { SomeSagaState(it.aggregateId) }
-                    on<ConfidentialityAgreementAccepted>({aggregateId}) { copy(accepted  = true)}
+                    initOn<HiredEvent>({it.aggregateId}) { SomeSagaState(it.aggregateId) }
+                    on<ConfidentialityAgreementAccepted>({it.aggregateId}) { state.copy(accepted  = true)}
                 }
             }
 
@@ -70,9 +67,10 @@ class SagaManagerTest: StringSpec() {
 
             val subSlot = slot<(EventWrapper<*>) -> Unit>()
             val sagaStateSlot = slot<SomeSagaState>()
-            val eventSubscriber = mockk<EventSubscriber>().apply { every { onEvent(capture(subSlot)) } returns Unit}
+            val eventSubscriber = mockk<EventSubscriber>().apply { every { subscribe(capture(subSlot)) } returns Unit}
             val sagaRepository = mockk<SagaRepository>().apply {
-                every { save(eq(event.aggregateId), "foo", eq(ByteArray(10))) } returns Unit
+                every { update(any(), any()) } returns Unit
+                every { getCurrentHwm() } returns 0L
                 every { get(eq(event.aggregateId), "foo") } returns ByteArray(10)
             }
             val sagaSerdes = mockk<SagaSerdes>().apply {

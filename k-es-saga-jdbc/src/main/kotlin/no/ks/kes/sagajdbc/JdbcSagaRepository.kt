@@ -1,13 +1,10 @@
 package no.ks.kes.sagajdbc
 
+import no.ks.kes.lib.SagaRepository
 import java.util.*
 
-class JdbcSagaRepository : SagaRepository{
+class JdbcSagaRepository : SagaRepository {
     override fun get(correlationId: UUID, sagaSerializationId: String): ByteArray? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun save(correlationId: UUID, sagaSerializationId: String, data: ByteArray) {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
@@ -15,8 +12,7 @@ class JdbcSagaRepository : SagaRepository{
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun updateHwm(eventNumber: Long) {
+    override fun update(hwm: Long, states: Set<SagaRepository.NewSagaState>) {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
-
 }

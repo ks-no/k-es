@@ -1,6 +1,8 @@
 package no.ks.kes.lib
 
 interface EventSubscriber {
-     fun subscribe(fromEvent: Long, consumer: (EventWrapper<Event<*>>) -> Unit)
+     fun subscribe(consumer: (EventWrapper<Event<*>>) -> Unit)
+     fun onClose(handler: (Exception) ->  Unit)
+     fun onLive(handler: () -> Unit)
 
 }

@@ -1,4 +1,5 @@
-package no.ks.kes.esjc
+/*
+package no.ks.kes.lib
 
 import com.github.msemys.esjc.ResolvedEvent
 import com.github.msemys.esjc.proto.EventStoreClientMessages
@@ -35,7 +36,7 @@ internal class EsjcEventProjectorTest : StringSpec() {
                     .setMetadataContentType(1)
                     .build()
 
-            EsjcEventListener(serdes, setOf(startDatesProjection), { }, { _, _ -> }).onEvent(mockk(), ResolvedEvent(EventStoreClientMessages.ResolvedIndexedEvent.newBuilder()
+            EsjcProjectionManager(serdes, setOf(startDatesProjection), { }, { _, _ -> }).onEvent(mockk(), ResolvedEvent(EventStoreClientMessages.ResolvedIndexedEvent.newBuilder()
                     .setLink(hired)
                     .setEvent(hired)
                     .build()))
@@ -43,4 +44,4 @@ internal class EsjcEventProjectorTest : StringSpec() {
             startDatesProjection.getStartDate(event.aggregateId) shouldBe event.startDate
         }
     }
-}
+}*/

@@ -9,13 +9,13 @@ import no.ks.kes.lib.EventWrapper
 
 private val log = KotlinLogging.logger {}
 
-class EsjcEventSubscriber(private val eventStore: EventStore, private val category: String, private val hwm: Long, private val serdes: EventSerdes): EventSubscriber {
+class EsjcEventSubscriber(private val eventStore: EventStore, private val fromEvent: Long, private val category: String,  private val serdes: EventSerdes): EventSubscriber {
     override fun subscribe(consumer: (EventWrapper<Event<*>>) -> Unit) {
         eventStore.subscribeToStreamFrom(
                 "\$ce-$category",
-                hwm,
+                fromEvent,
                 CatchUpSubscriptionSettings.newBuilder().resolveLinkTos(true).build()
-        ) { subscription, resolvedEvent ->
+        ) { _, resolvedEvent ->
             when {
                 !resolvedEvent.isResolved ->
                     log.info("Event not resolved: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}")
@@ -32,7 +32,17 @@ class EsjcEventSubscriber(private val eventStore: EventStore, private val catego
             }
 
         }.also {
-            log.info("Subscription initiated from event number $hwm on category projection $category")
+            log.info("Subscription initiated from event number $fromEvent on category projection $category")
         }!!
     }
+
+    override fun onClose(handler: (Exception) -> Unit) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun onLive(handler: () -> Unit) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+
 }

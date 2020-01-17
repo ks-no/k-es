@@ -1,4 +1,4 @@
-package no.ks.kes.sagajdbc
+package no.ks.kes.lib
 
 import kotlin.reflect.KClass
 

@@ -24,8 +24,8 @@ class SagaTest : StringSpec() {
 
             val saga = object : Saga<SomeState>(SomeState::class) {
                 init {
-                    initOn<HiredEvent>({aggregateId}) {SomeState(it.aggregateId)}
-                    initOn<ConfidentialityAgreementRejected>({aggregateId}) {SomeState(it.aggregateId)}
+                    initOn<HiredEvent>({it.aggregateId}) {SomeState(it.aggregateId)}
+                    initOn<ConfidentialityAgreementRejected>({it.aggregateId}) {SomeState(it.aggregateId)}
                 }
             }
             shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
@@ -39,8 +39,8 @@ class SagaTest : StringSpec() {
 
             val saga = object : Saga<SomeState>(SomeState::class) {
                 init {
-                    initOn<HiredEvent>({aggregateId}) {SomeState(it.aggregateId)}
-                    on<HiredEvent>({aggregateId}) {copy()}
+                    initOn<HiredEvent>({it.aggregateId}) {SomeState(it.aggregateId)}
+                    on<HiredEvent>({it.aggregateId}) {state.copy()}
                 }
             }
             shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
@@ -54,36 +54,14 @@ class SagaTest : StringSpec() {
 
             val saga = object : Saga<SomeState>(SomeState::class) {
                 init {
-                    initOn<HiredEvent>({aggregateId}) {SomeState(it.aggregateId)}
-                    on<ConfidentialityAgreementRejected>({aggregateId}) {e, c -> copy()}
-                    on<ConfidentialityAgreementRejected>({aggregateId}) {copy()}
-                }
-            }
-            shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
-                message shouldContain  "Please remove duplicates"
-            }
-
-        }
-
-        "test that creating a saga with multiple handlers for same event throws exception" {
-            data class SomeState(val id: UUID)
-
-            val saga = object : Saga<SomeState>(SomeState::class) {
-                init {
-                    initOn<HiredEvent>({aggregateId}) {SomeState(it.aggregateId)}
-                    on<ConfidentialityAgreementRejected>({it.aggregateId}) {
-                        if (state.id == UUID.randomUUID())
-                            commands.add(SendConfidentialityAgreement(it.aggregateId))
-                        state.copy()
-                    }
+                    initOn<HiredEvent>({it.aggregateId}) {SomeState(it.aggregateId)}
+                    on<ConfidentialityAgreementRejected>({it.aggregateId}) {state.copy()}
                     on<ConfidentialityAgreementRejected>({it.aggregateId}) {state.copy()}
                 }
             }
             shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
                 message shouldContain  "Please remove duplicates"
             }
-
         }
-
     }
 }
