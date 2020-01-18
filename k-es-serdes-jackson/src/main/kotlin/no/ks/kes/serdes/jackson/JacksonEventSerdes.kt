@@ -1,4 +1,4 @@
-package no.ks.kes.esjc.jackson
+package no.ks.kes.serdes.jackson
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
@@ -14,12 +14,12 @@ class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
                                             .registerModule(Jdk8Module())
                                             .registerModule(JavaTimeModule())
                                             .registerModule(KotlinModule())
-) : EventSerdes {
+) : EventSerdes<String> {
     private val events = events
             .map { AnnotationUtil.getSerializationId(it) to it }
             .toMap()
 
-    override fun deserialize(eventData: ByteArray, eventType: String): Event<*> =
+    override fun deserialize(eventData: String, eventType: String): Event<*> =
             try {
                 objectMapper.readValue(
                         eventData,
@@ -30,9 +30,9 @@ class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
                 throw  RuntimeException("Error during deserialization of eventType $eventType", e)
             }
 
-    override fun serialize(event: Event<*>): ByteArray =
+    override fun serialize(event: Event<*>): String =
             try {
-                objectMapper.writeValueAsBytes(event)
+                String(objectMapper.writeValueAsBytes(event))
             } catch (e: Exception) {
                 throw RuntimeException("Error during serialization of event: $event")
             }

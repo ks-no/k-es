@@ -43,7 +43,7 @@ class JdbcSagaRepository(
 
     override fun <T : Any> getSagaState(correlationId: UUID, serializationId: String, sagaStateClass: KClass<T>): T? {
         return template.queryForObject(
-                "SELECT ${SagaTable.correlationId} FROM ${SagaTable.name} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
+                "SELECT ${SagaTable.data} FROM ${SagaTable.name} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
                 mutableMapOf(
                         SagaTable.correlationId to correlationId,
                         SagaTable.serializationId to serializationId

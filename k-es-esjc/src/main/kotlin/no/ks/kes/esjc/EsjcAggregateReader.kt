@@ -11,7 +11,7 @@ private const val BATCH_SIZE = 100
 
 class EsjcAggregateReader(
         private val eventStore: EventStore,
-        private val deserializer: EventSerdes,
+        private val deserializer: EventSerdes<String>,
         private val esjcStreamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String
 ) : AggregateReader {
     override fun <A : Aggregate> read(aggregateId: UUID, aggregate: A): A =
@@ -26,7 +26,7 @@ class EsjcAggregateReader(
                         .filter { !EsjcEventUtil.isIgnorableEvent(it) }
                         .fold(aggregate, { a, e ->
                             @Suppress("UNCHECKED_CAST")
-                            a.applyEvent(deserializer.deserialize(e.event.data, e.event.eventType) as Event<A>, e.event.eventNumber)
+                            a.applyEvent(deserializer.deserialize(String(e.event.data), e.event.eventType) as Event<A>, e.event.eventNumber)
                         })
             } catch (e: StreamNotFoundException) {
                 aggregate.withCurrentEventNumber(-1)

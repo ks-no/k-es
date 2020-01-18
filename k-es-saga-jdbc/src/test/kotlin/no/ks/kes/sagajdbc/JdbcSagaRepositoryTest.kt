@@ -4,6 +4,8 @@ import io.mockk.every
 import io.mockk.mockk
 import no.ks.kes.lib.SagaRepository
 import no.ks.kes.lib.SagaStateSerdes
+import no.ks.kes.serdes.jackson.JacksonSagaStateSerdes
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.zapodot.junit.db.annotations.EmbeddedDatabase
 import org.zapodot.junit.db.annotations.EmbeddedDatabaseTest
@@ -14,18 +16,23 @@ import javax.sql.DataSource
 @EmbeddedDatabaseTest(
         engine = Engine.H2,
         initialSqls = [
-            "CREATE TABasdfaLE saga(serializationId VARCHAR(512), correlationId VARCHAR(512), data VARCHAR)",
+            "CREATE TABLE saga(serializationId VARCHAR(512), correlationId VARCHAR(512), data VARCHAR)",
             "CREATE TABLE hwm(hwm BIGINT)"
         ]
 )
 class JdbcSagaRepositoryTest{
+    data class SomeState(val aggregateId: UUID)
 
     @Test
     internal fun name(@EmbeddedDatabase dataSource: DataSource) {
-        data class SomeState(val aggregateId: UUID)
+        val repo = JdbcSagaRepository(dataSource, JacksonSagaStateSerdes(), mockk())
+        val correlationId = UUID.randomUUID()
+        val serializationId = "foo"
+        val sagaState = SomeState(UUID.randomUUID())
+        repo.update(1L, setOf(SagaRepository.SagaUpsert.SagaInsert(correlationId, serializationId, sagaState, emptyList())))
+        repo.getSagaState(correlationId, serializationId, SomeState::class)!!
+                .apply { assertEquals(sagaState, this )
+        }
 
-        val sagaStateSerdes = mockk<SagaStateSerdes<String>>().apply { every { serialize(any()) } returns "{\"aggregateId\": \"737aff2e-8cf2-4cbb-819c-f9e3f4d3b0f2\"}" }
-        val repo = JdbcSagaRepository(dataSource, sagaStateSerdes, mockk())
-        repo.update(1L, setOf(SagaRepository.SagaUpsert.SagaInsert(UUID.randomUUID(), "foo", SomeState(UUID.randomUUID()), emptyList())))
     }
 }

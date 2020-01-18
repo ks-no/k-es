@@ -4,10 +4,7 @@ import com.github.msemys.esjc.EventData
 import com.github.msemys.esjc.EventStore
 import com.github.msemys.esjc.ExpectedVersion
 import mu.KotlinLogging
-import no.ks.kes.lib.Event
-import no.ks.kes.lib.EventSerdes
-import no.ks.kes.lib.AnnotationUtil
-import no.ks.kes.lib.EventWriter
+import no.ks.kes.lib.*
 import java.util.*
 
 private val log = KotlinLogging.logger {}
@@ -15,7 +12,7 @@ private val log = KotlinLogging.logger {}
 class EsjcEventWriter(
         private val eventStore: EventStore,
         private val streamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String,
-        private val deserializer: EventSerdes
+        private val deserializer: EventSerdes<String>
 ) : EventWriter {
     override fun write(aggregateType: String, aggregateId: UUID, expectedEventNumber: Long, events: List<Event<*>>, useOptimisticLocking: Boolean) {
         val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)

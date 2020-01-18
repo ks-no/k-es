@@ -10,8 +10,8 @@ import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import no.ks.kes.esjc.jackson.JacksonEventSerdes
 import no.ks.kes.esjc.testdomain.HiredEvent
+import no.ks.kes.lib.EventSerdes
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
@@ -35,13 +35,13 @@ internal class EsjcEventWriterTest : StringSpec() {
                         CompletableFuture.completedFuture(WriteResult(0, Position(0L, 0L)))
             }
 
-            val serdes = JacksonEventSerdes(setOf(HiredEvent::class))
-            val esjcEventWriter = EsjcEventWriter(eventStoreMock, { t: String, id: UUID -> "ks.fiks.$t.$id" }, serdes)
+            val deserializer = mockk<EventSerdes<String>>().apply { every { serialize(event) } returns "hired"}
+            val esjcEventWriter = EsjcEventWriter(eventStoreMock, { t: String, id: UUID -> "ks.fiks.$t.$id" }, deserializer)
 
             esjcEventWriter.write(eventAggregateType, event.aggregateId, 0L, listOf(event), true)
 
             with(capturedEventData.captured.single()) {
-                this.data!!.contentEquals(serdes.serialize(event)) shouldBe true
+                this.data!! contentEquals  "foo".toByteArray()
                 isJsonData shouldBe true
                 type shouldBe "Hired"
                 eventId shouldNotBe null
