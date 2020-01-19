@@ -12,26 +12,7 @@ import java.util.*
 import javax.sql.DataSource
 import kotlin.reflect.KClass
 
-private object SagaTable {
-    val name = "saga"
 
-    val correlationId = "correlationId"
-    val serializationId = "serializationId"
-    val data = "data"
-}
-
-private object CmdTable {
-    val name = "cmd"
-
-    val serializationId = "serializationId"
-    val data = "data"
-}
-
-private object HwmTable {
-    val name = "hwm"
-
-    val hwm = "hwm"
-}
 
 class JdbcSagaRepository(
         dataSource: DataSource,
