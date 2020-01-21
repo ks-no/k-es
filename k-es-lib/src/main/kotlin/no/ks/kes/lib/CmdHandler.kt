@@ -83,6 +83,7 @@ abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, privat
     data class InitOnCmd<A : Aggregate>(val cmdClass: KClass<Cmd<A>>, val handler: (c: Cmd<A>) -> Result<A>)
 
     sealed class Result<A : Aggregate>(val exception: Exception?) {
+        
         class Fail<A : Aggregate> private constructor(exception: Exception, val events: List<Event<A>>) : Result<A>(exception) {
             constructor(event: Event<A>, exception: Exception) : this(exception, listOf(event))
             constructor(events: List<Event<A>>, exception: Exception) : this(exception, events)

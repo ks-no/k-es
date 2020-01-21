@@ -4,7 +4,7 @@ import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import no.ks.kes.lib.testdomain.Employee
 import no.ks.kes.lib.testdomain.HiredEvent
-import no.ks.kes.lib.testdomain.StartDateChangedEvent
+import no.ks.kes.lib.testdomain.StartDateChanged
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
@@ -35,7 +35,7 @@ internal class AggregateTest : StringSpec() {
                     timestamp = Instant.now(),
                     recruitedBy = UUID.randomUUID())
 
-            val startDateChangedEvent = StartDateChangedEvent(
+            val startDateChangedEvent = StartDateChanged(
                     aggregateId = UUID.randomUUID(),
                     newStartDate = LocalDate.now(),
                     timestamp = Instant.now())

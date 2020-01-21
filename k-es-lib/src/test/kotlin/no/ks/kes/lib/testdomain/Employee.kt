@@ -1,7 +1,6 @@
 package no.ks.kes.lib.testdomain
 
 import no.ks.kes.lib.Aggregate
-import no.ks.kes.lib.Cmd
 import java.time.LocalDate
 import java.util.*
 
@@ -18,7 +17,7 @@ class Employee : Aggregate() {
             startDate = it.startDate
         }
 
-        on<StartDateChangedEvent> {
+        on<StartDateChanged> {
             startDate = it.newStartDate
         }
     }

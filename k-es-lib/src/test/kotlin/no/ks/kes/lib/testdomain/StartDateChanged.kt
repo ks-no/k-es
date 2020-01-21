@@ -7,4 +7,4 @@ import java.time.LocalDate
 import java.util.*
 
 @SerializationId("StartDatePushedBack")
-data class StartDateChangedEvent(override val aggregateId: UUID, val newStartDate: LocalDate, override val timestamp: Instant) : Event<Employee>
+data class StartDateChanged(override val aggregateId: UUID, val newStartDate: LocalDate, override val timestamp: Instant) : Event<Employee>
