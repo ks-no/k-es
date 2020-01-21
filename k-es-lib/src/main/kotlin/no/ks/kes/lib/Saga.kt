@@ -8,7 +8,6 @@ private val log = KotlinLogging.logger {}
 
 abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>) {
 
-
     protected var initializer: MutableList<Initializer<*, STATE>> = mutableListOf()
     protected val onEvents: MutableList<OnEvent<*, STATE>> = mutableListOf()
 
@@ -21,7 +20,7 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>) {
         when {
             initializer.isEmpty() -> error("No \"initOn\" defined in saga ${this::class.simpleName}. Please define an initializer")
             initializer.size > 1 -> error("Multiple \"initOn\" in saga ${this::class.simpleName}. Please specify a single initializer")
-            onEvents.isEmpty() -> log.warn {"No handlers specified in saga ${this::class.simpleName}. Consider adding some?"}
+            onEvents.isEmpty() -> log.warn { "No handlers specified in saga ${this::class.simpleName}. Consider adding some?" }
             duplicateEvents.isNotEmpty() -> error("The following events occur multiple times in the \"initOn\" or \"on\" specification in saga ${this::class.simpleName}. Please remove duplicates")
         }
 
@@ -42,19 +41,23 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>) {
 
     @Suppress("UNCHECKED_CAST")
     protected inline fun <reified E : Event<*>> initOnWrapper(crossinline correlationId: (EventWrapper<E>) -> UUID, noinline handler: InitContext.(EventWrapper<E>) -> STATE?) {
-            initializer.add(Initializer(E::class as KClass<Event<*>>, { correlationId.invoke(it as EventWrapper<E>) }, { e, p -> handler.invoke(p, e as EventWrapper<E>) to p.commands }))
+        initializer.add(Initializer(E::class as KClass<Event<*>>, { correlationId.invoke(it as EventWrapper<E>) }, { e, p -> handler.invoke(p, e as EventWrapper<E>) to p.commands }))
     }
 
     protected inline fun <reified E : Event<*>> onWrapper(crossinline correlationId: EventWrapper<E>.() -> UUID, crossinline handler: SagaContext<STATE>.(EventWrapper<E>) -> STATE?) {
-        onEvents.add(OnEvent(E::class, { correlationId.invoke(it) }, { e, p -> handler.invoke(p, e) to p.commands}))
+        onEvents.add(OnEvent(E::class, { correlationId.invoke(it) }, { e, p -> handler.invoke(p, e) to p.commands }))
     }
 
-    data class OnEvent<E : Event<*>, S: Any>(val eventClass: KClass<E>, val correlationId: (EventWrapper<E>) -> UUID, val handler: (e: EventWrapper<E>, s: SagaContext<S>) -> Pair<S?, List<Cmd<*>>>)
+    data class OnEvent<E : Event<*>, S : Any>(val eventClass: KClass<E>, val correlationId: (EventWrapper<E>) -> UUID, val handler: (e: EventWrapper<E>, s: SagaContext<S>) -> Pair<S?, List<Cmd<*>>>)
     data class Initializer<E : Event<*>, S>(val eventClass: KClass<E>, val correlationId: (EventWrapper<E>) -> UUID, val handler: (e: EventWrapper<E>, InitContext) -> Pair<S?, List<Cmd<*>>>)
 
-    data class SagaConfiguration<SAGA: Saga<*>>(val sagaClass: KClass<SAGA>, val stateClass: KClass<Any>, val initializer: Initializer<Event<*>, Any?>, val onEvents: Set<OnEvent<Event<*>, Any>>)
+    data class SagaConfiguration<SAGA : Saga<*>>(val sagaClass: KClass<SAGA>, val stateClass: KClass<Any>, val initializer: Initializer<Event<*>, Any?>, val onEvents: Set<OnEvent<Event<*>, Any>>)
 
-    class SagaContext<S: Any>(val state: S){ val commands = mutableListOf<Cmd<*>>() }
+    class SagaContext<S : Any>(val state: S) {
+        val commands = mutableListOf<Cmd<*>>()
+    }
 
-    class InitContext { val commands = mutableListOf<Cmd<*>>() }
+    class InitContext {
+        val commands = mutableListOf<Cmd<*>>()
+    }
 }

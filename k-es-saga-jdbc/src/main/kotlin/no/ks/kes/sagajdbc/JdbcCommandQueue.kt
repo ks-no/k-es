@@ -3,7 +3,6 @@ package no.ks.kes.sagajdbc
 import mu.KotlinLogging
 import no.ks.kes.lib.Cmd
 import no.ks.kes.lib.CmdHandler
-import no.ks.kes.lib.CmdSerdes
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
@@ -44,7 +43,7 @@ abstract class JdbcCommandQueue(dataSource: DataSource, cmdHandlers: List<CmdHan
     protected abstract fun delete(cmdId: Long)
     protected abstract fun incrementAndSetError(cmdId: Long, errorId: UUID)
     protected abstract fun incrementAndSetNextExecution(cmdId: Long, nextExecution: Instant)
-    protected abstract  fun nextCmd(): CmdWrapper<Cmd<*>>?
+    protected abstract fun nextCmd(): CmdWrapper<Cmd<*>>?
 
 }
 

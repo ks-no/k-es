@@ -8,9 +8,4 @@ object AnnotationUtil {
             event.findAnnotation<SerializationId>()
                     ?.value
                     ?: error("The class ${event.simpleName} is not annotated with @SerializationId")
-
-    fun <T : Any> getAggregateType(event: KClass<T>): String =
-            event.findAnnotation<AggregateType>()
-                    ?.value
-                    ?: error("The class ${event.simpleName} is not annotated with @AggregateType")
 }

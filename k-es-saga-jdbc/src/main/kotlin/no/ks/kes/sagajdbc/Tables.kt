@@ -18,7 +18,6 @@ object CmdTable {
     val serializationId = "serializationId"
     val error = "error"
     val errorId = "errorId"
-
     val data = "data"
 }
 

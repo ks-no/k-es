@@ -2,13 +2,13 @@ package no.ks.kes.lib
 
 import java.time.Instant
 
-class RetryResponse<A: Aggregate> {
-    constructor(failedEvent: Event<A>){
+class RetryResponse<A : Aggregate> {
+    constructor(failedEvent: Event<A>) {
         this.failedEvent = failedEvent
         nextExecution = null
     }
 
-    constructor(nextExecution: Instant){
+    constructor(nextExecution: Instant) {
         failedEvent = null
         this.nextExecution = nextExecution
     }

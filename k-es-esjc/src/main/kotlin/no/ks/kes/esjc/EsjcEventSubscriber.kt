@@ -1,6 +1,7 @@
 package no.ks.kes.esjc
 
-import com.github.msemys.esjc.*
+import com.github.msemys.esjc.CatchUpSubscriptionSettings
+import com.github.msemys.esjc.EventStore
 import mu.KotlinLogging
 import no.ks.kes.lib.Event
 import no.ks.kes.lib.EventSerdes
@@ -9,7 +10,7 @@ import no.ks.kes.lib.EventWrapper
 
 private val log = KotlinLogging.logger {}
 
-class EsjcEventSubscriber(private val eventStore: EventStore, private val fromEvent: Long, private val category: String,  private val serdes: EventSerdes<String>): EventSubscriber {
+class EsjcEventSubscriber(private val eventStore: EventStore, private val fromEvent: Long, private val category: String, private val serdes: EventSerdes<String>) : EventSubscriber {
     override fun subscribe(consumer: (EventWrapper<Event<*>>) -> Unit) {
         eventStore.subscribeToStreamFrom(
                 "\$ce-$category",
@@ -22,9 +23,9 @@ class EsjcEventSubscriber(private val eventStore: EventStore, private val fromEv
                 EsjcEventUtil.isIgnorableEvent(resolvedEvent) ->
                     log.info("Event ignored: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}")
                 else ->
-                        consumer.invoke(EventWrapper(
-                                event = serdes.deserialize(String(resolvedEvent.event.data), resolvedEvent.event.eventType),
-                                eventNumber = resolvedEvent.originalEventNumber()))
+                    consumer.invoke(EventWrapper(
+                            event = serdes.deserialize(String(resolvedEvent.event.data), resolvedEvent.event.eventType),
+                            eventNumber = resolvedEvent.originalEventNumber()))
                             .also {
                                 log.info("Event ${resolvedEvent.originalEventNumber()}@${resolvedEvent.originalStreamId()}: " +
                                         "${resolvedEvent.event.eventType}(${resolvedEvent.event.eventId}) received")

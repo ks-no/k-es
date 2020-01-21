@@ -22,8 +22,8 @@ class ProjectionManager(
                     .also { hwmUpdater.invoke(wrapper.eventNumber) }
         }
 
-        eventSubscriber.onClose {this.onClose.invoke(it)}
-        eventSubscriber.onLive {projections.forEach { it.onLive() }}
+        eventSubscriber.onClose { this.onClose.invoke(it) }
+        eventSubscriber.onLive { projections.forEach { it.onLive() } }
     }
 
 }

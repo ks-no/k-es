@@ -3,6 +3,7 @@ package no.ks.kes.lib
 import mu.KotlinLogging
 import java.time.Instant
 import kotlin.reflect.KClass
+
 private val log = KotlinLogging.logger {}
 
 abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, private val reader: AggregateReader) {
@@ -28,7 +29,8 @@ abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, privat
                 throw result.exception!!
             is Result.Succeed<A> -> {
                 write(aggregate ?: initAggregate(), cmd, result.events)
-                return result.events.fold(aggregate ?: initAggregate()) { a: A, e: Event<A> -> a.applyEvent(e, Long.MIN_VALUE) }
+                return result.events.fold(aggregate
+                        ?: initAggregate()) { a: A, e: Event<A> -> a.applyEvent(e, Long.MIN_VALUE) }
             }
         }
     }
@@ -37,13 +39,13 @@ abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, privat
         val aggregate = readAggregate(cmd as Cmd<A>)
 
         return when (val result = invokeHandler(cmd, aggregate)) {
-            is Result.Fail<A> ->  {
+            is Result.Fail<A> -> {
                 log.error("asdf", result.exception!!); AsyncResult.Fail
             }
             is Result.RetryOrFail<A> -> {
                 val nextExecution = result.retryStrategy.invoke(retryNumber)
                 log.error("asdf", result.exception!!)
-                if (nextExecution == null){
+                if (nextExecution == null) {
                     write(aggregate ?: initAggregate(), cmd, result.events)
                     AsyncResult.Fail
                 } else {
@@ -64,18 +66,18 @@ abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, privat
     private fun readAggregate(cmd: Cmd<A>): A? = reader.read(cmd.aggregateId, initAggregate())
 
     private fun invokeHandler(cmd: Cmd<A>, aggregate: A?): Result<A> =
-        if (aggregate == null){
-          initializers.singleOrNull{it.cmdClass == cmd::class}
-                  ?.handler
-                  ?.invoke(cmd)
-                  ?: error("Aggregate ${cmd.aggregateId} does not exist, and no handler found for cmd ${cmd::class.simpleName}")
-        } else {
-            handlers
-                    .singleOrNull { it.cmdClass == cmd::class }
-                    ?.handler
-                    ?.invoke(aggregate, cmd)
-                    ?: error("No handler found for cmd ${cmd::class.simpleName}")
-        }
+            if (aggregate == null) {
+                initializers.singleOrNull { it.cmdClass == cmd::class }
+                        ?.handler
+                        ?.invoke(cmd)
+                        ?: error("Aggregate ${cmd.aggregateId} does not exist, and no handler found for cmd ${cmd::class.simpleName}")
+            } else {
+                handlers
+                        .singleOrNull { it.cmdClass == cmd::class }
+                        ?.handler
+                        ?.invoke(aggregate, cmd)
+                        ?: error("No handler found for cmd ${cmd::class.simpleName}")
+            }
 
     abstract fun initAggregate(): A
 
@@ -83,7 +85,7 @@ abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, privat
     data class InitOnCmd<A : Aggregate>(val cmdClass: KClass<Cmd<A>>, val handler: (c: Cmd<A>) -> Result<A>)
 
     sealed class Result<A : Aggregate>(val exception: Exception?) {
-        
+
         class Fail<A : Aggregate> private constructor(exception: Exception, val events: List<Event<A>>) : Result<A>(exception) {
             constructor(event: Event<A>, exception: Exception) : this(exception, listOf(event))
             constructor(events: List<Event<A>>, exception: Exception) : this(exception, events)
@@ -104,10 +106,10 @@ abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, privat
         }
     }
 
-    sealed class AsyncResult{
+    sealed class AsyncResult {
         object Success : AsyncResult()
-        object Fail: AsyncResult()
-        class Retry(val nextExecution: Instant): AsyncResult()
+        object Fail : AsyncResult()
+        class Retry(val nextExecution: Instant) : AsyncResult()
     }
 
 }
