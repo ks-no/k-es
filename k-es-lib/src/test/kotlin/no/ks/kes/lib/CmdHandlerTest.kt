@@ -1,87 +1,46 @@
 package no.ks.kes.lib
 
-import io.kotlintest.matchers.string.shouldContain
 import io.kotlintest.shouldBe
-import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.slot
 import no.ks.kes.lib.testdomain.Employee
-import no.ks.kes.lib.testdomain.HireCmd
+import no.ks.kes.lib.testdomain.HiredEvent
+import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
 internal class CmdHandlerTest : StringSpec() {
 
     init {
-        "Test that we can apply a cmd to a uninitialized aggregate, and that the derived state is returned" {
+        "Test that a cmd can initialize an aggregate, and that the derived state is returned" {
+            data class HireCmd(override val aggregateId: UUID, val startDate: LocalDate) : Cmd<Employee>
+
             val hireCmd = HireCmd(
                     aggregateId = UUID.randomUUID(),
                     startDate = LocalDate.now()
             )
 
             val readerMock = mockk<AggregateReader>().apply {
-                every { read(hireCmd.aggregateId, ofType(Employee::class)) } returns Employee()
+                every { read(hireCmd.aggregateId, ofType(Employee::class)) } returns null
             }
 
             val writer = mockk<EventWriter>().apply {
                 every { write("employee", hireCmd.aggregateId, 0, any(), true) } returns
                         Unit
             }
-            CmdHandler(writer, readerMock)
-                    .handle(hireCmd).apply {
-                        aggregateId shouldBe hireCmd.aggregateId
-                        startDate shouldBe hireCmd.startDate
+
+            class EmployeeCmdHandler() : CmdHandler<Employee>(writer, readerMock) {
+                override fun initAggregate(): Employee = Employee()
+
+                init {
+                    initOn<HireCmd> {
+                        Result.Succeed(HiredEvent(it.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()))
                     }
-
-        }
-
-        "Test that the cmd handler throws an exception if invariants specified in the cmd are not met" {
-            val hireCmd = HireCmd(
-                    aggregateId = UUID.randomUUID(),
-                    startDate = LocalDate.now()
-            )
-
-            val readerMock = mockk<AggregateReader>().apply {
-                every { read(hireCmd.aggregateId, ofType(Employee::class)) } returns Employee().apply { aggregateId = UUID.randomUUID() }
+                }
             }
 
-            shouldThrow<IllegalStateException> {
-                CmdHandler(mockk(), readerMock)
-                        .handle(hireCmd)
-            }
-                    .message shouldContain "The employee has already been created!"
-        }
-
-        "Test that the new aggregate state is applied to the event-writer"{
-            val hireCmd = HireCmd(
-                    aggregateId = UUID.randomUUID(),
-                    startDate = LocalDate.now()
-            )
-
-            val readerMock = mockk<AggregateReader>().apply {
-                every { read(hireCmd.aggregateId, ofType(Employee::class)) } returns Employee()
-            }
-
-            val writenEventsCapture = slot<List<Event<Employee>>>()
-            val writerMock = mockk<EventWriter>().apply {
-                every {
-                    write(
-                            aggregateType = "employee",
-                            aggregateId = hireCmd.aggregateId,
-                            expectedEventNumber = 0,
-                            events = capture(writenEventsCapture),
-                            useOptimisticLocking = true
-                    )
-                } returns Unit
-            }
-
-            CmdHandler(writerMock, readerMock)
-                    .handle(hireCmd).apply {
-                        aggregateId shouldBe hireCmd.aggregateId
-                        startDate shouldBe hireCmd.startDate
-                    }
+            EmployeeCmdHandler().handle(hireCmd).apply { aggregateId shouldBe hireCmd.aggregateId }
         }
     }
 }

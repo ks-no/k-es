@@ -5,7 +5,6 @@ import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
 import no.ks.kes.lib.testdomain.ConfidentialityAgreementRejected
 import no.ks.kes.lib.testdomain.HiredEvent
-import no.ks.kes.lib.testdomain.SendConfidentialityAgreement
 import java.util.*
 
 class SagaTest : StringSpec() {

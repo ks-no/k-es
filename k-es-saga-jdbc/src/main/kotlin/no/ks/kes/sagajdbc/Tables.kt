@@ -1,7 +1,7 @@
 package no.ks.kes.sagajdbc
 
 object SagaTable {
-    val name = "saga"
+    override fun toString(): String = "Saga"
 
     val correlationId = "correlationId"
     val serializationId = "serializationId"
@@ -9,15 +9,20 @@ object SagaTable {
 }
 
 object CmdTable {
-    val name = "cmd"
+    override fun toString(): String = "cmd"
 
     val id = "id"
+    val aggregateId = "aggregateId"
+    val nextExecution = "nextExecution"
+    val retries = "retries"
+    val failed = "failed"
     val serializationId = "serializationId"
+
     val data = "data"
 }
 
 object HwmTable {
-    val name = "hwm"
+    override fun toString(): String = "hwm"
 
     val hwm = "hwm"
 }

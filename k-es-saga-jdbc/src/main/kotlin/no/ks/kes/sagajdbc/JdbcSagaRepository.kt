@@ -24,7 +24,7 @@ class JdbcSagaRepository(
 
     override fun <T : Any> getSagaState(correlationId: UUID, serializationId: String, sagaStateClass: KClass<T>): T? {
         return template.queryForObject(
-                "SELECT ${SagaTable.data} FROM ${SagaTable.name} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
+                "SELECT ${SagaTable.data} FROM $SagaTable WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
                 mutableMapOf(
                         SagaTable.correlationId to correlationId,
                         SagaTable.serializationId to serializationId
@@ -38,15 +38,15 @@ class JdbcSagaRepository(
 
     override fun getCurrentHwm(): Long =
             template.queryForObject(
-                    "SELECT ${HwmTable.hwm} FROM ${HwmTable.name}",
+                    "SELECT ${HwmTable.hwm} FROM ${HwmTable}",
                     mutableMapOf<String, Any>(),
                     Long::class.java
-            ) ?: error("No hwm found in ${SagaTable.name}_HWM")
+            ) ?: error("No hwm found in ${SagaTable}_HWM")
 
     override fun update(hwm: Long, states: Set<SagaRepository.SagaUpsert>) {
         TransactionTemplate(transactionManager).executeWithoutResult {
             template.batchUpdate(
-                    "INSERT INTO ${SagaTable.name} (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, :${SagaTable.serializationId}, :${SagaTable.data})",
+                    "INSERT INTO $SagaTable (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, :${SagaTable.serializationId}, :${SagaTable.data})",
                     states.filterIsInstance<SagaRepository.SagaUpsert.SagaInsert>()
                             .map {
                                 mutableMapOf(
@@ -58,7 +58,7 @@ class JdbcSagaRepository(
             )
 
             template.batchUpdate(
-                    "UPDATE ${SagaTable.name} SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
+                    "UPDATE $SagaTable SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
                     states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
                             .filter { it.newState != null }
                             .map {
@@ -71,7 +71,7 @@ class JdbcSagaRepository(
             )
 
             template.batchUpdate(
-                    "INSERT INTO ${CmdTable.name} (${CmdTable.serializationId}, ${CmdTable.data}) VALUES (:${CmdTable.serializationId}, :${CmdTable.data})",
+                    "INSERT INTO $CmdTable (${CmdTable.serializationId}, ${CmdTable.data}) VALUES (:${CmdTable.serializationId}, :${CmdTable.data})",
                     states.flatMap { it.commands }.map {
                         mutableMapOf(
                                 CmdTable.serializationId to AnnotationUtil.getSerializationId(it::class),
@@ -79,7 +79,7 @@ class JdbcSagaRepository(
                     }
                             .toTypedArray())
 
-            template.update("UPDATE ${HwmTable.name} SET ${HwmTable.hwm} = :${HwmTable.hwm}",
+            template.update("UPDATE $HwmTable SET ${HwmTable.hwm} = :${HwmTable.hwm}",
                     mutableMapOf(HwmTable.hwm to hwm))
         }
     }
