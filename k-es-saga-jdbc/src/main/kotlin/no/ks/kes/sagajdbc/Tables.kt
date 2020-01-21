@@ -15,8 +15,9 @@ object CmdTable {
     val aggregateId = "aggregateId"
     val nextExecution = "nextExecution"
     val retries = "retries"
-    val failed = "failed"
     val serializationId = "serializationId"
+    val error = "error"
+    val errorId = "errorId"
 
     val data = "data"
 }

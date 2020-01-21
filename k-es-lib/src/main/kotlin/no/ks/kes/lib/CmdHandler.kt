@@ -38,21 +38,21 @@ abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, privat
 
         return when (val result = invokeHandler(cmd, aggregate)) {
             is Result.Fail<A> ->  {
-                log.error("asdf", result.exception!!); AsyncResult.Fail()
+                log.error("asdf", result.exception!!); AsyncResult.Fail
             }
             is Result.RetryOrFail<A> -> {
                 val nextExecution = result.retryStrategy.invoke(retryNumber)
                 log.error("asdf", result.exception!!)
                 if (nextExecution == null){
                     write(aggregate ?: initAggregate(), cmd, result.events)
-                    AsyncResult.Fail()
+                    AsyncResult.Fail
                 } else {
                     AsyncResult.Retry(nextExecution)
                 }
             }
             is Result.Succeed<A> -> {
                 write(aggregate ?: initAggregate(), cmd, result.events)
-                AsyncResult.Success()
+                AsyncResult.Success
             }
         }
     }
@@ -102,11 +102,14 @@ abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, privat
             constructor(event: Event<A>) : this(listOf(event))
         }
     }
+
+    sealed class AsyncResult{
+        object Success : AsyncResult()
+        object Fail: AsyncResult()
+        class Retry(val nextExecution: Instant): AsyncResult()
+    }
+
 }
 
 
-sealed class AsyncResult{
-    class Success(): AsyncResult()
-    class Fail():  AsyncResult()
-    class Retry(val nextExecution: Instant): AsyncResult()
-}
+
