@@ -1,5 +1,10 @@
 package no.ks.kes.lib
 
+import mu.KotlinLogging
+
+
+private val log = KotlinLogging.logger {}
+
 class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaRepository, sagas: Set<Saga<*>>) {
     private val subscriptions = sagas
             .map { it.getConfiguration() }
@@ -44,7 +49,8 @@ class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaReposito
             .groupBy { it.first }
 
     init {
-        eventSubscriber.subscribe { event ->
+        eventSubscriber.addSubscriber("SagaManager") { event ->
+            log.info { "Saga manager received event!" }
             subscriptions[event.event::class]
                     ?.mapNotNull { it.second.invoke(event) }
                     ?.toSet()

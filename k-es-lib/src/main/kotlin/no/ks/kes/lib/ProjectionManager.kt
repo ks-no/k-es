@@ -1,9 +1,5 @@
 package no.ks.kes.lib
 
-import mu.KotlinLogging
-
-
-private val log = KotlinLogging.logger {}
 
 class ProjectionManager(
         eventSubscriber: EventSubscriber,
@@ -13,7 +9,7 @@ class ProjectionManager(
 ) {
 
     init {
-        eventSubscriber.subscribe { wrapper ->
+        eventSubscriber.addSubscriber("ProjectionManager") { wrapper ->
             projections.forEach {
                 it.accept(EventWrapper(
                         event = wrapper.event,

@@ -21,6 +21,11 @@ abstract class JdbcCommandQueue(dataSource: DataSource, cmdHandlers: Set<CmdHand
         TransactionTemplate(transactionManager).execute {
             val incomingCmd = nextCmd()
 
+            if (incomingCmd == null)
+                log.info { "polled for cmds, found none"}
+            else
+                log.info { "polled for cmds, found cmd with id ${incomingCmd.id}" }
+
             incomingCmd?.let { wrapper ->
                 val handler = handledCmds[wrapper.cmd::class] ?: error("no handler for cmd ${wrapper.cmd::class}")
                 val result = try {

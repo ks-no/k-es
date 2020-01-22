@@ -16,7 +16,7 @@ data class ItemAddedToBasket(override val aggregateId: UUID, override val timest
 data class BasketCheckedOut(override val aggregateId: UUID, override val timestamp: Instant, val items: Map<UUID, Int>) : Event<Basket>
 
 class Basket() : Aggregate() {
-    override val aggregateType = "order"
+    override val aggregateType = "basket"
     var aggregateId: UUID? = null
     var basket: MutableMap<UUID, Int> = mutableMapOf()
     var basketClosed: Boolean = false

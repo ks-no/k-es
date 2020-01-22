@@ -7,13 +7,13 @@ import java.time.Instant
 import java.util.*
 
 @SerializationId("ShipmentCreated")
-data class ShipmentCreated(override val aggregateId: UUID, override val timestamp: Instant) : Event<Shipment>
+data class ShipmentCreated(override val aggregateId: UUID, override val timestamp: Instant, val basketId: UUID, val items: Map<UUID, Int>) : Event<Shipment>
 
 @SerializationId("CreateShipmentFailed")
 data class CreateShipmentFailed(override val aggregateId: UUID, override val timestamp: Instant, val reason: String) : Event<Shipment>
 
 class Shipment : Aggregate() {
-    override val aggregateType = "order"
+    override val aggregateType = "shipment"
     var aggregateId: UUID? = null
 
     init {

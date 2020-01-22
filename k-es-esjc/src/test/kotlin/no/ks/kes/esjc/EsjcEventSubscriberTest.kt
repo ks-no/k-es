@@ -2,7 +2,6 @@ package no.ks.kes.esjc
 
 import com.github.msemys.esjc.CatchUpSubscriptionListener
 import com.github.msemys.esjc.EventStore
-import io.kotlintest.matchers.instanceOf
 import io.kotlintest.specs.StringSpec
 import io.mockk.mockk
 import io.mockk.verify
@@ -22,7 +21,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
                     fromEvent = hwm,
                     category = category,
                     serdes = mockk()
-            ).subscribe { run {} }
+            ).addSubscriber("aSubscriber") { run {} }
             verify(exactly = 1) { eventStoreMock.subscribeToStreamFrom("\$ce-$category", eq(hwm), any(), ofType<CatchUpSubscriptionListener>()) }
         }
     }

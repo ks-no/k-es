@@ -4,6 +4,7 @@ import com.github.msemys.esjc.EventStore
 import com.github.msemys.esjc.EventStoreBuilder
 import no.ks.kes.esjc.EsjcAggregateRepository
 import no.ks.kes.esjc.EsjcEventSubscriber
+import no.ks.kes.esjc.EsjcEventUtil
 import no.ks.kes.lib.*
 import no.ks.kes.sagajdbc.JdbcSagaRepository
 import no.ks.kes.sagajdbc.SqlServerCommandQueueManager
@@ -16,6 +17,8 @@ import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.jdbc.DataSourceBuilder
 import org.springframework.context.ApplicationListener
 import org.springframework.context.annotation.Bean
+import org.springframework.scheduling.annotation.EnableScheduling
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.util.*
 import javax.sql.DataSource
@@ -26,13 +29,14 @@ fun main(args: Array<String>) {
 }
 
 @SpringBootApplication
+@EnableScheduling
 class Application {
 
     @Bean
     fun datasource():DataSource {
             val dataSourceBuilder = DataSourceBuilder.create();
             dataSourceBuilder.driverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            dataSourceBuilder.url("spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=kes-demo");
+            dataSourceBuilder.url("jdbc:sqlserver://localhost:1433;databaseName=kesdemo");
             dataSourceBuilder.username("SA");
             dataSourceBuilder.password("Test1234!");
             return dataSourceBuilder.build();
@@ -48,22 +52,18 @@ class Application {
     fun sagaSerdes(): SagaStateSerdes<String> = JacksonSagaStateSerdes()
 
     @Bean
-    fun mostPopularItem(): MostPopularItem = MostPopularItem()
+    fun mostPopularItem(): ShippedBaskets = ShippedBaskets()
 
     @Bean
     fun basketCmd(aggregateRepository: AggregateRepository): BasketCmds =
             BasketCmds(aggregateRepository, object : PaymentProcessor {
-                override fun process(orderId: UUID) {
-                    TODO("not implemented")
-                }
+                override fun process(orderId: UUID) {}
             })
 
     @Bean
     fun shipmentCmd(aggregateRepository: AggregateRepository): ShipmentCmds =
             ShipmentCmds(aggregateRepository, object : WarehouseManager {
-                override fun shipOrder(orderId: UUID) {
-                    TODO("not implemented")
-                }
+                override fun shipOrder(orderId: UUID) {}
             })
 
     @Bean
@@ -72,7 +72,7 @@ class Application {
 
     @Bean
     fun aggregateRepo(eventStore: EventStore, eventSerdes: EventSerdes<String>): AggregateRepository =
-            EsjcAggregateRepository(eventStore, eventSerdes) { t, id -> "somestream" }
+            EsjcAggregateRepository(eventStore, eventSerdes, EsjcEventUtil.defaultStreamName("no.ks.kes.demoapp"))
 
     @Bean
     fun eventStore(): EventStore = EventStoreBuilder.newBuilder()
@@ -80,21 +80,32 @@ class Application {
             .userCredentials("admin", "changeit")
             .build()
 
+    @Bean
+    fun sqlServerCmdQueueManager(dataSource: DataSource, cmdSerdes: CmdSerdes<String>, basketCmds: BasketCmds, shipmentCmds: ShipmentCmds): SqlServerCommandQueueManager {
+        return SqlServerCommandQueueManager(dataSource, cmdSerdes, setOf(basketCmds, shipmentCmds))
+    }
+
     @Component
     class MyBootListener(
             val dataSource: DataSource,
-            val mostPopularItem: MostPopularItem,
-            val basketCmds: BasketCmds,
-            val shipmentCmds: ShipmentCmds,
+            val shippedBaskets: ShippedBaskets,
             val sagaSerdes: SagaStateSerdes<String>,
             val cmdSerdes: CmdSerdes<String>,
             val eventSubscriber: EventSubscriber
     ) : ApplicationListener<ApplicationReadyEvent> {
-
         override fun onApplicationEvent(applicationReadyEvent: ApplicationReadyEvent) {
-            SagaManager(eventSubscriber, JdbcSagaRepository(dataSource, sagaSerdes, cmdSerdes), setOf(CreateOrderSaga()))
-            ProjectionManager(eventSubscriber, setOf(mostPopularItem), {}, {})
-            SqlServerCommandQueueManager(dataSource, cmdSerdes, setOf(basketCmds, shipmentCmds))
+            ProjectionManager(eventSubscriber, setOf(shippedBaskets), {}, {})
+            SagaManager(eventSubscriber, JdbcSagaRepository(dataSource, sagaSerdes, cmdSerdes), setOf(CreateShipmentSaga()))
         }
+    }
+
+    @Component
+    class QueuePoller(val cmdQueueManager: SqlServerCommandQueueManager) {
+
+        @Scheduled(fixedDelay = 5000)
+        fun poll(){
+            cmdQueueManager.poll()
+        }
+
     }
 }

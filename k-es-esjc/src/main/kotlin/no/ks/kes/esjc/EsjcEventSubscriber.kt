@@ -16,10 +16,10 @@ class EsjcEventSubscriber(
         private val fromEvent: Long,
         private val category: String
 ) : EventSubscriber {
-    var onClose: (Exception) -> Unit = {}
-    var onLive: () -> Unit = {}
+    private var onClose: (Exception) -> Unit = {}
+    private var onLive: () -> Unit = {}
 
-    override fun subscribe(consumer: (EventWrapper<Event<*>>) -> Unit) {
+    override fun addSubscriber(consumerName: String, consumer: (EventWrapper<Event<*>>) -> Unit) {
         eventStore.subscribeToStreamFrom(
                 "\$ce-$category",
                 fromEvent,
@@ -27,21 +27,21 @@ class EsjcEventSubscriber(
         ) { _, resolvedEvent ->
             when {
                 !resolvedEvent.isResolved ->
-                    log.info("Event not resolved: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}")
+                    log.info("$consumerName: event not resolved: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}")
                 EsjcEventUtil.isIgnorableEvent(resolvedEvent) ->
-                    log.info("Event ignored: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}")
+                    log.info("$consumerName: event ignored: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}")
                 else ->
                     consumer.invoke(EventWrapper(
                             event = serdes.deserialize(String(resolvedEvent.event.data), resolvedEvent.event.eventType),
                             eventNumber = resolvedEvent.originalEventNumber()))
                             .also {
-                                log.info("Event ${resolvedEvent.originalEventNumber()}@${resolvedEvent.originalStreamId()}: " +
+                                log.info("$consumerName: event ${resolvedEvent.originalEventNumber()}@${resolvedEvent.originalStreamId()}: " +
                                         "${resolvedEvent.event.eventType}(${resolvedEvent.event.eventId}) received")
                             }
             }
 
         }.also {
-            log.info("Subscription initiated from event number $fromEvent on category projection $category")
+            log.info("$consumerName: subscription initiated from event number $fromEvent on category $category")
         }!!
     }
 
