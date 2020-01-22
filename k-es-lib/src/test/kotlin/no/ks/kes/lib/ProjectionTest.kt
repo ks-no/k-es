@@ -2,7 +2,7 @@ package no.ks.kes.lib
 
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
-import no.ks.kes.lib.testdomain.HiredEvent
+import no.ks.kes.lib.testdomain.Hired
 import no.ks.kes.lib.testdomain.StartDatesProjection
 import java.time.Instant
 import java.time.LocalDate
@@ -12,7 +12,7 @@ internal class ProjectionTest : StringSpec() {
 
     init {
         "test that a projection can handle incoming events and mutate its state accordingly" {
-            val hiredEvent = HiredEvent(
+            val hiredEvent = Hired(
                     aggregateId = UUID.randomUUID(),
                     startDate = LocalDate.now(),
                     timestamp = Instant.now(),

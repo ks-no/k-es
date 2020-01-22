@@ -6,10 +6,10 @@ import mu.KotlinLogging
 private val log = KotlinLogging.logger {}
 
 class ProjectionManager(
+        eventSubscriber: EventSubscriber,
         private val projections: Set<Projection>,
         private val hwmUpdater: (Long) -> Unit,
-        private val onClose: (Exception) -> Unit,
-        eventSubscriber: EventSubscriber
+        private val onClose: (Exception) -> Unit
 ) {
 
     init {

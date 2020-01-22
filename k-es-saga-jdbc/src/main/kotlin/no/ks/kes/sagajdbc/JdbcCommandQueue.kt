@@ -12,7 +12,7 @@ import javax.sql.DataSource
 
 private val log = KotlinLogging.logger {}
 
-abstract class JdbcCommandQueue(dataSource: DataSource, cmdHandlers: List<CmdHandler<*>>) {
+abstract class JdbcCommandQueue(dataSource: DataSource, cmdHandlers: Set<CmdHandler<*>>) {
     protected val template = NamedParameterJdbcTemplate(dataSource)
     private val transactionManager = DataSourceTransactionManager(dataSource)
     private val handledCmds = cmdHandlers.flatMap { handler -> handler.handledCmds().map { it to handler } }.toMap()

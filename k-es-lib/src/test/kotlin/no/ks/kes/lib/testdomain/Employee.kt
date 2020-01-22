@@ -12,7 +12,7 @@ class Employee : Aggregate() {
     var startDate: LocalDate? = null
 
     init {
-        on<HiredEvent> {
+        on<Hired> {
             aggregateId = it.aggregateId
             startDate = it.startDate
         }

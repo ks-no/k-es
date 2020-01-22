@@ -40,6 +40,14 @@
             <groupId>com.github.msemys</groupId>
             <artifactId>esjc</artifactId>
         </dependency>
+        <dependency>
+            <groupId>no.ks</groupId>
+            <artifactId>k-es-lib</artifactId>
+            <classifier>tests</classifier>
+            <type>test-jar</type>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
 
 
         <dependency>

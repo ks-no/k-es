@@ -10,9 +10,9 @@ import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import no.ks.kes.esjc.testdomain.HiredEvent
 import no.ks.kes.lib.EventSerdes
 import no.ks.kes.lib.ExpectedEventNumber
+import no.ks.kes.lib.testdomain.Hired
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
@@ -24,10 +24,11 @@ internal class EsjcEventWriterTest : StringSpec() {
         "Test at esjc writer blir korrekt invokert under skriving av hendelser til aggregat" {
             val eventAggregateType = UUID.randomUUID().toString()
 
-            val event = HiredEvent(
+            val event = Hired(
                     aggregateId = UUID.randomUUID(),
                     startDate = LocalDate.now(),
-                    timestamp = Instant.now()
+                    timestamp = Instant.now(),
+                    recruitedBy = UUID.randomUUID()
             )
 
             val capturedEventData = slot<List<EventData>>()
@@ -37,7 +38,7 @@ internal class EsjcEventWriterTest : StringSpec() {
             }
 
             val deserializer = mockk<EventSerdes<String>>().apply { every { serialize(event) } returns "hired"}
-            val esjcEventWriter = EsjcEventWriter(eventStoreMock, { t: String, id: UUID -> "ks.fiks.$t.$id" }, deserializer)
+            val esjcEventWriter = EsjcAggregateWriter(eventStoreMock, { t: String, id: UUID -> "ks.fiks.$t.$id" }, deserializer)
 
             esjcEventWriter.write(eventAggregateType, event.aggregateId, ExpectedEventNumber.Exact(0L), listOf(event))
 

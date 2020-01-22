@@ -7,7 +7,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import no.ks.kes.lib.testdomain.Employee
-import no.ks.kes.lib.testdomain.HiredEvent
+import no.ks.kes.lib.testdomain.Hired
 import no.ks.kes.lib.testdomain.StartDateChanged
 import java.time.Instant
 import java.time.LocalDate
@@ -31,7 +31,7 @@ internal class AsyncCmdHandlerTest : StringSpec() {
 
             val slot = slot<List<Event<*>>>()
 
-            val writer = mockk<EventWriter>().apply {
+            val writer = mockk<AggregateRepository>().apply {
                 every { write("employee", hireCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, capture(slot)) } returns
                         Unit
             }
@@ -41,13 +41,13 @@ internal class AsyncCmdHandlerTest : StringSpec() {
 
                 init {
                     initOn<HireCmd> {
-                        Result.Succeed(HiredEvent(it.aggregateId, it.recruitedBy, it.startDate, Instant.now()))
+                        Result.Succeed(Hired(it.aggregateId, it.recruitedBy, it.startDate, Instant.now()))
                     }
                 }
             }
 
             EmployeeCmdHandler().handleAsync(hireCmd, 0).apply { this.shouldBeInstanceOf<CmdHandler.AsyncResult.Success>() }
-            with(slot.captured.single() as HiredEvent) {
+            with(slot.captured.single() as Hired) {
                 aggregateId shouldBe hireCmd.aggregateId
                 recruitedBy shouldBe hireCmd.recruitedBy
                 startDate shouldBe hireCmd.startDate
@@ -64,11 +64,11 @@ internal class AsyncCmdHandlerTest : StringSpec() {
 
             val readerMock = mockk<AggregateReader>().apply {
                 every { read(changeStartDate.aggregateId, ofType(Employee::class)) } returns Employee()
-                        .applyEvent(HiredEvent(changeStartDate.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()), 0)
+                        .applyEvent(Hired(changeStartDate.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()), 0)
             }
             val slot = slot<List<Event<*>>>()
 
-            val writer = mockk<EventWriter>().apply {
+            val writer = mockk<AggregateRepository>().apply {
                 every { write("employee", changeStartDate.aggregateId, ExpectedEventNumber.Exact(0), capture(slot)) } returns
                         Unit
             }

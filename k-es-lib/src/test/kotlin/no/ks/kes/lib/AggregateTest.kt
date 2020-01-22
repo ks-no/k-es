@@ -3,7 +3,7 @@ package no.ks.kes.lib
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import no.ks.kes.lib.testdomain.Employee
-import no.ks.kes.lib.testdomain.HiredEvent
+import no.ks.kes.lib.testdomain.Hired
 import no.ks.kes.lib.testdomain.StartDateChanged
 import java.time.Instant
 import java.time.LocalDate
@@ -13,7 +13,7 @@ internal class AggregateTest : StringSpec() {
 
     init {
         "Test that the state of the aggregate changes in accordance with the applied event" {
-            val hiredEvent = HiredEvent(
+            val hiredEvent = Hired(
                     aggregateId = UUID.randomUUID(),
                     startDate = LocalDate.now(),
                     timestamp = Instant.now(),
@@ -29,7 +29,7 @@ internal class AggregateTest : StringSpec() {
         }
 
         "Test that we can apply multiple events"{
-            val hiredEvent = HiredEvent(
+            val hiredEvent = Hired(
                     aggregateId = UUID.randomUUID(),
                     startDate = LocalDate.now(),
                     timestamp = Instant.now(),

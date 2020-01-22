@@ -6,7 +6,7 @@ import kotlin.reflect.KClass
 
 private val log = KotlinLogging.logger {}
 
-abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, private val reader: AggregateReader) {
+abstract class CmdHandler<A : Aggregate>(private val repository: AggregateRepository) {
 
     protected val handlers = mutableSetOf<OnCmd<A>>()
     protected val initializers = mutableSetOf<InitOnCmd<A>>()
@@ -21,6 +21,7 @@ abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, privat
 
     fun handledCmds(): Set<KClass<Cmd<A>>> = (handlers.map { it.cmdClass } + initializers.map { it.cmdClass }).toSet()
 
+    @Synchronized
     fun handle(cmd: Cmd<A>): A {
         val aggregate = readAggregate(cmd)
 
@@ -28,13 +29,13 @@ abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, privat
             is Result.Fail<A>, is Result.RetryOrFail<A> ->
                 throw result.exception!!
             is Result.Succeed<A> -> {
-                write(aggregate ?: initAggregate(), cmd, result.events)
-                return result.events.fold(aggregate
-                        ?: initAggregate()) { a: A, e: Event<A> -> a.applyEvent(e, Long.MIN_VALUE) }
+                write(aggregate, cmd, result.events)
+                return result.events.fold(aggregate) { a: A, e: Event<A> -> a.applyEvent(e, Long.MIN_VALUE) }
             }
         }
     }
 
+    @Synchronized
     fun handleAsync(cmd: Cmd<*>, retryNumber: Int): AsyncResult {
         val aggregate = readAggregate(cmd as Cmd<A>)
 
@@ -46,21 +47,21 @@ abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, privat
                 val nextExecution = result.retryStrategy.invoke(retryNumber)
                 log.error("asdf", result.exception!!)
                 if (nextExecution == null) {
-                    write(aggregate ?: initAggregate(), cmd, result.events)
+                    write(aggregate, cmd, result.events)
                     AsyncResult.Fail
                 } else {
                     AsyncResult.Retry(nextExecution)
                 }
             }
             is Result.Succeed<A> -> {
-                write(aggregate ?: initAggregate(), cmd, result.events)
+                write(aggregate, cmd, result.events)
                 AsyncResult.Success
             }
         }
     }
 
     private fun write(aggregate: A, cmd: Cmd<A>, events: List<Event<A>>) {
-        writer.write(aggregate.aggregateType, cmd.aggregateId, resolveExpectedEventNumber(aggregate.currentEventNumber, cmd.useOptimisticLocking()), events)
+        repository.write(aggregate.aggregateType, cmd.aggregateId, resolveExpectedEventNumber(aggregate.currentEventNumber, cmd.useOptimisticLocking()), events)
     }
 
     private fun resolveExpectedEventNumber(currentEventNumber: Long, useOptimisticLocking: Boolean): ExpectedEventNumber =
@@ -69,7 +70,7 @@ abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, privat
                 else -> if (useOptimisticLocking) ExpectedEventNumber.Exact(currentEventNumber) else ExpectedEventNumber.AggregateExists
             }
 
-    private fun readAggregate(cmd: Cmd<A>): A = reader.read(cmd.aggregateId, initAggregate())
+    private fun readAggregate(cmd: Cmd<A>): A = repository.read(cmd.aggregateId, initAggregate())
 
     private fun invokeHandler(cmd: Cmd<A>, aggregate: A): Result<A> =
             if (aggregate.currentEventNumber == -1L) {

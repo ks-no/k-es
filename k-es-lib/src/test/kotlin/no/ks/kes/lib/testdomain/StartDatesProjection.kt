@@ -12,6 +12,6 @@ class StartDatesProjection : Projection() {
     }
 
     init {
-        on<HiredEvent> { startDates.put(it.aggregateId, it.startDate) }
+        on<Hired> { startDates.put(it.aggregateId, it.startDate) }
     }
 }

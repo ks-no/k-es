@@ -6,7 +6,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import no.ks.kes.lib.testdomain.ConfidentialityAgreementAccepted
-import no.ks.kes.lib.testdomain.HiredEvent
+import no.ks.kes.lib.testdomain.Hired
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
@@ -20,11 +20,11 @@ class SagaManagerTest: StringSpec() {
             @SerializationId("foo")
             class SomeSaga: Saga<SomeSagaState>(SomeSagaState::class){
                 init {
-                    initOn<HiredEvent>({it.aggregateId}) { SomeSagaState(it.aggregateId) }
+                    initOn<Hired>({it.aggregateId}) { SomeSagaState(it.aggregateId) }
                 }
             }
 
-            val event = HiredEvent(
+            val event = Hired(
                     aggregateId = UUID.randomUUID(),
                     recruitedBy = UUID.randomUUID(),
                     startDate = LocalDate.now(),
@@ -51,7 +51,7 @@ class SagaManagerTest: StringSpec() {
             @SerializationId("foo")
             class SomeSaga: Saga<SomeSagaState>(SomeSagaState::class){
                 init {
-                    initOn<HiredEvent>({it.aggregateId}) { SomeSagaState(it.aggregateId) }
+                    initOn<Hired>({it.aggregateId}) { SomeSagaState(it.aggregateId) }
                     on<ConfidentialityAgreementAccepted>({it.aggregateId}) { state.copy(accepted  = true)}
                 }
             }

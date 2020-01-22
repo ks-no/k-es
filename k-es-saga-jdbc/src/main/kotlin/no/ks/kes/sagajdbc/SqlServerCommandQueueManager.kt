@@ -7,7 +7,7 @@ import java.time.Instant
 import java.util.*
 import javax.sql.DataSource
 
-class SqlServerCommandQueue(dataSource: DataSource, private val cmdSerdes: CmdSerdes<String>, cmdHandlers: List<CmdHandler<*>>) : JdbcCommandQueue(dataSource, cmdHandlers) {
+class SqlServerCommandQueueManager(dataSource: DataSource, private val cmdSerdes: CmdSerdes<String>, cmdHandlers: Set<CmdHandler<*>>) : JdbcCommandQueue(dataSource, cmdHandlers) {
 
     override fun delete(cmdId: Long) {
         template.update(
@@ -43,7 +43,7 @@ class SqlServerCommandQueue(dataSource: DataSource, private val cmdSerdes: CmdSe
                     """ ;WITH cte AS
                     (
                         SELECT *,
-                        ROW_NUMBER() OVER (PARTITION BY ${CmdTable.aggregateId} ORDER BY ${CmdTable.id} DESC) AS rn
+                        ROW_NUMBER() OVER (PARTITION BY ${CmdTable.aggregateId} ORDER BY ${CmdTable.id}) AS rn
                         FROM cmd
                     )
                     SELECT TOP 1 aggregateId, retries, data

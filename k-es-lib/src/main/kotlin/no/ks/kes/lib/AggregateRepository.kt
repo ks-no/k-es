@@ -3,8 +3,9 @@ package no.ks.kes.lib
 import java.util.*
 
 
-interface EventWriter {
+interface AggregateRepository {
     fun write(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<Event<*>>)
+    fun <A : Aggregate> read(aggregateId: UUID, aggregate: A): A
 }
 
 sealed class ExpectedEventNumber() {

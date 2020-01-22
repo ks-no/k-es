@@ -10,7 +10,12 @@ import no.ks.kes.lib.EventWrapper
 
 private val log = KotlinLogging.logger {}
 
-class EsjcEventSubscriber(private val eventStore: EventStore, private val fromEvent: Long, private val category: String, private val serdes: EventSerdes<String>) : EventSubscriber {
+class EsjcEventSubscriber(
+        private val eventStore: EventStore,
+        private val serdes: EventSerdes<String>,
+        private val fromEvent: Long,
+        private val category: String
+) : EventSubscriber {
     override fun subscribe(consumer: (EventWrapper<Event<*>>) -> Unit) {
         eventStore.subscribeToStreamFrom(
                 "\$ce-$category",

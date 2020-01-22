@@ -7,7 +7,7 @@ import java.time.LocalDate
 import java.util.*
 
 @SerializationId("Hired")
-data class HiredEvent(
+data class Hired(
         override val aggregateId: UUID,
         val recruitedBy: UUID,
         val startDate: LocalDate,

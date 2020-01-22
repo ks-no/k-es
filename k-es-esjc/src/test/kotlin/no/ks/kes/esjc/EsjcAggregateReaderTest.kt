@@ -9,10 +9,10 @@ import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
-import no.ks.kes.esjc.testdomain.Employee
-import no.ks.kes.esjc.testdomain.HiredEvent
-import no.ks.kes.esjc.testdomain.StartDateChangedEvent
 import no.ks.kes.lib.EventSerdes
+import no.ks.kes.lib.testdomain.Employee
+import no.ks.kes.lib.testdomain.Hired
+import no.ks.kes.lib.testdomain.StartDateChanged
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
@@ -22,12 +22,14 @@ class EsjcAggregateReaderTest : StringSpec() {
     init {
         "Test that the reader can retrieve and deserialize aggregate events from the event-store" {
 
-            val hired = HiredEvent(
+            val hired = Hired(
                     aggregateId = UUID.randomUUID(),
                     startDate = LocalDate.now(),
-                    timestamp = Instant.now()
+                    timestamp = Instant.now(),
+                    recruitedBy = UUID.randomUUID()
+
             )
-            val startDateChanged = StartDateChangedEvent(
+            val startDateChanged = StartDateChanged(
                     aggregateId = UUID.randomUUID(),
                     newStartDate = LocalDate.now().plusDays(1),
                     timestamp = Instant.now()
@@ -65,7 +67,7 @@ class EsjcAggregateReaderTest : StringSpec() {
                 every { deserialize("startDateChanged", any()) } returns startDateChanged
             }
 
-            EsjcAggregateReader(
+            EsjcAggregateRepository(
                     eventStore = eventStoreMock,
                     deserializer = deserializer,
                     esjcStreamIdGenerator = { t, id -> "$t.$id" }
@@ -78,7 +80,7 @@ class EsjcAggregateReaderTest : StringSpec() {
         }
 
         "Test that the reader returns an empty aggregate if no stream is found" {
-            EsjcAggregateReader(
+            EsjcAggregateRepository(
                     eventStore = mockk<EventStore>()
                             .apply {
                                 every<Stream<ResolvedEvent>?> { streamEventsForward(any(), any(), any(), any()) } throws

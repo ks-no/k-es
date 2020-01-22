@@ -6,7 +6,7 @@ import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
 import no.ks.kes.lib.testdomain.Employee
-import no.ks.kes.lib.testdomain.HiredEvent
+import no.ks.kes.lib.testdomain.Hired
 import no.ks.kes.lib.testdomain.StartDateChanged
 import java.time.Instant
 import java.time.LocalDate
@@ -27,7 +27,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
                 every { read(hireCmd.aggregateId, ofType(Employee::class)) } returns Employee().withCurrentEventNumber(-1)
             }
 
-            val writer = mockk<EventWriter>().apply {
+            val writer = mockk<AggregateRepository>().apply {
                 every { write("employee", hireCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, any()) } returns
                         Unit
             }
@@ -37,7 +37,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
 
                 init {
                     initOn<HireCmd> {
-                        Result.Succeed(HiredEvent(it.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()))
+                        Result.Succeed(Hired(it.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()))
                     }
                 }
             }
@@ -55,10 +55,10 @@ internal class SyncCmdHandlerTest : StringSpec() {
 
             val readerMock = mockk<AggregateReader>().apply {
                 every { read(changeStartDate.aggregateId, ofType(Employee::class)) } returns Employee()
-                        .applyEvent(HiredEvent(changeStartDate.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()), 0)
+                        .applyEvent(Hired(changeStartDate.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()), 0)
             }
 
-            val writer = mockk<EventWriter>().apply {
+            val writer = mockk<AggregateRepository>().apply {
                 every { write("employee", changeStartDate.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
                         Unit
             }
@@ -89,10 +89,10 @@ internal class SyncCmdHandlerTest : StringSpec() {
 
             val readerMock = mockk<AggregateReader>().apply {
                 every { read(changeStartDate.aggregateId, ofType(Employee::class)) } returns Employee()
-                        .applyEvent(HiredEvent(changeStartDate.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()), 0)
+                        .applyEvent(Hired(changeStartDate.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()), 0)
             }
 
-            val writer = mockk<EventWriter>().apply {
+            val writer = mockk<AggregateRepository>().apply {
                 every { write("employee", changeStartDate.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
                         Unit
             }
@@ -121,10 +121,10 @@ internal class SyncCmdHandlerTest : StringSpec() {
 
             val readerMock = mockk<AggregateReader>().apply {
                 every { read(changeStartDate.aggregateId, ofType(Employee::class)) } returns Employee()
-                        .applyEvent(HiredEvent(changeStartDate.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()), 0)
+                        .applyEvent(Hired(changeStartDate.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()), 0)
             }
 
-            val writer = mockk<EventWriter>().apply {
+            val writer = mockk<AggregateRepository>().apply {
                 every { write("employee", changeStartDate.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
                         Unit
             }

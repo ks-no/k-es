@@ -4,7 +4,7 @@ import io.kotlintest.matchers.string.shouldContain
 import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
 import no.ks.kes.lib.testdomain.ConfidentialityAgreementRejected
-import no.ks.kes.lib.testdomain.HiredEvent
+import no.ks.kes.lib.testdomain.Hired
 import java.util.*
 
 class SagaTest : StringSpec() {
@@ -23,7 +23,7 @@ class SagaTest : StringSpec() {
 
             val saga = object : Saga<SomeState>(SomeState::class) {
                 init {
-                    initOn<HiredEvent>({it.aggregateId}) {SomeState(it.aggregateId)}
+                    initOn<Hired>({it.aggregateId}) {SomeState(it.aggregateId)}
                     initOn<ConfidentialityAgreementRejected>({it.aggregateId}) {SomeState(it.aggregateId)}
                 }
             }
@@ -38,8 +38,8 @@ class SagaTest : StringSpec() {
 
             val saga = object : Saga<SomeState>(SomeState::class) {
                 init {
-                    initOn<HiredEvent>({it.aggregateId}) {SomeState(it.aggregateId)}
-                    on<HiredEvent>({it.aggregateId}) {state.copy()}
+                    initOn<Hired>({it.aggregateId}) {SomeState(it.aggregateId)}
+                    on<Hired>({it.aggregateId}) {state.copy()}
                 }
             }
             shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
@@ -53,7 +53,7 @@ class SagaTest : StringSpec() {
 
             val saga = object : Saga<SomeState>(SomeState::class) {
                 init {
-                    initOn<HiredEvent>({it.aggregateId}) {SomeState(it.aggregateId)}
+                    initOn<Hired>({it.aggregateId}) {SomeState(it.aggregateId)}
                     on<ConfidentialityAgreementRejected>({it.aggregateId}) {state.copy()}
                     on<ConfidentialityAgreementRejected>({it.aggregateId}) {state.copy()}
                 }
