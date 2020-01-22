@@ -12,6 +12,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import no.ks.kes.esjc.testdomain.HiredEvent
 import no.ks.kes.lib.EventSerdes
+import no.ks.kes.lib.ExpectedEventNumber
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
@@ -38,7 +39,7 @@ internal class EsjcEventWriterTest : StringSpec() {
             val deserializer = mockk<EventSerdes<String>>().apply { every { serialize(event) } returns "hired"}
             val esjcEventWriter = EsjcEventWriter(eventStoreMock, { t: String, id: UUID -> "ks.fiks.$t.$id" }, deserializer)
 
-            esjcEventWriter.write(eventAggregateType, event.aggregateId, 0L, listOf(event), true)
+            esjcEventWriter.write(eventAggregateType, event.aggregateId, ExpectedEventNumber.Exact(0L), listOf(event))
 
             with(capturedEventData.captured.single()) {
                 this.data!! contentEquals  "foo".toByteArray()

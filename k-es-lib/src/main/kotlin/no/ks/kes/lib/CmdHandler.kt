@@ -60,13 +60,19 @@ abstract class CmdHandler<A : Aggregate>(private val writer: EventWriter, privat
     }
 
     private fun write(aggregate: A, cmd: Cmd<A>, events: List<Event<A>>) {
-        writer.write(aggregate.aggregateType, cmd.aggregateId, aggregate.currentEventNumber, events, cmd.useOptimisticLocking());
+        writer.write(aggregate.aggregateType, cmd.aggregateId, resolveExpectedEventNumber(aggregate.currentEventNumber, cmd.useOptimisticLocking()), events)
     }
 
-    private fun readAggregate(cmd: Cmd<A>): A? = reader.read(cmd.aggregateId, initAggregate())
+    private fun resolveExpectedEventNumber(currentEventNumber: Long, useOptimisticLocking: Boolean): ExpectedEventNumber =
+            when (currentEventNumber) {
+                -1L -> ExpectedEventNumber.AggregateDoesNotExist
+                else -> if (useOptimisticLocking) ExpectedEventNumber.Exact(currentEventNumber) else ExpectedEventNumber.AggregateExists
+            }
 
-    private fun invokeHandler(cmd: Cmd<A>, aggregate: A?): Result<A> =
-            if (aggregate == null) {
+    private fun readAggregate(cmd: Cmd<A>): A = reader.read(cmd.aggregateId, initAggregate())
+
+    private fun invokeHandler(cmd: Cmd<A>, aggregate: A): Result<A> =
+            if (aggregate.currentEventNumber == -1L) {
                 initializers.singleOrNull { it.cmdClass == cmd::class }
                         ?.handler
                         ?.invoke(cmd)

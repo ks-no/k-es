@@ -8,12 +8,11 @@ import io.mockk.mockk
 import no.ks.kes.lib.testdomain.Employee
 import no.ks.kes.lib.testdomain.HiredEvent
 import no.ks.kes.lib.testdomain.StartDateChanged
-import java.lang.IllegalStateException
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
-internal class SynchronousCmdHandlerTest : StringSpec() {
+internal class SyncCmdHandlerTest : StringSpec() {
 
     init {
         "Test that a cmd can initialize an aggregate, and that the derived state is returned" {
@@ -25,11 +24,11 @@ internal class SynchronousCmdHandlerTest : StringSpec() {
             )
 
             val readerMock = mockk<AggregateReader>().apply {
-                every { read(hireCmd.aggregateId, ofType(Employee::class)) } returns null
+                every { read(hireCmd.aggregateId, ofType(Employee::class)) } returns Employee().withCurrentEventNumber(-1)
             }
 
             val writer = mockk<EventWriter>().apply {
-                every { write("employee", hireCmd.aggregateId, 0, any(), true) } returns
+                every { write("employee", hireCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, any()) } returns
                         Unit
             }
 
@@ -60,7 +59,7 @@ internal class SynchronousCmdHandlerTest : StringSpec() {
             }
 
             val writer = mockk<EventWriter>().apply {
-                every { write("employee", changeStartDate.aggregateId, 0, any(), true) } returns
+                every { write("employee", changeStartDate.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
                         Unit
             }
 
@@ -80,7 +79,7 @@ internal class SynchronousCmdHandlerTest : StringSpec() {
             }
         }
 
-        "Test that a command failure results in an exception being thrown" {
+        "Test that a command \"Fail\" results in an exception being thrown" {
             data class ChangeStartDate(override val aggregateId: UUID, val newStartDate: LocalDate) : Cmd<Employee>
 
             val changeStartDate = ChangeStartDate(
@@ -94,7 +93,7 @@ internal class SynchronousCmdHandlerTest : StringSpec() {
             }
 
             val writer = mockk<EventWriter>().apply {
-                every { write("employee", changeStartDate.aggregateId, 0, any(), true) } returns
+                every { write("employee", changeStartDate.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
                         Unit
             }
 
@@ -104,6 +103,38 @@ internal class SynchronousCmdHandlerTest : StringSpec() {
                 init {
                     on<ChangeStartDate> {
                         Result.Fail(IllegalStateException("some invalid state"))
+                    }
+                }
+            }
+
+            shouldThrow<IllegalStateException> { EmployeeCmdHandler().handle(changeStartDate) }
+                    .message shouldBe "some invalid state"
+        }
+
+        "Test that a command \"RetryOrFail\" results in an exception being thrown" {
+            data class ChangeStartDate(override val aggregateId: UUID, val newStartDate: LocalDate) : Cmd<Employee>
+
+            val changeStartDate = ChangeStartDate(
+                    aggregateId = UUID.randomUUID(),
+                    newStartDate = LocalDate.now()
+            )
+
+            val readerMock = mockk<AggregateReader>().apply {
+                every { read(changeStartDate.aggregateId, ofType(Employee::class)) } returns Employee()
+                        .applyEvent(HiredEvent(changeStartDate.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()), 0)
+            }
+
+            val writer = mockk<EventWriter>().apply {
+                every { write("employee", changeStartDate.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
+                        Unit
+            }
+
+            class EmployeeCmdHandler() : CmdHandler<Employee>(writer, readerMock) {
+                override fun initAggregate(): Employee = Employee()
+
+                init {
+                    on<ChangeStartDate> {
+                        Result.RetryOrFail(IllegalStateException("some invalid state"))
                     }
                 }
             }

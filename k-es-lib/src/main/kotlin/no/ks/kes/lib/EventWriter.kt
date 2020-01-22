@@ -4,5 +4,12 @@ import java.util.*
 
 
 interface EventWriter {
-    fun write(aggregateType: String, aggregateId: UUID, expectedEventNumber: Long, events: List<Event<*>>, useOptimisticLocking: Boolean)
+    fun write(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<Event<*>>)
+}
+
+sealed class ExpectedEventNumber() {
+    object Any : ExpectedEventNumber()
+    object AggregateDoesNotExist : ExpectedEventNumber()
+    object AggregateExists : ExpectedEventNumber()
+    data class Exact(val eventNumber: Long) : ExpectedEventNumber()
 }
