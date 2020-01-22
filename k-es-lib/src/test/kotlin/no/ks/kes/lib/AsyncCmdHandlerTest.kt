@@ -25,18 +25,14 @@ internal class AsyncCmdHandlerTest : StringSpec() {
                     startDate = LocalDate.now()
             )
 
-            val readerMock = mockk<AggregateReader>().apply {
-                every { read(hireCmd.aggregateId, ofType(Employee::class)) } returns Employee().withCurrentEventNumber(-1)
-            }
-
             val slot = slot<List<Event<*>>>()
 
-            val writer = mockk<AggregateRepository>().apply {
-                every { write("employee", hireCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, capture(slot)) } returns
-                        Unit
+            val repoMock = mockk<AggregateRepository>().apply {
+                every { read(hireCmd.aggregateId, ofType(Employee::class)) } returns Employee().withCurrentEventNumber(-1)
+                every { write("employee", hireCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, capture(slot)) } returns Unit
             }
 
-            class EmployeeCmdHandler() : CmdHandler<Employee>(writer, readerMock) {
+            class EmployeeCmdHandler() : CmdHandler<Employee>(repoMock) {
                 override fun initAggregate(): Employee = Employee()
 
                 init {
@@ -62,18 +58,16 @@ internal class AsyncCmdHandlerTest : StringSpec() {
                     newStartDate = LocalDate.now()
             )
 
-            val readerMock = mockk<AggregateReader>().apply {
-                every { read(changeStartDate.aggregateId, ofType(Employee::class)) } returns Employee()
-                        .applyEvent(Hired(changeStartDate.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()), 0)
-            }
             val slot = slot<List<Event<*>>>()
 
-            val writer = mockk<AggregateRepository>().apply {
+            val repoMock = mockk<AggregateRepository>().apply {
+                every { read(changeStartDate.aggregateId, ofType(Employee::class)) } returns Employee()
+                        .applyEvent(Hired(changeStartDate.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()), 0)
                 every { write("employee", changeStartDate.aggregateId, ExpectedEventNumber.Exact(0), capture(slot)) } returns
                         Unit
             }
 
-            class EmployeeCmdHandler() : CmdHandler<Employee>(writer, readerMock) {
+            class EmployeeCmdHandler() : CmdHandler<Employee>(repoMock) {
                 override fun initAggregate(): Employee = Employee()
 
                 init {

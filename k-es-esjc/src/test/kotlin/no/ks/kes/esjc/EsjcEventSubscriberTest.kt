@@ -17,7 +17,12 @@ internal class EsjcEventSubscriberTest : StringSpec() {
 
             val eventStoreMock = mockk<EventStore>(relaxed = true)
 
-            EsjcEventSubscriber(eventStoreMock, hwm, category, mockk()).subscribe { run {} }
+            EsjcEventSubscriber(
+                    eventStore = eventStoreMock,
+                    fromEvent = hwm,
+                    category = category,
+                    serdes = mockk()
+            ).subscribe { run {} }
             verify(exactly = 1) { eventStoreMock.subscribeToStreamFrom("\$ce-$category", eq(hwm), any(), ofType<CatchUpSubscriptionListener>()) }
         }
     }

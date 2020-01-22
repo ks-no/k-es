@@ -1,12 +1,16 @@
 mssql:
-  image: docker-all.artifactory.fiks.ks.no/fiks-mssql
+  image: mcr.microsoft.com/mssql/server
   environment:
     - ACCEPT_EULA=Y
     - SA_PASSWORD=Test1234!
-    - DB_NAME=Fiks_test
+    - DB_NAME=kes-demo
+  ports:
+    - 1433:1433
 
 eventstore:
   image: eventstore/eventstore
   environment:
     - EVENTSTORE_RUN_PROJECTIONS=All
     - EVENTSTORE_START_STANDARD_PROJECTIONS=True
+  ports:
+    - 1113:1113

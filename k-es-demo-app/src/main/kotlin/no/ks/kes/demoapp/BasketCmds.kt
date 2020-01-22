@@ -4,14 +4,20 @@ import no.ks.kes.esjc.EsjcAggregateRepository
 import no.ks.kes.lib.AggregateRepository
 import no.ks.kes.lib.Cmd
 import no.ks.kes.lib.CmdHandler
+import no.ks.kes.lib.SerializationId
 import java.time.Instant
 import java.util.*
 
 class BasketCmds(repo: AggregateRepository, paymentProcessor: PaymentProcessor) : CmdHandler<Basket>(repo) {
     override fun initAggregate(): Basket = Basket()
 
+    @SerializationId("StartSession")
     data class StartSession(override val aggregateId: UUID) : Cmd<Basket>
+
+    @SerializationId("AddItemToBasket")
     data class AddItemToBasket(override val aggregateId: UUID, val itemId: UUID) : Cmd<Basket>
+
+    @SerializationId("CheckOutBasket")
     data class CheckOutBasket(override val aggregateId: UUID) : Cmd<Basket>
 
     init {

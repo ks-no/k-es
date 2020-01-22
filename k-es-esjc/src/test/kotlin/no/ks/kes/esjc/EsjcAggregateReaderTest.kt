@@ -70,7 +70,7 @@ class EsjcAggregateReaderTest : StringSpec() {
             EsjcAggregateRepository(
                     eventStore = eventStoreMock,
                     deserializer = deserializer,
-                    esjcStreamIdGenerator = { t, id -> "$t.$id" }
+                    streamIdGenerator = { t, id -> "$t.$id" }
             )
                     .read(UUID.randomUUID(), Employee())
                     .apply {
@@ -87,7 +87,7 @@ class EsjcAggregateReaderTest : StringSpec() {
                                         StreamNotFoundException("some message")
                             },
                     deserializer = mockk(),
-                    esjcStreamIdGenerator = { t, id -> "$t.$id" }
+                    streamIdGenerator = { t, id -> "$t.$id" }
             )
                     .read(UUID.randomUUID(), Employee())
                     .apply {

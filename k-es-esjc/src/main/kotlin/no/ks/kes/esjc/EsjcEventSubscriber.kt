@@ -16,6 +16,9 @@ class EsjcEventSubscriber(
         private val fromEvent: Long,
         private val category: String
 ) : EventSubscriber {
+    var onClose: (Exception) -> Unit = {}
+    var onLive: () -> Unit = {}
+
     override fun subscribe(consumer: (EventWrapper<Event<*>>) -> Unit) {
         eventStore.subscribeToStreamFrom(
                 "\$ce-$category",
@@ -43,12 +46,11 @@ class EsjcEventSubscriber(
     }
 
     override fun onClose(handler: (Exception) -> Unit) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        this.onClose = handler
     }
 
     override fun onLive(handler: () -> Unit) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+       this.onLive = handler
     }
-
 
 }

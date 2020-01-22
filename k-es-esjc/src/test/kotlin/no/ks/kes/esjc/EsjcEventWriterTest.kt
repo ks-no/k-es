@@ -38,7 +38,10 @@ internal class EsjcEventWriterTest : StringSpec() {
             }
 
             val deserializer = mockk<EventSerdes<String>>().apply { every { serialize(event) } returns "hired"}
-            val esjcEventWriter = EsjcAggregateWriter(eventStoreMock, { t: String, id: UUID -> "ks.fiks.$t.$id" }, deserializer)
+            val esjcEventWriter = EsjcAggregateRepository(
+                    eventStore = eventStoreMock,
+                    streamIdGenerator = { t: String, id: UUID -> "ks.fiks.$t.$id" },
+                    deserializer = deserializer)
 
             esjcEventWriter.write(eventAggregateType, event.aggregateId, ExpectedEventNumber.Exact(0L), listOf(event))
 
