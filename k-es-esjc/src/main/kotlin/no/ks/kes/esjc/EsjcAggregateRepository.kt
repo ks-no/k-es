@@ -58,7 +58,7 @@ class EsjcAggregateRepository(
     }
 
     private fun resolveExpectedEventNumber(expectedEventNumber: ExpectedEventNumber): Long =
-            when (expectedEventNumber){
+            when (expectedEventNumber) {
                 is ExpectedEventNumber.AggregateDoesNotExist -> ExpectedVersion.NO_STREAM
                 is ExpectedEventNumber.AggregateExists -> ExpectedVersion.STREAM_EXISTS
                 is ExpectedEventNumber.Any -> ExpectedVersion.ANY

@@ -22,7 +22,7 @@ abstract class JdbcCommandQueue(dataSource: DataSource, cmdHandlers: Set<CmdHand
             val incomingCmd = nextCmd()
 
             if (incomingCmd == null)
-                log.info { "polled for cmds, found none"}
+                log.info { "polled for cmds, found none" }
             else
                 log.info { "polled for cmds, found cmd with id ${incomingCmd.id}" }
 

@@ -7,7 +7,6 @@ import no.ks.kes.lib.SagaStateSerdes
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.*
@@ -80,7 +79,7 @@ class JdbcSagaRepository(
                         mutableMapOf(
                                 CmdTable.serializationId to AnnotationUtil.getSerializationId(it::class),
                                 CmdTable.aggregateId to it.aggregateId,
-                                CmdTable.nextExecution to  OffsetDateTime.now( ZoneOffset.UTC ),
+                                CmdTable.nextExecution to OffsetDateTime.now(ZoneOffset.UTC),
                                 CmdTable.data to cmdSerdes.serialize(it))
                     }
                             .toTypedArray())

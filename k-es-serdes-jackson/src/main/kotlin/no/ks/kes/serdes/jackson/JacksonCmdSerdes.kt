@@ -17,7 +17,8 @@ class JacksonCmdSerdes(cmds: Set<KClass<out Cmd<*>>>, private val objectMapper: 
     val commandClasses = cmds.map { AnnotationUtil.getSerializationId(it) to it }.toMap()
 
     override fun deserialize(cmdData: String, serializationId: String): Cmd<*> =
-            objectMapper.readValue(cmdData, commandClasses[serializationId]?.java ?: error("No command with serialization id $serializationId registered"))
+            objectMapper.readValue(cmdData, commandClasses[serializationId]?.java
+                    ?: error("No command with serialization id $serializationId registered"))
 
     override fun serialize(cmd: Cmd<*>): String = objectMapper.writeValueAsString(cmd)
 

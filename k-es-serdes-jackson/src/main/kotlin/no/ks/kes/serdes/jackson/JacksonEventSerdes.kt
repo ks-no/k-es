@@ -4,16 +4,16 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import no.ks.kes.lib.AnnotationUtil
 import no.ks.kes.lib.Event
 import no.ks.kes.lib.EventSerdes
-import no.ks.kes.lib.AnnotationUtil
 import kotlin.reflect.KClass
 
 class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
-                                    private val objectMapper: ObjectMapper = ObjectMapper()
-                                            .registerModule(Jdk8Module())
-                                            .registerModule(JavaTimeModule())
-                                            .registerModule(KotlinModule())
+                         private val objectMapper: ObjectMapper = ObjectMapper()
+                                 .registerModule(Jdk8Module())
+                                 .registerModule(JavaTimeModule())
+                                 .registerModule(KotlinModule())
 ) : EventSerdes<String> {
     private val events = events
             .map { AnnotationUtil.getSerializationId(it) to it }

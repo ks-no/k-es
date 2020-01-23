@@ -6,7 +6,7 @@ import no.ks.kes.lib.SerializationId
 import java.time.Instant
 import java.util.*
 
-class Basket() : Aggregate() {
+class Basket : Aggregate() {
 
     @SerializationId("BasketCreated")
     data class Created(override val aggregateId: UUID, override val timestamp: Instant) : Event<Basket>
