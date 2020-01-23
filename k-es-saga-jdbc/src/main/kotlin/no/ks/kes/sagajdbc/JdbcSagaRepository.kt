@@ -7,6 +7,9 @@ import no.ks.kes.lib.SagaStateSerdes
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.*
 import javax.sql.DataSource
 import kotlin.reflect.KClass
@@ -36,7 +39,7 @@ class JdbcSagaRepository(
 
     override fun getCurrentHwm(): Long =
             template.queryForObject(
-                    "SELECT ${HwmTable.hwm} FROM ${HwmTable}",
+                    "SELECT ${HwmTable.hwm} FROM $HwmTable",
                     mutableMapOf<String, Any>(),
                     Long::class.java
             ) ?: error("No hwm found in ${SagaTable}_HWM")
@@ -69,10 +72,15 @@ class JdbcSagaRepository(
             )
 
             template.batchUpdate(
-                    "INSERT INTO $CmdTable (${CmdTable.serializationId}, ${CmdTable.data}) VALUES (:${CmdTable.serializationId}, :${CmdTable.data})",
+                    """ 
+                        INSERT INTO $CmdTable (${CmdTable.serializationId}, ${CmdTable.aggregateId}, ${CmdTable.retries}, ${CmdTable.nextExecution}, ${CmdTable.error}, ${CmdTable.data}) 
+                        VALUES (:${CmdTable.serializationId}, :${CmdTable.aggregateId}, 0, :${CmdTable.nextExecution}, 0, :${CmdTable.data})                        
+                        """,
                     states.flatMap { it.commands }.map {
                         mutableMapOf(
                                 CmdTable.serializationId to AnnotationUtil.getSerializationId(it::class),
+                                CmdTable.aggregateId to it.aggregateId,
+                                CmdTable.nextExecution to  OffsetDateTime.now( ZoneOffset.UTC ),
                                 CmdTable.data to cmdSerdes.serialize(it))
                     }
                             .toTypedArray())
@@ -81,5 +89,4 @@ class JdbcSagaRepository(
                     mutableMapOf(HwmTable.hwm to hwm))
         }
     }
-
 }

@@ -6,18 +6,20 @@ import no.ks.kes.lib.SerializationId
 import java.time.Instant
 import java.util.*
 
-@SerializationId("ShipmentCreated")
-data class ShipmentCreated(override val aggregateId: UUID, override val timestamp: Instant, val basketId: UUID, val items: Map<UUID, Int>) : Event<Shipment>
 
-@SerializationId("CreateShipmentFailed")
-data class CreateShipmentFailed(override val aggregateId: UUID, override val timestamp: Instant, val reason: String) : Event<Shipment>
 
 class Shipment : Aggregate() {
+    @SerializationId("ShipmentCreated")
+    data class Created(override val aggregateId: UUID, override val timestamp: Instant, val basketId: UUID, val items: Map<UUID, Int>) : Event<Shipment>
+
+    @SerializationId("ShipmentCreateFailed")
+    data class CreateFailed(override val aggregateId: UUID, override val timestamp: Instant, val reason: String) : Event<Shipment>
+
     override val aggregateType = "shipment"
     var aggregateId: UUID? = null
 
     init {
-        on<ShipmentCreated> {
+        on<Created> {
             aggregateId = it.aggregateId
         }
     }

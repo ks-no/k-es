@@ -15,9 +15,9 @@ class Test {
         val basketId = UUID.randomUUID()
         val itemId = UUID.randomUUID()
 
-        basketCmds.handle(BasketCmds.StartSession(basketId))
-        basketCmds.handle(BasketCmds.AddItemToBasket(basketId, itemId))
-        basketCmds.handle(BasketCmds.CheckOutBasket(basketId))
+        basketCmds.handle(BasketCmds.Create(basketId))
+        basketCmds.handle(BasketCmds.AddItem(basketId, itemId))
+        basketCmds.handle(BasketCmds.CheckOut(basketId))
         Thread.sleep(1000)
         Thread.sleep(10000)
         assertTrue(shippedBaskets.getShippedBasket(basketId)!!.contains(itemId))

@@ -43,10 +43,21 @@ class Application {
     }
 
     @Bean
-    fun eventSerdes(): EventSerdes<String> = JacksonEventSerdes(setOf(SessionStarted::class, ItemAddedToBasket::class, BasketCheckedOut::class))
+    fun eventSerdes(): EventSerdes<String> = JacksonEventSerdes(setOf(
+            Basket.Created::class,
+            Basket.ItemAdded::class,
+            Basket.CheckedOut::class,
+            Shipment.Created::class,
+            Shipment.CreateFailed::class
+    ))
 
     @Bean
-    fun cmdSerdes(): CmdSerdes<String> = JacksonCmdSerdes(setOf(BasketCmds.StartSession::class, BasketCmds.AddItemToBasket::class, BasketCmds.CheckOutBasket::class))
+    fun cmdSerdes(): CmdSerdes<String> = JacksonCmdSerdes(setOf(
+            BasketCmds.Create::class,
+            BasketCmds.AddItem::class,
+            BasketCmds.CheckOut::class,
+            ShipmentCmds.Request::class
+    ))
 
     @Bean
     fun sagaSerdes(): SagaStateSerdes<String> = JacksonSagaStateSerdes()
@@ -68,7 +79,7 @@ class Application {
 
     @Bean
     fun subscriber(eventStore: EventStore, eventSerdes: EventSerdes<String>): EventSubscriber =
-            EsjcEventSubscriber(eventStore, eventSerdes, 0L, "no.ks.kes.demoapp")
+            EsjcEventSubscriber(eventStore, eventSerdes, "no.ks.kes.demoapp")
 
     @Bean
     fun aggregateRepo(eventStore: EventStore, eventSerdes: EventSerdes<String>): AggregateRepository =
@@ -94,7 +105,7 @@ class Application {
             val eventSubscriber: EventSubscriber
     ) : ApplicationListener<ApplicationReadyEvent> {
         override fun onApplicationEvent(applicationReadyEvent: ApplicationReadyEvent) {
-            ProjectionManager(eventSubscriber, setOf(shippedBaskets), {}, {})
+            ProjectionManager(eventSubscriber, setOf(shippedBaskets), 0, {}, {})
             SagaManager(eventSubscriber, JdbcSagaRepository(dataSource, sagaSerdes, cmdSerdes), setOf(CreateShipmentSaga()))
         }
     }

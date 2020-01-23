@@ -49,15 +49,18 @@ class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaReposito
             .groupBy { it.first }
 
     init {
-        eventSubscriber.addSubscriber("SagaManager") { event ->
-            log.info { "Saga manager received event!" }
-            subscriptions[event.event::class]
-                    ?.mapNotNull { it.second.invoke(event) }
-                    ?.toSet()
-                    ?.apply {
-                        sagaRepository.update(event.eventNumber, this)
-                    }
-        }
+        eventSubscriber.addSubscriber(
+                consumerName = "SagaManager",
+                fromEvent = sagaRepository.getCurrentHwm(),
+                onEvent = { event ->
+                    subscriptions[event.event::class]
+                            ?.mapNotNull { it.second.invoke(event) }
+                            ?.toSet()
+                            ?.apply {
+                                sagaRepository.update(event.eventNumber, this)
+                            }
+                }
+        )
     }
 }
 

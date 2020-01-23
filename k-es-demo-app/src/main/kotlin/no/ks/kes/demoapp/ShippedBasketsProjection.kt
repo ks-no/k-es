@@ -7,7 +7,7 @@ class ShippedBaskets: Projection() {
     private val itemOrders: MutableMap<UUID, Map<UUID, Int>> = mutableMapOf()
 
     init {
-        on<ShipmentCreated> { itemOrders.put(it.basketId, it.items)}
+        on<Shipment.Created> { itemOrders.put(it.basketId, it.items)}
     }
 
     fun getShippedBasket(basketId: UUID): Map<UUID, Int>? =

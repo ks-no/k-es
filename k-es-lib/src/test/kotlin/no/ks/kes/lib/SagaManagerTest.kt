@@ -33,7 +33,7 @@ class SagaManagerTest: StringSpec() {
 
             val subSlot = slot<(EventWrapper<*>) -> Unit>()
             val sagaStateSlot = slot<Set<SagaRepository.SagaUpsert.SagaInsert>>()
-            val eventSubscriber = mockk<EventSubscriber>().apply { every { addSubscriber(any(), capture(subSlot)) } returns Unit}
+            val eventSubscriber = mockk<EventSubscriber>().apply { every { addSubscriber(any(), any(), capture(subSlot)) } returns Unit}
             val sagaRepository = mockk<SagaRepository>().apply {
                 every { update(any(), capture(sagaStateSlot)) } returns Unit
                 every { getCurrentHwm() } returns 0L
@@ -63,7 +63,7 @@ class SagaManagerTest: StringSpec() {
 
             val subSlot = slot<(EventWrapper<*>) -> Unit>()
             val sagaStateSlot = slot<Set<SagaRepository.SagaUpsert.SagaUpdate>>()
-            val eventSubscriber = mockk<EventSubscriber>().apply { every { addSubscriber(any(), capture(subSlot)) } returns Unit}
+            val eventSubscriber = mockk<EventSubscriber>().apply { every { addSubscriber(any(),  any(), capture(subSlot)) } returns Unit}
             val sagaRepository = mockk<SagaRepository>().apply {
                 every { update(any(), capture(sagaStateSlot)) } returns Unit
                 every { getCurrentHwm() } returns 0L

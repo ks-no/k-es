@@ -6,31 +6,33 @@ import no.ks.kes.lib.SerializationId
 import java.time.Instant
 import java.util.*
 
-@SerializationId("SessionStarted")
-data class SessionStarted(override val aggregateId: UUID, override val timestamp: Instant) : Event<Basket>
-
-@SerializationId("ItemAddedToBasket")
-data class ItemAddedToBasket(override val aggregateId: UUID, override val timestamp: Instant, val itemId: UUID) : Event<Basket>
-
-@SerializationId("BasketCheckedOut")
-data class BasketCheckedOut(override val aggregateId: UUID, override val timestamp: Instant, val items: Map<UUID, Int>) : Event<Basket>
-
 class Basket() : Aggregate() {
+
+    @SerializationId("BasketCreated")
+    data class Created(override val aggregateId: UUID, override val timestamp: Instant) : Event<Basket>
+
+    @SerializationId("BasketItemAdded")
+    data class ItemAdded(override val aggregateId: UUID, override val timestamp: Instant, val itemId: UUID) : Event<Basket>
+
+    @SerializationId("BasketCheckedOut")
+    data class CheckedOut(override val aggregateId: UUID, override val timestamp: Instant, val items: Map<UUID, Int>) : Event<Basket>
+
+
     override val aggregateType = "basket"
     var aggregateId: UUID? = null
     var basket: MutableMap<UUID, Int> = mutableMapOf()
     var basketClosed: Boolean = false
 
     init {
-        on<SessionStarted> {
+        on<Created> {
             aggregateId = it.aggregateId
         }
 
-        on<ItemAddedToBasket> {
+        on<ItemAdded> {
             basket.getOrPut(it.itemId, { 0 }).inc()
         }
 
-        on<BasketCheckedOut> {
+        on<CheckedOut> {
             basketClosed = true
         }
 

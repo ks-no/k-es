@@ -18,10 +18,9 @@ internal class EsjcEventSubscriberTest : StringSpec() {
 
             EsjcEventSubscriber(
                     eventStore = eventStoreMock,
-                    fromEvent = hwm,
                     category = category,
                     serdes = mockk()
-            ).addSubscriber("aSubscriber") { run {} }
+            ).addSubscriber(consumerName = "aSubscriber", onEvent =  { run {} }, fromEvent = hwm)
             verify(exactly = 1) { eventStoreMock.subscribeToStreamFrom("\$ce-$category", eq(hwm), any(), ofType<CatchUpSubscriptionListener>()) }
         }
     }

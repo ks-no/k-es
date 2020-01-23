@@ -46,11 +46,11 @@ class SqlServerCommandQueueManager(dataSource: DataSource, private val cmdSerdes
                         ROW_NUMBER() OVER (PARTITION BY ${CmdTable.aggregateId} ORDER BY ${CmdTable.id}) AS rn
                         FROM cmd
                     )
-                    SELECT TOP 1 aggregateId, retries, data
+                    SELECT TOP 1 id, serializationId, aggregateId, retries, data
                     FROM cte WITH (UPDLOCK, NOWAIT)
                     WHERE rn = 1
                     AND ${CmdTable.error} = 0
-                    AND ${CmdTable.nextExecution} > CURRENT_TIMESTAMP
+                    AND ${CmdTable.nextExecution} < CURRENT_TIMESTAMP
                     ORDER BY NEWID()
                 """
             ) { rs, _ ->
