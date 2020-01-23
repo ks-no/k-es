@@ -19,19 +19,19 @@ class ShipmentCmds(repo: AggregateRepository, warehouseManager: WarehouseManager
             try {
                 warehouseManager.shipOrder(it.aggregateId)
                 Succeed(Shipment.Created(it.aggregateId, Instant.now(), it.basketId, it.items))
-            } catch (e: TheItemsAreNotInStockException) {
+            } catch (e: ItemNoLongerCarried) {
                 Fail(Shipment.Failed(it.aggregateId, Instant.now(), "Not in stock!", it.basketId), e)
-            } catch (e: CouldNotReachWarehouseSystem){
+            } catch (e: WarehouseSystemFailure){
                 RetryOrFail(Shipment.Failed(it.aggregateId, Instant.now(), "System problem!", it.basketId), e) {Instant.now()}
             }
         }
     }
 }
 
-class TheItemsAreNotInStockException : RuntimeException()
-class CouldNotReachWarehouseSystem : RuntimeException()
+class ItemNoLongerCarried : RuntimeException()
+class WarehouseSystemFailure : RuntimeException()
 
 interface WarehouseManager {
-    fun failWith(e: Exception?)
+    fun failOnce(e: Exception?)
     fun shipOrder(orderId: UUID)
 }

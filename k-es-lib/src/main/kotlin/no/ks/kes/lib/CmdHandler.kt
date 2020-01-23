@@ -42,11 +42,11 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
         return when (val result = invokeHandler(cmd, aggregate)) {
             is Result.Fail<A> -> {
                 write(aggregate, cmd, result.events)
-                log.error("asdf", result.exception!!); AsyncResult.Fail
+                log.error("execution of ${cmd::class.simpleName} failed permanently: $cmd", result.exception!!); AsyncResult.Fail
             }
             is Result.RetryOrFail<A> -> {
                 val nextExecution = result.retryStrategy.invoke(retryNumber)
-                log.error("asdf", result.exception!!)
+                log.error("execution of ${cmd::class.simpleName} failed with retry, ${nextExecution?.let { "next retry at $it" } ?: " but all retries are exhausted" }", result.exception!!)
                 if (nextExecution == null) {
                     write(aggregate, cmd, result.events)
                     AsyncResult.Fail

@@ -27,9 +27,9 @@ class Test {
     }
 
     @Test
-    @DisplayName("Test that a shipment fails permanently if the items are not in stock")
+    @DisplayName("Test that a shipment fails permanently if the items are no longer carried")
     internal fun testCreateShipmentFails(@Autowired basketCmds: BasketCmds, @Autowired shipments: Shipments, @Autowired warehouseManager: WarehouseManager) {
-        warehouseManager.failWith(TheItemsAreNotInStockException())
+        warehouseManager.failOnce(ItemNoLongerCarried())
 
         val basketId = UUID.randomUUID()
         val itemId = UUID.randomUUID()
@@ -44,7 +44,7 @@ class Test {
     @Test
     @DisplayName("Test that a shipment is retried if the warehouse system fails")
     internal fun testCreateShipmentRetry(@Autowired basketCmds: BasketCmds, @Autowired shipments: Shipments, @Autowired warehouseManager: WarehouseManager) {
-        warehouseManager.failWith(CouldNotReachWarehouseSystem())
+        warehouseManager.failOnce(WarehouseSystemFailure())
 
         val basketId = UUID.randomUUID()
         val itemId = UUID.randomUUID()
@@ -53,7 +53,7 @@ class Test {
         basketCmds.handle(BasketCmds.AddItem(basketId, itemId))
         basketCmds.handle(BasketCmds.CheckOut(basketId))
 
-        await untilCallTo { shipments.isFailedShipment(basketId) } matches { it == true }
+        await untilCallTo { shipments.getShipments(basketId) } matches { it!!.contains(itemId)}
     }
 
     @Test

@@ -21,6 +21,7 @@ import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.util.*
+import java.util.concurrent.atomic.AtomicReference
 import javax.sql.DataSource
 
 
@@ -116,16 +117,14 @@ class Application {
     }
 
     class MyWarehouseManager: WarehouseManager {
-        private var fail: Exception? = null
+        private var fail: AtomicReference<Exception?> = AtomicReference(null)
 
-        override fun failWith(e: Exception?){
-            fail = e
+        override fun failOnce(e: Exception?){
+            fail.set(e)
         }
 
         override fun shipOrder(orderId: UUID) {
-            if (fail != null){
-                throw fail as Exception
-            }
+            fail.getAndSet(null)?.let { throw it }
         }
     }
 }

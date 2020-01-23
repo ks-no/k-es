@@ -6,7 +6,7 @@ CREATE TABLE cmd (
     serializationId nvarchar(255) NOT NULL,
     error BIT NOT NULL,
     errorId nvarchar(255),
-    data nvarchar(4000)
+    data nvarchar(4000) NOT NULL
 )
 
 CREATE TABLE saga (
