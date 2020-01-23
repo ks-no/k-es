@@ -1,7 +1,4 @@
-import no.ks.kes.demoapp.Application
-import no.ks.kes.demoapp.BasketCmds
-import no.ks.kes.demoapp.Shipments
-import no.ks.kes.demoapp.WarehouseManager
+import no.ks.kes.demoapp.*
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.matches
 import org.awaitility.kotlin.untilCallTo
@@ -30,9 +27,24 @@ class Test {
     }
 
     @Test
-    @DisplayName("Test that we can checkout a basket, and that this creates a shipment")
+    @DisplayName("Test that a shipment fails permanently if the items are not in stock")
     internal fun testCreateShipmentFails(@Autowired basketCmds: BasketCmds, @Autowired shipments: Shipments, @Autowired warehouseManager: WarehouseManager) {
-        warehouseManager.failNext()
+        warehouseManager.failWith(TheItemsAreNotInStockException())
+
+        val basketId = UUID.randomUUID()
+        val itemId = UUID.randomUUID()
+
+        basketCmds.handle(BasketCmds.Create(basketId))
+        basketCmds.handle(BasketCmds.AddItem(basketId, itemId))
+        basketCmds.handle(BasketCmds.CheckOut(basketId))
+
+        await untilCallTo { shipments.isFailedShipment(basketId) } matches { it == true }
+    }
+
+    @Test
+    @DisplayName("Test that a shipment is retried if the warehouse system fails")
+    internal fun testCreateShipmentRetry(@Autowired basketCmds: BasketCmds, @Autowired shipments: Shipments, @Autowired warehouseManager: WarehouseManager) {
+        warehouseManager.failWith(CouldNotReachWarehouseSystem())
 
         val basketId = UUID.randomUUID()
         val itemId = UUID.randomUUID()

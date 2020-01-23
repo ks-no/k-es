@@ -20,7 +20,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.lang.RuntimeException
 import java.util.*
 import javax.sql.DataSource
 
@@ -92,7 +91,7 @@ class Application {
     }
 
     @Bean
-    fun warehouseManager(): WarehouseManager = WarehouseManager()
+    fun warehouseManager(): WarehouseManager = MyWarehouseManager()
 
     @Component
     class MyBootListener(
@@ -116,17 +115,16 @@ class Application {
         }
     }
 
-    class WarehouseManager: no.ks.kes.demoapp.WarehouseManager {
-        private var failNext = false
+    class MyWarehouseManager: WarehouseManager {
+        private var fail: Exception? = null
 
-        override fun failNext(){
-            failNext = true
+        override fun failWith(e: Exception?){
+            fail = e
         }
 
         override fun shipOrder(orderId: UUID) {
-            if (failNext){
-                failNext = false
-                throw ShipmentCreationException("something went very wrong!")
+            if (fail != null){
+                throw fail as Exception
             }
         }
     }
