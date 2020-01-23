@@ -12,13 +12,17 @@ class Shipment : Aggregate() {
     data class Created(override val aggregateId: UUID, override val timestamp: Instant, val basketId: UUID, val items: Map<UUID, Int>) : Event<Shipment>
 
     @SerializationId("ShipmentCreateFailed")
-    data class CreateFailed(override val aggregateId: UUID, override val timestamp: Instant, val reason: String) : Event<Shipment>
+    data class Failed(override val aggregateId: UUID, override val timestamp: Instant, val reason: String, val basketId: UUID) : Event<Shipment>
 
     override val aggregateType = "shipment"
     var aggregateId: UUID? = null
 
     init {
         on<Created> {
+            aggregateId = it.aggregateId
+        }
+
+        on<Failed> {
             aggregateId = it.aggregateId
         }
     }

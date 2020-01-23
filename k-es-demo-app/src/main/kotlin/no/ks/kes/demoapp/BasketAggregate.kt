@@ -17,7 +17,6 @@ class Basket : Aggregate() {
     @SerializationId("BasketCheckedOut")
     data class CheckedOut(override val aggregateId: UUID, override val timestamp: Instant, val items: Map<UUID, Int>) : Event<Basket>
 
-
     override val aggregateType = "basket"
     var aggregateId: UUID? = null
     var basket: MutableMap<UUID, Int> = mutableMapOf()

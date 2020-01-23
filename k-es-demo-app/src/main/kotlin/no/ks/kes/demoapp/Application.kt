@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.lang.RuntimeException
 import java.util.*
 import javax.sql.DataSource
 
@@ -47,7 +48,7 @@ class Application {
             Basket.ItemAdded::class,
             Basket.CheckedOut::class,
             Shipment.Created::class,
-            Shipment.CreateFailed::class
+            Shipment.Failed::class
     ))
 
     @Bean
@@ -59,7 +60,7 @@ class Application {
     ))
 
     @Bean
-    fun shippedBaskets(): ShippedBaskets = ShippedBaskets()
+    fun shippedBaskets(): Shipments = Shipments()
 
     @Bean
     fun basketCmd(aggregateRepository: AggregateRepository): BasketCmds =
@@ -68,10 +69,8 @@ class Application {
             })
 
     @Bean
-    fun shipmentCmd(aggregateRepository: AggregateRepository): ShipmentCmds =
-            ShipmentCmds(aggregateRepository, object : WarehouseManager {
-                override fun shipOrder(orderId: UUID) {}
-            })
+    fun shipmentCmd(aggregateRepository: AggregateRepository, warehouseManager: WarehouseManager): ShipmentCmds =
+            ShipmentCmds(aggregateRepository, warehouseManager)
 
     @Bean
     fun subscriber(eventStore: EventStore, eventSerdes: EventSerdes<String>): EventSubscriber =
@@ -92,10 +91,13 @@ class Application {
         return SqlServerCommandQueueManager(dataSource, cmdSerdes, setOf(basketCmds, shipmentCmds))
     }
 
+    @Bean
+    fun warehouseManager(): WarehouseManager = WarehouseManager()
+
     @Component
     class MyBootListener(
             val dataSource: DataSource,
-            val shippedBaskets: ShippedBaskets,
+            val shippedBaskets: Shipments,
             val cmdSerdes: CmdSerdes<String>,
             val eventSubscriber: EventSubscriber
     ) : ApplicationListener<ApplicationReadyEvent> {
@@ -111,6 +113,21 @@ class Application {
         @Scheduled(fixedDelay = 1000)
         fun poll() {
             cmdQueueManager.poll()
+        }
+    }
+
+    class WarehouseManager: no.ks.kes.demoapp.WarehouseManager {
+        private var failNext = false
+
+        override fun failNext(){
+            failNext = true
+        }
+
+        override fun shipOrder(orderId: UUID) {
+            if (failNext){
+                failNext = false
+                throw ShipmentCreationException("something went very wrong!")
+            }
         }
     }
 }

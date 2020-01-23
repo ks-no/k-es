@@ -41,6 +41,7 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
 
         return when (val result = invokeHandler(cmd, aggregate)) {
             is Result.Fail<A> -> {
+                write(aggregate, cmd, result.events)
                 log.error("asdf", result.exception!!); AsyncResult.Fail
             }
             is Result.RetryOrFail<A> -> {
@@ -61,7 +62,8 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
     }
 
     private fun write(aggregate: A, cmd: Cmd<A>, events: List<Event<A>>) {
-        repository.write(aggregate.aggregateType, cmd.aggregateId, resolveExpectedEventNumber(aggregate.currentEventNumber, cmd.useOptimisticLocking()), events)
+        if (events.isNotEmpty())
+            repository.write(aggregate.aggregateType, cmd.aggregateId, resolveExpectedEventNumber(aggregate.currentEventNumber, cmd.useOptimisticLocking()), events)
     }
 
     private fun resolveExpectedEventNumber(currentEventNumber: Long, useOptimisticLocking: Boolean): ExpectedEventNumber =

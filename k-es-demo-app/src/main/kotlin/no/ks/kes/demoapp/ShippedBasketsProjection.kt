@@ -3,13 +3,17 @@ package no.ks.kes.demoapp
 import no.ks.kes.lib.Projection
 import java.util.*
 
-class ShippedBaskets : Projection() {
-    private val itemOrders: MutableMap<UUID, Map<UUID, Int>> = mutableMapOf()
+class Shipments : Projection() {
+    private val created: MutableMap<UUID, Map<UUID, Int>> = mutableMapOf()
+    private val failed: MutableSet<UUID> = mutableSetOf()
 
     init {
-        on<Shipment.Created> { itemOrders.put(it.basketId, it.items) }
+        on<Shipment.Created> { created.put(it.basketId, it.items) }
+        on<Shipment.Failed> { failed.add(it.basketId) }
     }
 
-    fun getShippedBasket(basketId: UUID): Map<UUID, Int>? =
-            itemOrders[basketId]
+    fun getShipments(basketId: UUID): Map<UUID, Int>? =
+            created[basketId]
+
+    fun isFailedShipment(basketId: UUID): Boolean = failed.contains(basketId)
 }
