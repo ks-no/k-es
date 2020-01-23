@@ -113,7 +113,7 @@ class Application {
     @Component
     class QueuePoller(val cmdQueueManager: SqlServerCommandQueueManager) {
 
-        @Scheduled(fixedDelay = 5000)
+        @Scheduled(fixedDelay = 1000)
         fun poll(){
             cmdQueueManager.poll()
         }
