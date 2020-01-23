@@ -2,10 +2,7 @@ package no.ks.kes.esjc
 
 import com.github.msemys.esjc.*
 import mu.KotlinLogging
-import no.ks.kes.lib.Event
-import no.ks.kes.lib.EventSerdes
-import no.ks.kes.lib.EventSubscriber
-import no.ks.kes.lib.EventWrapper
+import no.ks.kes.lib.*
 
 private val log = KotlinLogging.logger {}
 
@@ -39,7 +36,7 @@ class EsjcEventSubscriber(
                                 log.info("$consumerName: event ignored: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}")
                             else ->
                                 onEvent.invoke(EventWrapper(
-                                        event = serdes.deserialize(String(resolvedEvent.event.data), resolvedEvent.event.eventType),
+                                        event = EventUpgrader.upgrade(serdes.deserialize(String(resolvedEvent.event.data), resolvedEvent.event.eventType)),
                                         eventNumber = resolvedEvent.originalEventNumber()))
                                         .also {
                                             log.info("$consumerName: event ${resolvedEvent.originalEventNumber()}@${resolvedEvent.originalStreamId()}: " +

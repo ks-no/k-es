@@ -33,14 +33,13 @@ fun main(args: Array<String>) {
 class Application {
 
     @Bean
-    fun datasource(): DataSource {
-        val dataSourceBuilder = DataSourceBuilder.create()
-        dataSourceBuilder.driverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver")
-        dataSourceBuilder.url("jdbc:sqlserver://localhost:1433;databaseName=kesdemo")
-        dataSourceBuilder.username("SA")
-        dataSourceBuilder.password("Test1234!")
-        return dataSourceBuilder.build();
-    }
+    fun datasource(): DataSource =
+            DataSourceBuilder.create().apply {
+                driverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver")
+                url("jdbc:sqlserver://localhost:1433;databaseName=kesdemo")
+                username("SA")
+                password("Test1234!")
+            }.build()
 
     @Bean
     fun eventSerdes(): EventSerdes<String> = JacksonEventSerdes(setOf(

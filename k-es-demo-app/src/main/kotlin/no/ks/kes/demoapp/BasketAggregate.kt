@@ -29,7 +29,7 @@ class Basket : Aggregate() {
         }
 
         on<ItemAdded> {
-            basket.getOrPut(it.itemId, { 0 }).inc()
+            basket.compute(it.itemId) { _, count -> count?.inc() ?: 1 }
         }
 
         on<CheckedOut> {
