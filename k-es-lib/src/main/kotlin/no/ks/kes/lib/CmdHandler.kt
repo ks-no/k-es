@@ -112,6 +112,7 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
 
         class Succeed<A : Aggregate>(val events: List<Event<A>>) : Result<A>(null) {
             constructor(event: Event<A>) : this(listOf(event))
+            constructor() : this(emptyList())
         }
     }
 
