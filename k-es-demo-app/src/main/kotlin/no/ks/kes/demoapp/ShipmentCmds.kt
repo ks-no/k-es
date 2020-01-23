@@ -18,14 +18,14 @@ class ShipmentCmds(repo: AggregateRepository, warehouseManager: WarehouseManager
             try {
                 warehouseManager.shipOrder(it.aggregateId)
                 Result.Succeed(Shipment.Created(it.aggregateId, Instant.now(), it.basketId, it.items))
-            } catch (e: ShipmentCreationException){
+            } catch (e: ShipmentCreationException) {
                 Result.RetryOrFail(Shipment.CreateFailed(it.aggregateId, Instant.now(), e.message!!), e)
             }
         }
     }
 }
 
-class ShipmentCreationException: RuntimeException()
+class ShipmentCreationException : RuntimeException()
 
 interface WarehouseManager {
     fun shipOrder(orderId: UUID)

@@ -7,7 +7,6 @@ import java.time.Instant
 import java.util.*
 
 
-
 class Shipment : Aggregate() {
     @SerializationId("ShipmentCreated")
     data class Created(override val aggregateId: UUID, override val timestamp: Instant, val basketId: UUID, val items: Map<UUID, Int>) : Event<Shipment>

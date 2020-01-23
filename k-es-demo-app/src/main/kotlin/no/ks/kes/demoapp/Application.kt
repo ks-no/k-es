@@ -33,13 +33,13 @@ fun main(args: Array<String>) {
 class Application {
 
     @Bean
-    fun datasource():DataSource {
-            val dataSourceBuilder = DataSourceBuilder.create();
-            dataSourceBuilder.driverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            dataSourceBuilder.url("jdbc:sqlserver://localhost:1433;databaseName=kesdemo");
-            dataSourceBuilder.username("SA");
-            dataSourceBuilder.password("Test1234!");
-            return dataSourceBuilder.build();
+    fun datasource(): DataSource {
+        val dataSourceBuilder = DataSourceBuilder.create()
+        dataSourceBuilder.driverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver")
+        dataSourceBuilder.url("jdbc:sqlserver://localhost:1433;databaseName=kesdemo")
+        dataSourceBuilder.username("SA")
+        dataSourceBuilder.password("Test1234!")
+        return dataSourceBuilder.build();
     }
 
     @Bean
@@ -60,10 +60,7 @@ class Application {
     ))
 
     @Bean
-    fun sagaSerdes(): SagaStateSerdes<String> = JacksonSagaStateSerdes()
-
-    @Bean
-    fun mostPopularItem(): ShippedBaskets = ShippedBaskets()
+    fun shippedBaskets(): ShippedBaskets = ShippedBaskets()
 
     @Bean
     fun basketCmd(aggregateRepository: AggregateRepository): BasketCmds =
@@ -100,13 +97,12 @@ class Application {
     class MyBootListener(
             val dataSource: DataSource,
             val shippedBaskets: ShippedBaskets,
-            val sagaSerdes: SagaStateSerdes<String>,
             val cmdSerdes: CmdSerdes<String>,
             val eventSubscriber: EventSubscriber
     ) : ApplicationListener<ApplicationReadyEvent> {
         override fun onApplicationEvent(applicationReadyEvent: ApplicationReadyEvent) {
             ProjectionManager(eventSubscriber, setOf(shippedBaskets), 0, {}, {})
-            SagaManager(eventSubscriber, JdbcSagaRepository(dataSource, sagaSerdes, cmdSerdes), setOf(CreateShipmentSaga()))
+            SagaManager(eventSubscriber, JdbcSagaRepository(dataSource, JacksonSagaStateSerdes(), cmdSerdes), setOf(CreateShipmentSaga()))
         }
     }
 
@@ -114,9 +110,8 @@ class Application {
     class QueuePoller(val cmdQueueManager: SqlServerCommandQueueManager) {
 
         @Scheduled(fixedDelay = 1000)
-        fun poll(){
+        fun poll() {
             cmdQueueManager.poll()
         }
-
     }
 }
