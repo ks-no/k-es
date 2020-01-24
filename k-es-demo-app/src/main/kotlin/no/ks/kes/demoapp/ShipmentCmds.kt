@@ -13,6 +13,7 @@ class ShipmentCmds(repo: AggregateRepository, warehouseManager: WarehouseManager
 
     @SerializationId("ShipmentRequest")
     data class Request(override val aggregateId: UUID, val items: Map<UUID, Int>, val basketId: UUID) : Cmd<Shipment>
+    data class SendLateShipmentAlert(override val aggregateId: UUID) : Cmd<Shipment>
 
     init {
         initOn<Request> {

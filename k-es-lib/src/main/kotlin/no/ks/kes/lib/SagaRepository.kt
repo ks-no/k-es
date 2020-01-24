@@ -12,7 +12,19 @@ interface SagaRepository {
 
         abstract val commands: List<Cmd<*>>
 
-        data class SagaUpdate(val correlationId: UUID, val serializationId: String, val newState: Any?, override val commands: List<Cmd<*>>) : SagaUpsert()
-        data class SagaInsert(val correlationId: UUID, val serializationId: String, val newState: Any, override val commands: List<Cmd<*>>) : SagaUpsert()
+        data class SagaUpdate(
+                val correlationId: UUID,
+                val serializationId: String,
+                val newState: Any?,
+                val timeouts: Set<Saga.Timeout>,
+                override val commands: List<Cmd<*>>
+        ) : SagaUpsert()
+
+        data class SagaInsert(
+                val correlationId: UUID,
+                val serializationId: String,
+                val newState: Any,
+                override val commands: List<Cmd<*>>
+        ) : SagaUpsert()
     }
 }

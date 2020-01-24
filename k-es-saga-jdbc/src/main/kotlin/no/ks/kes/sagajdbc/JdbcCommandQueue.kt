@@ -12,37 +12,56 @@ import javax.sql.DataSource
 
 private val log = KotlinLogging.logger {}
 
-abstract class JdbcCommandQueue(dataSource: DataSource, cmdHandlers: Set<CmdHandler<*>>) {
+abstract class JdbcCommandQueue(
+        dataSource: DataSource,
+        cmdHandlers: Set<CmdHandler<*>>,
+        private val shouldProcessCmds: () -> Boolean = { true }) {
+
     protected val template = NamedParameterJdbcTemplate(dataSource)
     private val transactionManager = DataSourceTransactionManager(dataSource)
     private val handledCmds = cmdHandlers.flatMap { handler -> handler.handledCmds().map { it to handler } }.toMap()
+    private var currentShouldProcessCmds = true
 
     fun poll() {
-        TransactionTemplate(transactionManager).execute {
-            val incomingCmd = nextCmd()
+        currentShouldProcessCmds = shouldProcessCmds.invoke().also {
+            logShouldProcess(it)
+        }
 
-            if (incomingCmd == null)
-                log.info { "polled for cmds, found none" }
-            else
-                log.info { "polled for cmds, found cmd with id ${incomingCmd.id}" }
+        if (currentShouldProcessCmds) {
+            TransactionTemplate(transactionManager).execute {
+                val incomingCmd = nextCmd()
 
-            incomingCmd?.let { wrapper ->
-                val handler = handledCmds[wrapper.cmd::class] ?: error("no handler for cmd ${wrapper.cmd::class}")
-                val result = try {
-                    handler.handleAsync(wrapper.cmd, wrapper.retries)
-                } catch (e: Exception) {
-                    val errorId = UUID.randomUUID()
-                    log.error("Error handling cmd ${wrapper.cmd::class.simpleName} (id: ${wrapper.id}), assigning errorId $errorId", e)
-                    incrementAndSetError(wrapper.id, errorId)
-                }
+                if (incomingCmd == null)
+                    log.info { "polled for cmds, found none" }
+                else
+                    log.info { "polled for cmds, found cmd with id ${incomingCmd.id}" }
 
-                when (result) {
-                    is CmdHandler.AsyncResult.Success -> delete(wrapper.id)
-                    is CmdHandler.AsyncResult.Fail -> delete(wrapper.id)
-                    is CmdHandler.AsyncResult.Retry -> incrementAndSetNextExecution(wrapper.id, result.nextExecution)
+                incomingCmd?.let { wrapper ->
+                    val handler = handledCmds[wrapper.cmd::class] ?: error("no handler for cmd ${wrapper.cmd::class}")
+                    val result = try {
+                        handler.handleAsync(wrapper.cmd, wrapper.retries)
+                    } catch (e: Exception) {
+                        val errorId = UUID.randomUUID()
+                        log.error("Error handling cmd ${wrapper.cmd::class.simpleName} (id: ${wrapper.id}), assigning errorId $errorId", e)
+                        incrementAndSetError(wrapper.id, errorId)
+                    }
+
+                    when (result) {
+                        is CmdHandler.AsyncResult.Success -> delete(wrapper.id)
+                        is CmdHandler.AsyncResult.Fail -> delete(wrapper.id)
+                        is CmdHandler.AsyncResult.Retry -> incrementAndSetNextExecution(wrapper.id, result.nextExecution)
+                    }
                 }
             }
         }
+    }
+
+    private fun logShouldProcess(shouldProcess: Boolean) {
+        if (currentShouldProcessCmds != shouldProcessCmds.invoke())
+            if (shouldProcess)
+                log.info("The \"Should process cmds\" indicator has changed to $shouldProcess. The queue will now retrieve and process new commands")
+            else
+                log.info("The \"Should process cmds\" indicator has changed to $shouldProcess. The queue will no longer retrieve and process new commands")
     }
 
     protected abstract fun delete(cmdId: Long)

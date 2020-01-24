@@ -7,6 +7,7 @@ import no.ks.kes.lib.SagaStateSerdes
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
+import java.sql.Time
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.*
@@ -53,6 +54,22 @@ class JdbcSagaRepository(
                                         SagaTable.correlationId to it.correlationId,
                                         SagaTable.serializationId to it.serializationId,
                                         SagaTable.data to sagaStateSerdes.serialize(it.newState))
+                            }
+                            .toTypedArray()
+            )
+
+            template.batchUpdate(
+                    "INSERT INTO $TimeoutTable (${TimeoutTable.sagaCorrelationId}, ${TimeoutTable.sagaSerializationId}, ${TimeoutTable.timeoutId}, ${TimeoutTable.timeout}) VALUES (:${TimeoutTable.sagaCorrelationId}, :${TimeoutTable.sagaSerializationId}, :${TimeoutTable.timeoutId}, :${TimeoutTable.timeout})",
+                    states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
+                            .flatMap {saga ->
+                                saga.timeouts.map {
+                                    mutableMapOf(
+                                            TimeoutTable.sagaCorrelationId to saga.correlationId,
+                                            TimeoutTable.sagaSerializationId to saga.serializationId,
+                                            TimeoutTable.timeoutId to it.timeoutId,
+                                            TimeoutTable.timeout to OffsetDateTime.ofInstant(it.triggerAt, ZoneOffset.UTC)
+                                    )
+                                }
                             }
                             .toTypedArray()
             )

@@ -17,12 +17,14 @@ class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaReposito
                                             onEvent.handler.invoke(e, Saga.SagaContext(it))
                                         }
                                         ?.let {
-                                            if (it.first != null || it.second.isNotEmpty())
+                                            if (it.newState != null || it.commands.isNotEmpty() || it.timeouts.isNotEmpty())
                                                 SagaRepository.SagaUpsert.SagaUpdate(
                                                         correlationId = onEvent.correlationId(e),
                                                         serializationId = AnnotationUtil.getSerializationId(saga.sagaClass),
-                                                        newState = it.first,
-                                                        commands = it.second
+                                                        newState = it.newState,
+                                                        commands = it.commands,
+                                                        timeouts = it.timeouts.toSet()
+
                                                 )
                                             else
                                                 null
@@ -33,12 +35,12 @@ class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaReposito
                                 saga.initializer.eventClass to { e: EventWrapper<Event<*>> ->
                                     saga.initializer.handler(e, Saga.InitContext())
                                             .let {
-                                                if (it.first != null)
+                                                if (it.newState != null)
                                                     SagaRepository.SagaUpsert.SagaInsert(
                                                             correlationId = saga.initializer.correlationId(e),
                                                             serializationId = AnnotationUtil.getSerializationId(saga.sagaClass),
-                                                            newState = it.first!!,
-                                                            commands = it.second
+                                                            newState = it.newState!!,
+                                                            commands = it.commands
                                                     )
                                                 else
                                                     null
