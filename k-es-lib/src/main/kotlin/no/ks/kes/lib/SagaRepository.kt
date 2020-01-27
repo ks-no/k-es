@@ -7,7 +7,9 @@ interface SagaRepository {
     fun <T : Any> getSagaState(correlationId: UUID, serializationId: String, sagaStateClass: KClass<T>): T?
     fun getCurrentHwm(): Long
     fun update(hwm: Long, states: Set<SagaUpsert>)
+    fun update(upsert: SagaUpsert.SagaUpdate)
 
+    data class Timeout(val sagaCorrelationId: UUID, val sagaSerializationId: String, val timeoutId: String)
     sealed class SagaUpsert {
 
         abstract val commands: List<Cmd<*>>

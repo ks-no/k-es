@@ -1,9 +1,7 @@
 package no.ks.kes.sagajdbc
 
-import io.mockk.every
 import io.mockk.mockk
 import no.ks.kes.lib.SagaRepository
-import no.ks.kes.lib.SagaStateSerdes
 import no.ks.kes.serdes.jackson.JacksonSagaStateSerdes
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -25,7 +23,7 @@ class JdbcSagaRepositoryTest{
 
     @Test
     internal fun name(@EmbeddedDatabase dataSource: DataSource) {
-        val repo = JdbcSagaRepository(dataSource, JacksonSagaStateSerdes(), mockk())
+        val repo = SqlServerSagaRepository(dataSource, JacksonSagaStateSerdes(), mockk())
         val correlationId = UUID.randomUUID()
         val serializationId = "foo"
         val sagaState = SomeState(UUID.randomUUID())

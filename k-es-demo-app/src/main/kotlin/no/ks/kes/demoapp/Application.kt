@@ -6,8 +6,9 @@ import no.ks.kes.esjc.EsjcAggregateRepository
 import no.ks.kes.esjc.EsjcEventSubscriber
 import no.ks.kes.esjc.EsjcEventUtil
 import no.ks.kes.lib.*
-import no.ks.kes.sagajdbc.JdbcSagaRepository
 import no.ks.kes.sagajdbc.SqlServerCommandQueueManager
+import no.ks.kes.sagajdbc.SqlServerSagaRepository
+import no.ks.kes.sagajdbc.SqlServerSagaTimeoutManager
 import no.ks.kes.serdes.jackson.JacksonCmdSerdes
 import no.ks.kes.serdes.jackson.JacksonEventSerdes
 import no.ks.kes.serdes.jackson.JacksonSagaStateSerdes
@@ -92,18 +93,28 @@ class Application {
     }
 
     @Bean
+    fun sagaManager(dataSource: DataSource,
+                    cmdSerdes: CmdSerdes<String>,
+                    eventSubscriber: EventSubscriber): SagaManager {
+        return SagaManager(eventSubscriber, SqlServerSagaRepository(dataSource, JacksonSagaStateSerdes(), cmdSerdes), setOf(CreateShipmentSaga()))
+    }
+
+    @Bean
+    fun sqlServerSagaTimeoutManager(dataSource: DataSource, sagaManager: SagaManager): SqlServerSagaTimeoutManager {
+        return SqlServerSagaTimeoutManager(dataSource, sagaManager)
+    }
+
+    @Bean
     fun warehouseManager(): WarehouseManager = MyWarehouseManager()
 
     @Component
     class MyBootListener(
-            val dataSource: DataSource,
             val shippedBaskets: Shipments,
-            val cmdSerdes: CmdSerdes<String>,
             val eventSubscriber: EventSubscriber
     ) : ApplicationListener<ApplicationReadyEvent> {
         override fun onApplicationEvent(applicationReadyEvent: ApplicationReadyEvent) {
             ProjectionManager(eventSubscriber, setOf(shippedBaskets), 0, {}, {})
-            SagaManager(eventSubscriber, JdbcSagaRepository(dataSource, JacksonSagaStateSerdes(), cmdSerdes), setOf(CreateShipmentSaga()))
+
         }
     }
 
@@ -116,10 +127,19 @@ class Application {
         }
     }
 
-    class MyWarehouseManager: WarehouseManager {
+    @Component
+    class TimeoutPoller(val timeoutManager: SqlServerSagaTimeoutManager) {
+
+        @Scheduled(fixedDelay = 1000)
+        fun poll() {
+            timeoutManager.poll()
+        }
+    }
+
+    class MyWarehouseManager : WarehouseManager {
         private var fail: AtomicReference<Exception?> = AtomicReference(null)
 
-        override fun failOnce(e: Exception?){
+        override fun failOnce(e: Exception?) {
             fail.set(e)
         }
 

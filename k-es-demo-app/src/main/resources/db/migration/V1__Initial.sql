@@ -16,6 +16,18 @@ CREATE TABLE saga (
    CONSTRAINT PK_saga PRIMARY KEY (correlationId, serializationId),
 )
 
+CREATE TABLE timeout (
+                      sagaCorrelationId nvarchar(255) NOT NULL,
+                      sagaSerializationId nvarchar(255) NOT NULL,
+                      timeoutId nvarchar(255) NOT NULL,
+                      timeout datetime NOT NULL,
+                      error BIT NOT NULL,
+                      errorId nvarchar(255),
+                      data nvarchar(4000) NOT NULL,
+                      CONSTRAINT PK_saga PRIMARY KEY (sagaCorrelationId, sagaSerializationId, timeoutId),
+)
+
+
 CREATE TABLE hwm (
     hwm INTEGER NOT NULL
 )

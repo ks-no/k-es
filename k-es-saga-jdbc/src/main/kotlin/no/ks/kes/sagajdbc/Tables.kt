@@ -15,6 +15,8 @@ object TimeoutTable {
     val sagaSerializationId = "serializationId"
     val timeoutId = "timeoutId"
     val timeout = "timeout"
+    val error = "error"
+    val errorId = "errorId"
 }
 
 object CmdTable {

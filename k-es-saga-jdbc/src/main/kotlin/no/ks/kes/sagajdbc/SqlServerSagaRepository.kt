@@ -7,7 +7,6 @@ import no.ks.kes.lib.SagaStateSerdes
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
-import java.sql.Time
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.*
@@ -15,7 +14,7 @@ import javax.sql.DataSource
 import kotlin.reflect.KClass
 
 
-class JdbcSagaRepository(
+class SqlServerSagaRepository(
         dataSource: DataSource,
         private val sagaStateSerdes: SagaStateSerdes<String>,
         private val cmdSerdes: CmdSerdes<String>
@@ -43,6 +42,8 @@ class JdbcSagaRepository(
                     mutableMapOf<String, Any>(),
                     Long::class.java
             ) ?: error("No hwm found in ${SagaTable}_HWM")
+
+
 
     override fun update(hwm: Long, states: Set<SagaRepository.SagaUpsert>) {
         TransactionTemplate(transactionManager).executeWithoutResult {
@@ -105,4 +106,14 @@ class JdbcSagaRepository(
                     mutableMapOf(HwmTable.hwm to hwm))
         }
     }
+
+    override fun update(upsert: SagaRepository.SagaUpsert.SagaUpdate) {
+        template.update(
+                "UPDATE $SagaTable SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
+                            mutableMapOf(
+                                    SagaTable.correlationId to upsert.correlationId,
+                                    SagaTable.serializationId to upsert.serializationId,
+                                    SagaTable.data to sagaStateSerdes.serialize(upsert.newState!!)))
+                        }
+
 }
