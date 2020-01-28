@@ -3,13 +3,13 @@ package no.ks.kes.sagajdbc
 import mu.KotlinLogging
 import no.ks.kes.lib.SagaManager
 import no.ks.kes.lib.SagaRepository
-import no.ks.kes.lib.SerializationId
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.jdbc.core.simple.SimpleJdbcCall
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
-import java.sql.Time
 import java.util.*
 import javax.sql.DataSource
+
 
 private val log = KotlinLogging.logger {}
 

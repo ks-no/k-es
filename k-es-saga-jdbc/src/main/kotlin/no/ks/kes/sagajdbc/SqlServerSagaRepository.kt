@@ -6,6 +6,7 @@ import no.ks.kes.lib.CmdSerdes
 import no.ks.kes.lib.SagaRepository
 import no.ks.kes.lib.SagaStateSerdes
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.jdbc.core.simple.SimpleJdbcCall
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.OffsetDateTime
@@ -13,8 +14,11 @@ import java.time.ZoneOffset
 import java.util.*
 import javax.sql.DataSource
 import kotlin.reflect.KClass
+import kotlin.system.exitProcess
 
 private val log = KotlinLogging.logger {}
+private const val SAGA_LOCK_TIMEOUT = 60
+
 
 class SqlServerSagaRepository(
         dataSource: DataSource,
@@ -23,10 +27,31 @@ class SqlServerSagaRepository(
 ) : SagaRepository {
     private val template = NamedParameterJdbcTemplate(dataSource)
     private val transactionManager = DataSourceTransactionManager(dataSource)
+    private val obtainApplicationLock: SimpleJdbcCall = SimpleJdbcCall(dataSource)
+            .withFunctionName("sp_getapplock")
 
     override fun <T : Any> getSagaState(correlationId: UUID, serializationId: String, sagaStateClass: KClass<T>): T? {
+        val lockRequestResponse = obtainApplicationLock.executeFunction(
+                Int::class.java,
+                mutableMapOf(
+                        "LockOwner" to "Transaction",
+                        "LockMode" to "Exclusive",
+                        "Resource" to correlationId.toString() + serializationId,
+                        "DbPrincipal" to "public",
+                        "LockTimeout" to SAGA_LOCK_TIMEOUT
+                ))
+
+        if (lockRequestResponse != 0) {
+            log.error { "Could not obtain lock on saga $correlationId-$serializationId: lock request response was $lockRequestResponse" }
+            exitProcess(1)
+        }
+
         return template.query(
-                "SELECT ${SagaTable.data} FROM $SagaTable WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
+                """
+                    SELECT ${SagaTable.data}                    
+                    FROM $SagaTable
+                    WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} 
+                    AND ${SagaTable.serializationId} = :${SagaTable.serializationId}""",
                 mutableMapOf(
                         SagaTable.correlationId to correlationId,
                         SagaTable.serializationId to serializationId
@@ -112,12 +137,12 @@ class SqlServerSagaRepository(
     override fun update(upsert: SagaRepository.SagaUpsert.SagaUpdate) {
 
         upsert.newState?.apply {
-        template.update(
-                "UPDATE $SagaTable SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
-                mutableMapOf(
-                        SagaTable.correlationId to upsert.correlationId,
-                        SagaTable.serializationId to upsert.serializationId,
-                        SagaTable.data to sagaStateSerdes.serialize(this)))
+            template.update(
+                    "UPDATE $SagaTable SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
+                    mutableMapOf(
+                            SagaTable.correlationId to upsert.correlationId,
+                            SagaTable.serializationId to upsert.serializationId,
+                            SagaTable.data to sagaStateSerdes.serialize(this)))
         }
 
         if (upsert.commands.isNotEmpty())
