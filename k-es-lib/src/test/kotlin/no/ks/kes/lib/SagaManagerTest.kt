@@ -20,7 +20,7 @@ class SagaManagerTest: StringSpec() {
             @SerializationId("foo")
             class SomeSaga: Saga<SomeSagaState>(SomeSagaState::class){
                 init {
-                    initOn<Hired>({it.aggregateId}) { SomeSagaState(it.aggregateId) }
+                    initOn<Hired>{setState(SomeSagaState(it.aggregateId))}
                 }
             }
 
@@ -51,8 +51,8 @@ class SagaManagerTest: StringSpec() {
             @SerializationId("foo")
             class SomeSaga: Saga<SomeSagaState>(SomeSagaState::class){
                 init {
-                    initOn<Hired>({it.aggregateId}) { SomeSagaState(it.aggregateId) }
-                    on<ConfidentialityAgreementAccepted>({it.aggregateId}) { state.copy(accepted  = true)}
+                    initOn<Hired>{setState(SomeSagaState(it.aggregateId)) }
+                    on<ConfidentialityAgreementAccepted> {setState(state.copy(accepted  = true))}
                 }
             }
 
@@ -62,14 +62,13 @@ class SagaManagerTest: StringSpec() {
             )
 
             val subSlot = slot<(EventWrapper<*>) -> Unit>()
-            val sagaStateSlot = slot<Set<SagaRepository.SagaUpsert.SagaUpdate>>()
             val eventSubscriber = mockk<EventSubscriber>().apply { every { addSubscriber(any(),  any(), capture(subSlot)) } returns Unit}
+            val sagaStateSlot = slot<Set<SagaRepository.SagaUpsert.SagaUpdate>>()
             val sagaRepository = mockk<SagaRepository>().apply {
                 every { update(any(), capture(sagaStateSlot)) } returns Unit
                 every { getCurrentHwm() } returns 0L
                 every { getSagaState(eq(event.aggregateId), "foo", SomeSagaState::class) } returns SomeSagaState(event.aggregateId, false)
             }
-
 
             SagaManager(eventSubscriber, sagaRepository, setOf(SomeSaga()))
             subSlot.captured.invoke(EventWrapper(event, 0L))

@@ -39,7 +39,7 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>) {
                 stateClass as KClass<Any>,
                 initializers.single() as Initializer<Event<*>, Any>,
                 (onEvents.toSet() + onEventCreateTimeout.toSet()) as Set<OnEvent<Event<*>, Any>>,
-                onTimeout as Set<OnTimeout<Any>>
+                onTimeout.toSet() as Set<OnTimeout<Any>>
         )
     }
 

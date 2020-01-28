@@ -11,8 +11,8 @@ object SagaTable {
 object TimeoutTable {
     override fun toString(): String = "timeout"
 
-    val sagaCorrelationId = "correlationId"
-    val sagaSerializationId = "serializationId"
+    val sagaCorrelationId = "sagaCorrelationId"
+    val sagaSerializationId = "sagaSerializationId"
     val timeoutId = "timeoutId"
     val timeout = "timeout"
     val error = "error"
@@ -35,5 +35,5 @@ object CmdTable {
 object HwmTable {
     override fun toString(): String = "hwm"
 
-    val hwm = "hwm"
+    val sagaHwm = "sagaHwm"
 }

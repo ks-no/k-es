@@ -18,6 +18,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.jdbc.DataSourceBuilder
 import org.springframework.context.ApplicationListener
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.DependsOn
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -78,6 +79,7 @@ class Application {
             EsjcEventSubscriber(eventStore, eventSerdes, "no.ks.kes.demoapp")
 
     @Bean
+    @DependsOn("flyway", "flywayInitializer")
     fun aggregateRepo(eventStore: EventStore, eventSerdes: EventSerdes<String>): AggregateRepository =
             EsjcAggregateRepository(eventStore, eventSerdes, EsjcEventUtil.defaultStreamName("no.ks.kes.demoapp"))
 
@@ -88,11 +90,13 @@ class Application {
             .build()
 
     @Bean
+    @DependsOn("flyway", "flywayInitializer")
     fun sqlServerCmdQueueManager(dataSource: DataSource, cmdSerdes: CmdSerdes<String>, basketCmds: BasketCmds, shipmentCmds: ShipmentCmds): SqlServerCommandQueueManager {
         return SqlServerCommandQueueManager(dataSource, cmdSerdes, setOf(basketCmds, shipmentCmds))
     }
 
     @Bean
+    @DependsOn("flyway", "flywayInitializer")
     fun sagaManager(dataSource: DataSource,
                     cmdSerdes: CmdSerdes<String>,
                     eventSubscriber: EventSubscriber): SagaManager {
@@ -100,6 +104,7 @@ class Application {
     }
 
     @Bean
+    @DependsOn("flyway", "flywayInitializer")
     fun sqlServerSagaTimeoutManager(dataSource: DataSource, sagaManager: SagaManager): SqlServerSagaTimeoutManager {
         return SqlServerSagaTimeoutManager(dataSource, sagaManager)
     }
@@ -114,7 +119,6 @@ class Application {
     ) : ApplicationListener<ApplicationReadyEvent> {
         override fun onApplicationEvent(applicationReadyEvent: ApplicationReadyEvent) {
             ProjectionManager(eventSubscriber, setOf(shippedBaskets), 0, {}, {})
-
         }
     }
 
