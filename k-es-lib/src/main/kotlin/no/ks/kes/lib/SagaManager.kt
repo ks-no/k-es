@@ -25,7 +25,6 @@ class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaReposito
                                                         newState = it.newState,
                                                         commands = it.commands,
                                                         timeouts = it.timeouts.toSet()
-
                                                 )
                                             else
                                                 null
@@ -65,12 +64,12 @@ class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaReposito
                                 sagaStateClass = saga.stateClass)
                                 ?: error("no saga found on serializationId ${AnnotationUtil.getSerializationId(saga.sagaClass)}, correlationId $correlationId"))))
                         {
-                            SagaRepository.SagaUpsert.SagaUpdate(
+                            sagaRepository.update(SagaRepository.SagaUpsert.SagaUpdate(
                                     newState = newState,
                                     correlationId = correlationId,
                                     timeouts = timeouts.toSet(),
                                     commands = commands,
-                                    serializationId = AnnotationUtil.getSerializationId(saga.sagaClass)
+                                    serializationId = AnnotationUtil.getSerializationId(saga.sagaClass))
                             )
                         }
                     }

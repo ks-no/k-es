@@ -50,7 +50,8 @@ class Application {
             Basket.ItemAdded::class,
             Basket.CheckedOut::class,
             Shipment.Created::class,
-            Shipment.Failed::class
+            Shipment.Failed::class,
+            Shipment.WarehouseNotifiedOfMissingShipment::class
     ))
 
     @Bean
@@ -58,7 +59,8 @@ class Application {
             BasketCmds.Create::class,
             BasketCmds.AddItem::class,
             BasketCmds.CheckOut::class,
-            ShipmentCmds.Request::class
+            ShipmentCmds.Request::class,
+            ShipmentCmds.SendMissingShipmentAlert::class
     ))
 
     @Bean
@@ -145,6 +147,10 @@ class Application {
 
         override fun failOnce(e: Exception?) {
             fail.set(e)
+        }
+
+        override fun investigateMissingShipment(orderId: UUID) {
+
         }
 
         override fun shipOrder(orderId: UUID) {

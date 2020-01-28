@@ -2,31 +2,27 @@ package no.ks.kes.demoapp
 
 import no.ks.kes.lib.Saga
 import no.ks.kes.lib.SerializationId
-import java.time.Duration
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import java.time.temporal.ChronoUnit.DAYS
 import java.util.*
 
-data class CreateShipmentSagaState(val orderId: UUID, val delivered: Boolean = false)
+data class CreateShipmentSagaState(val orderId: UUID, val basketId: UUID, val delivered: Boolean = false)
 
 @SerializationId("CreateShipmentSaga")
 class CreateShipmentSaga : Saga<CreateShipmentSagaState>(CreateShipmentSagaState::class) {
 
     init {
         initOn<Basket.CheckedOut> {
-            val orderId = UUID.randomUUID()
-            dispatch(ShipmentCmds.Request(orderId, it.items, it.aggregateId))
-            setState(CreateShipmentSagaState(orderId))
+            val shipmentId = UUID.randomUUID()
+            dispatch(ShipmentCmds.Request(shipmentId, it.items, it.aggregateId))
+            setState(CreateShipmentSagaState(shipmentId, it.aggregateId))
         }
 
-        on<Shipment.Delivered> {
+        on<Shipment.Delivered>({it.basketId}){
             setState(state.copy(delivered = true))
         }
 
-        createTimeoutOn<Shipment.Created>({it.timestamp.plus(2, DAYS)}) {
+        createTimeoutOn<Shipment.Created>({it.timestamp.plusSeconds(5)}, {it.basketId}) {
             if (!state.delivered)
-                dispatch(ShipmentCmds.SendLateShipmentAlert(state.orderId))
+                dispatch(ShipmentCmds.SendMissingShipmentAlert(state.orderId, state.basketId))
         }
     }
 }

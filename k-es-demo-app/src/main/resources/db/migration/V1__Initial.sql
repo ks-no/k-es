@@ -26,7 +26,6 @@ CREATE TABLE timeout
     timeout             datetime       NOT NULL,
     error               BIT            NOT NULL,
     errorId             nvarchar(255),
-    data                nvarchar(4000) NOT NULL,
     CONSTRAINT PK_timeout PRIMARY KEY (sagaCorrelationId, sagaSerializationId, timeoutId),
 )
 

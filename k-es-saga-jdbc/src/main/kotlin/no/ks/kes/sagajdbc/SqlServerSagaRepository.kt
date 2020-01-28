@@ -1,5 +1,6 @@
 package no.ks.kes.sagajdbc
 
+import mu.KotlinLogging
 import no.ks.kes.lib.AnnotationUtil
 import no.ks.kes.lib.CmdSerdes
 import no.ks.kes.lib.SagaRepository
@@ -13,6 +14,7 @@ import java.util.*
 import javax.sql.DataSource
 import kotlin.reflect.KClass
 
+private val log = KotlinLogging.logger {}
 
 class SqlServerSagaRepository(
         dataSource: DataSource,
@@ -45,6 +47,7 @@ class SqlServerSagaRepository(
 
 
     override fun update(hwm: Long, states: Set<SagaRepository.SagaUpsert>) {
+        log.info { "updating sagas: $states" }
         TransactionTemplate(transactionManager).executeWithoutResult {
             template.batchUpdate(
                     "INSERT INTO $SagaTable (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, :${SagaTable.serializationId}, :${SagaTable.data})",
@@ -59,7 +62,7 @@ class SqlServerSagaRepository(
             )
 
             template.batchUpdate(
-                    "INSERT INTO $TimeoutTable (${TimeoutTable.sagaCorrelationId}, ${TimeoutTable.sagaSerializationId}, ${TimeoutTable.timeoutId}, ${TimeoutTable.timeout}) VALUES (:${TimeoutTable.sagaCorrelationId}, :${TimeoutTable.sagaSerializationId}, :${TimeoutTable.timeoutId}, :${TimeoutTable.timeout})",
+                    "INSERT INTO $TimeoutTable (${TimeoutTable.sagaCorrelationId}, ${TimeoutTable.sagaSerializationId}, ${TimeoutTable.timeoutId}, ${TimeoutTable.timeout}, ${TimeoutTable.error}) VALUES (:${TimeoutTable.sagaCorrelationId}, :${TimeoutTable.sagaSerializationId}, :${TimeoutTable.timeoutId}, :${TimeoutTable.timeout}, 0)",
                     states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
                             .flatMap { saga ->
                                 saga.timeouts.map {
@@ -107,12 +110,30 @@ class SqlServerSagaRepository(
     }
 
     override fun update(upsert: SagaRepository.SagaUpsert.SagaUpdate) {
+
+        upsert.newState?.apply {
         template.update(
                 "UPDATE $SagaTable SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
                 mutableMapOf(
                         SagaTable.correlationId to upsert.correlationId,
                         SagaTable.serializationId to upsert.serializationId,
-                        SagaTable.data to sagaStateSerdes.serialize(upsert.newState!!)))
+                        SagaTable.data to sagaStateSerdes.serialize(this)))
+        }
+
+        if (upsert.commands.isNotEmpty())
+            template.batchUpdate(
+                    """ 
+                        INSERT INTO $CmdTable (${CmdTable.serializationId}, ${CmdTable.aggregateId}, ${CmdTable.retries}, ${CmdTable.nextExecution}, ${CmdTable.error}, ${CmdTable.data}) 
+                        VALUES (:${CmdTable.serializationId}, :${CmdTable.aggregateId}, 0, :${CmdTable.nextExecution}, 0, :${CmdTable.data})                        
+                        """,
+                    upsert.commands.map {
+                        mutableMapOf(
+                                CmdTable.serializationId to AnnotationUtil.getSerializationId(it::class),
+                                CmdTable.aggregateId to it.aggregateId,
+                                CmdTable.nextExecution to OffsetDateTime.now(ZoneOffset.UTC),
+                                CmdTable.data to cmdSerdes.serialize(it))
+                    }
+                            .toTypedArray())
     }
 
 }

@@ -90,4 +90,18 @@ class Test {
         basketCmds.handle(BasketCmds.Create(basketId))
         assertThrows<IllegalStateException> {basketCmds.handle(BasketCmds.CheckOut(basketId))}
     }
+
+    @Test
+    @DisplayName("Test that a shipment which isnt confirmed within two seconds is marked as missing")
+    internal fun testShipmentMissing(@Autowired basketCmds: BasketCmds, @Autowired shipments: Shipments) {
+        val basketId = UUID.randomUUID()
+        val itemId = UUID.randomUUID()
+
+        basketCmds.handle(BasketCmds.Create(basketId))
+        basketCmds.handle(BasketCmds.AddItem(basketId, itemId))
+        basketCmds.handle(BasketCmds.AddItem(basketId, itemId))
+        basketCmds.handle(BasketCmds.CheckOut(basketId))
+
+        await untilCallTo { shipments.isMissingShipment(basketId) } matches { it == true }
+    }
 }

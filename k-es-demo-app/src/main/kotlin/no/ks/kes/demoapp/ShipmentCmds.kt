@@ -13,7 +13,9 @@ class ShipmentCmds(repo: AggregateRepository, warehouseManager: WarehouseManager
 
     @SerializationId("ShipmentRequest")
     data class Request(override val aggregateId: UUID, val items: Map<UUID, Int>, val basketId: UUID) : Cmd<Shipment>
-    data class SendLateShipmentAlert(override val aggregateId: UUID) : Cmd<Shipment>
+
+    @SerializationId("SendMissingShipmentAlert")
+    data class SendMissingShipmentAlert(override val aggregateId: UUID, val basketId: UUID) : Cmd<Shipment>
 
     init {
         initOn<Request> {
@@ -26,6 +28,11 @@ class ShipmentCmds(repo: AggregateRepository, warehouseManager: WarehouseManager
                 RetryOrFail(Shipment.Failed(it.aggregateId, Instant.now(), "System problem!", it.basketId), e) {Instant.now()}
             }
         }
+
+        on<SendMissingShipmentAlert> {
+            warehouseManager.investigateMissingShipment(it.aggregateId)
+            Succeed(Shipment.WarehouseNotifiedOfMissingShipment(it.aggregateId, Instant.now(), it.basketId))
+        }
     }
 }
 
@@ -34,5 +41,6 @@ class WarehouseSystemFailure : RuntimeException()
 
 interface WarehouseManager {
     fun failOnce(e: Exception?)
+    fun investigateMissingShipment(orderId: UUID)
     fun shipOrder(orderId: UUID)
 }
