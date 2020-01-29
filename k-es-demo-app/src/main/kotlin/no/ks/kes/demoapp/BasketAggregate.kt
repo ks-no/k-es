@@ -6,7 +6,16 @@ import no.ks.kes.lib.SerializationId
 import java.time.Instant
 import java.util.*
 
+
 class Basket : Aggregate() {
+
+    @SerializationId("BasketSessionStarted")
+    @Deprecated("This event has been replaced by a newer version", replaceWith = ReplaceWith("Basket.Created(aggregateId, timestamp)"), level = DeprecationLevel.ERROR)
+    data class SessionStarted(override val aggregateId: UUID, override val timestamp: Instant) : Event<Basket> {
+        override fun upgrade(): Event<Basket>? {
+            return Created(aggregateId, timestamp)
+        }
+    }
 
     @SerializationId("BasketCreated")
     data class Created(override val aggregateId: UUID, override val timestamp: Instant) : Event<Basket>
@@ -34,6 +43,5 @@ class Basket : Aggregate() {
         on<CheckedOut> {
             basketClosed = true
         }
-
     }
 }

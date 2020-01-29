@@ -12,8 +12,6 @@ import javax.sql.DataSource
 import kotlin.reflect.KClass
 
 private val log = KotlinLogging.logger {}
-private const val SAGA_LOCK_TIMEOUT = 60000
-
 
 class SqlServerSagaRepository(
         dataSource: DataSource,

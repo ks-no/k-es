@@ -142,9 +142,7 @@ class Application {
             fail.set(e)
         }
 
-        override fun investigateMissingShipment(orderId: UUID) {
-
-        }
+        override fun investigateMissingShipment(orderId: UUID) {}
 
         override fun shipOrder(orderId: UUID) {
             fail.getAndSet(null)?.let { throw it }

@@ -25,12 +25,16 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>) {
                 .eachCount()
                 .filter { it.value > 1 }
 
+        val deprecatedEvents = (initializers.map { it.eventClass } + onEvents.map { it.eventClass } + onEventCreateTimeout.map { it.eventClass })
+                .filter { AnnotationUtil.isDeprecated(it as KClass<Any>) }
+
         when {
             initializers.isEmpty() -> error("No \"initOn\" defined in saga ${this::class.simpleName}. Please define an initializer")
             initializers.size > 1 -> error("Multiple \"initOn\" in saga ${this::class.simpleName}. Please specify a single initializer")
             onEvents.isEmpty() -> log.warn { "No handlers specified in saga ${this::class.simpleName}. Consider adding some?" }
             duplicateEvents.isNotEmpty() -> error("The following events occur multiple times in the \"initOn\" or \"on\" specification in saga ${this::class.simpleName}. Please remove duplicates")
             duplicateTimeouts.isNotEmpty() -> error("The following events occur multiple times in a \"createTimeout\" specification in saga ${this::class.simpleName}. Please remove duplicates")
+            deprecatedEvents.isNotEmpty() -> error("The saga ${this::class.simpleName} subscribes to the following events which has been deprecated: ${deprecatedEvents.map { it.simpleName }}")
         }
 
         @Suppress("UNCHECKED_CAST")

@@ -31,17 +31,15 @@ class BasketCmds(repo: AggregateRepository, paymentProcessor: PaymentProcessor) 
         }
 
         on<CheckOut> {
-            if (basketClosed) {
-                Fail(IllegalStateException("Can't check out a closed basket"))
-            } else if (basket.isEmpty())
-                Fail(IllegalStateException("Can't check out a empty basket, buy something first?"))
-            else {
-                try {
-                    paymentProcessor.process(it.aggregateId)
-                    Succeed(Basket.CheckedOut(it.aggregateId, Instant.now(), basket.toMap()))
-                } catch (e: Exception) {
-                    RetryOrFail<Basket>(e)
-                }
+            when {
+                basketClosed -> Fail(IllegalStateException("Can't check out a closed basket"))
+                basket.isEmpty() -> Fail(IllegalStateException("Can't check out a empty basket, buy something first?"))
+                else -> try {
+                            paymentProcessor.process(it.aggregateId)
+                            Succeed(Basket.CheckedOut(it.aggregateId, Instant.now(), basket.toMap()))
+                        } catch (e: Exception) {
+                            RetryOrFail<Basket>(e)
+                        }
             }
         }
     }
