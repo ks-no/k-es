@@ -49,7 +49,42 @@ class SagaTest : StringSpec() {
             shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
                 message shouldContain  "subscribes to the following events which has been deprecated"
             }
+        }
 
+        "test that creating a saga which handles an deprecated event throws exception" {
+            data class SomeState(val id: UUID)
+
+            @Deprecated(message = "dont use this event")
+            @SerializationId("SomeEvent")
+            data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant): Event<Employee>
+
+            val saga = object : Saga<SomeState>(SomeState::class) {
+                init {
+                    initOn<Hired> {setState(SomeState(it.aggregateId))}
+                    on<SomeEvent> {setState(SomeState(it.aggregateId))}
+                }
+            }
+            shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
+                message shouldContain  "subscribes to the following events which has been deprecated"
+            }
+        }
+
+        "test that a saga which constructs a timeout on a deprecated event throws exception" {
+            data class SomeState(val id: UUID)
+
+            @Deprecated(message = "dont use this event")
+            @SerializationId("SomeEvent")
+            data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant): Event<Employee>
+
+            val saga = object : Saga<SomeState>(SomeState::class) {
+                init {
+                    initOn<Hired> {setState(SomeState(it.aggregateId))}
+                    createTimeoutOn<SomeEvent>({it.aggregateId}, {e -> Instant.now()}) {setState(SomeState(UUID.randomUUID()))}
+                }
+            }
+            shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
+                message shouldContain  "subscribes to the following events which has been deprecated"
+            }
         }
 
         "test that creating a saga with initializer and handler for same event throws exception" {
