@@ -21,11 +21,11 @@ class ShipmentCmds(repo: AggregateRepository, warehouseManager: WarehouseManager
         initOn<Request> {
             try {
                 warehouseManager.shipOrder(it.aggregateId)
-                Succeed(Shipment.Created(it.aggregateId, Instant.now(), it.basketId, it.items))
+                Succeed(Shipment.Prepared(it.aggregateId, Instant.now(), it.basketId, it.items))
             } catch (e: ItemNoLongerCarried) {
                 Fail(Shipment.Failed(it.aggregateId, Instant.now(), "Item no longer carried!", it.basketId), e)
-            } catch (e: WarehouseSystemFailure){
-                RetryOrFail(Shipment.Failed(it.aggregateId, Instant.now(), "System problem!", it.basketId), e) {Instant.now()}
+            } catch (e: WarehouseSystemFailure) {
+                RetryOrFail(Shipment.Failed(it.aggregateId, Instant.now(), "System problem!", it.basketId), e) { Instant.now() }
             }
         }
 

@@ -13,6 +13,7 @@
     <artifactId>k-es-lib</artifactId>
 
     <dependencies>
+        <!--external-->
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib-jdk8</artifactId>
@@ -21,7 +22,6 @@
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-reflect</artifactId>
         </dependency>
-
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
@@ -31,6 +31,7 @@
             <artifactId>kotlin-logging</artifactId>
         </dependency>
 
+        <!--test-->
         <dependency>
             <groupId>io.kotlintest</groupId>
             <artifactId>kotlintest-runner-junit5</artifactId>

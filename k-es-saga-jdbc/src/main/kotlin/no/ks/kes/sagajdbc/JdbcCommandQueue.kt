@@ -55,7 +55,7 @@ abstract class JdbcCommandQueue(
                             is CmdHandler.AsyncResult.Retry -> incrementAndSetNextExecution(wrapper.id, result.nextExecution)
                         }
                     }
-                } catch (e: Exception){
+                } catch (e: Exception) {
                     log.error("An exception was encountered while executing cmd, transaction will roll back", e)
                 }
             }

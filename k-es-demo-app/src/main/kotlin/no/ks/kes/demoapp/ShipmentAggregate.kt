@@ -8,8 +8,8 @@ import java.util.*
 
 
 class Shipment : Aggregate() {
-    @SerializationId("ShipmentCreated")
-    data class Created(override val aggregateId: UUID, override val timestamp: Instant, val basketId: UUID, val items: Map<UUID, Int>) : Event<Shipment>
+    @SerializationId("ShipmentPrepared")
+    data class Prepared(override val aggregateId: UUID, override val timestamp: Instant, val basketId: UUID, val items: Map<UUID, Int>) : Event<Shipment>
 
     @SerializationId("ShipmentDelivered")
     data class Delivered(override val aggregateId: UUID, override val timestamp: Instant, val basketId: UUID) : Event<Shipment>
@@ -24,7 +24,7 @@ class Shipment : Aggregate() {
     var aggregateId: UUID? = null
 
     init {
-        on<Created> {
+        on<Prepared> {
             aggregateId = it.aggregateId
         }
 

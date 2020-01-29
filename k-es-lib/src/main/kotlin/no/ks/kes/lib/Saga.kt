@@ -55,7 +55,7 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>) {
 
     protected inline fun <reified E : Event<*>> createTimeoutOnWrapper(crossinline correlationId: (EventWrapper<E>) -> UUID = { it.event.aggregateId }, crossinline timeoutAt: (EventWrapper<E>) -> Instant, crossinline handler: SagaContext<STATE>.() -> Unit) {
         onEventCreateTimeout.add(OnEvent(E::class, { correlationId.invoke(it) }, { e, p -> p.apply { timeouts.add(Timeout(timeoutAt.invoke(e), AnnotationUtil.getSerializationId(E::class))) } }))
-        onTimeout.add(OnTimeout(AnnotationUtil.getSerializationId(E::class)) { context -> handler.invoke(context); context})
+        onTimeout.add(OnTimeout(AnnotationUtil.getSerializationId(E::class)) { context -> handler.invoke(context); context })
     }
 
     @Suppress("UNCHECKED_CAST")

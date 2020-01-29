@@ -48,7 +48,7 @@ class Application {
             Basket.Created::class,
             Basket.ItemAdded::class,
             Basket.CheckedOut::class,
-            Shipment.Created::class,
+            Shipment.Prepared::class,
             Shipment.Failed::class,
             Shipment.WarehouseNotifiedOfMissingShipment::class
     ))
@@ -99,8 +99,8 @@ class Application {
     @Bean
     @DependsOn("flyway", "flywayInitializer")
     fun sqlServerSagaRepository(dataSource: DataSource,
-                    cmdSerdes: CmdSerdes<String>,
-                    eventSubscriber: EventSubscriber): SqlServerSagaRepository {
+                                cmdSerdes: CmdSerdes<String>,
+                                eventSubscriber: EventSubscriber): SqlServerSagaRepository {
         return SqlServerSagaRepository(dataSource, JacksonSagaStateSerdes(), cmdSerdes, eventSubscriber, SagaManager(setOf(CreateShipmentSaga())))
     }
 

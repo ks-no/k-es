@@ -55,7 +55,7 @@ class SagaManager(sagas: Set<Saga<*>>) {
                     TimeoutHandlerId(
                             sagaSerializationId = AnnotationUtil.getSerializationId(saga.sagaClass),
                             timeoutId = it.timeoutId
-                    ) to { correlationId: UUID, r: (SagaId, KClass<Any>) -> Any?  ->
+                    ) to { correlationId: UUID, r: (SagaId, KClass<Any>) -> Any? ->
                         with(it.handler(Saga.SagaContext(r.invoke(
                                 SagaId(AnnotationUtil.getSerializationId(saga.sagaClass), correlationId),
                                 saga.stateClass)
@@ -79,11 +79,11 @@ class SagaManager(sagas: Set<Saga<*>>) {
         return (timeoutHandlers[id] ?: error("no timeout handler found for id $id"))
                 .invoke(sagaCorrelationId, sagaStateRetriever)
     }
-    
+
     fun onEvent(event: EventWrapper<Event<*>>, sagaStateRetriever: (SagaId, KClass<Any>) -> Any?): Set<SagaRepository.SagaUpsert> =
-        eventHandlers[event.event::class]
-                ?.mapNotNull { it.second.invoke(event, sagaStateRetriever) }
-                ?.toSet() ?: emptySet()
+            eventHandlers[event.event::class]
+                    ?.mapNotNull { it.second.invoke(event, sagaStateRetriever) }
+                    ?.toSet() ?: emptySet()
 
     data class TimeoutHandlerId(val sagaSerializationId: String, val timeoutId: String)
     data class SagaId(val serializationId: String, val correlationId: UUID)

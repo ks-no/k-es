@@ -3,7 +3,6 @@ package no.ks.kes.sagajdbc
 import mu.KotlinLogging
 import no.ks.kes.lib.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.jdbc.core.simple.SimpleJdbcCall
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.OffsetDateTime
@@ -11,7 +10,6 @@ import java.time.ZoneOffset
 import java.util.*
 import javax.sql.DataSource
 import kotlin.reflect.KClass
-import kotlin.system.exitProcess
 
 private val log = KotlinLogging.logger {}
 private const val SAGA_LOCK_TIMEOUT = 60000
@@ -35,8 +33,8 @@ class SqlServerSagaRepository(
                     TransactionTemplate(transactionManager).executeWithoutResult {
                         try {
                             update(event.eventNumber, sagaManager.onEvent(event) { id, stateClass -> getSagaState(id.correlationId, id.serializationId, stateClass) })
-                        } catch (e: Exception){
-                            log.error ( "An error was encountered while handling incoming event ${event.event::class.simpleName} with sequence number ${event.eventNumber}", e )
+                        } catch (e: Exception) {
+                            log.error("An error was encountered while handling incoming event ${event.event::class.simpleName} with sequence number ${event.eventNumber}", e)
                             throw e
                         }
                     }
@@ -53,11 +51,11 @@ class SqlServerSagaRepository(
                         }
                         ?.apply {
                             sagaManager.onTimeout(sagaSerializationId, sagaCorrelationId, timeoutId) { id, stateClass -> getSagaState(id.correlationId, id.serializationId, stateClass) }
-                                    ?.apply {update(this as SagaRepository.SagaUpsert.SagaUpdate) }
+                                    ?.apply { update(this as SagaRepository.SagaUpsert.SagaUpdate) }
                             deleteTimeout(sagaSerializationId, sagaCorrelationId, timeoutId)
                         } ?: log.info { "polled for timeouts, found none" }
-            } catch (e: Exception){
-                log.error ( "An error was encountered while retrieving and executing saga-timeouts, transaction will be rolled back", e )
+            } catch (e: Exception) {
+                log.error("An error was encountered while retrieving and executing saga-timeouts, transaction will be rolled back", e)
                 throw e
             }
         }
@@ -79,7 +77,7 @@ class SqlServerSagaRepository(
         }.singleOrNull()
     }
 
-    private fun deleteTimeout(sagaSerializationId: String, sagaCorrelationId: UUID, timeoutId: String){
+    private fun deleteTimeout(sagaSerializationId: String, sagaCorrelationId: UUID, timeoutId: String) {
         template.update(
                 """DELETE FROM $TimeoutTable 
                    WHERE ${TimeoutTable.sagaCorrelationId} = :${TimeoutTable.sagaCorrelationId}
@@ -124,63 +122,63 @@ class SqlServerSagaRepository(
     override fun update(hwm: Long, states: Set<SagaRepository.SagaUpsert>) {
         log.info { "updating sagas: $states" }
 
-            template.batchUpdate(
-                    "INSERT INTO $SagaTable (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, :${SagaTable.serializationId}, :${SagaTable.data})",
-                    states.filterIsInstance<SagaRepository.SagaUpsert.SagaInsert>()
-                            .map {
+        template.batchUpdate(
+                "INSERT INTO $SagaTable (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, :${SagaTable.serializationId}, :${SagaTable.data})",
+                states.filterIsInstance<SagaRepository.SagaUpsert.SagaInsert>()
+                        .map {
+                            mutableMapOf(
+                                    SagaTable.correlationId to it.correlationId,
+                                    SagaTable.serializationId to it.serializationId,
+                                    SagaTable.data to sagaStateSerdes.serialize(it.newState))
+                        }
+                        .toTypedArray()
+        )
+
+        template.batchUpdate(
+                "INSERT INTO $TimeoutTable (${TimeoutTable.sagaCorrelationId}, ${TimeoutTable.sagaSerializationId}, ${TimeoutTable.timeoutId}, ${TimeoutTable.timeout}, ${TimeoutTable.error}) VALUES (:${TimeoutTable.sagaCorrelationId}, :${TimeoutTable.sagaSerializationId}, :${TimeoutTable.timeoutId}, :${TimeoutTable.timeout}, 0)",
+                states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
+                        .flatMap { saga ->
+                            saga.timeouts.map {
                                 mutableMapOf(
-                                        SagaTable.correlationId to it.correlationId,
-                                        SagaTable.serializationId to it.serializationId,
-                                        SagaTable.data to sagaStateSerdes.serialize(it.newState))
+                                        TimeoutTable.sagaCorrelationId to saga.correlationId,
+                                        TimeoutTable.sagaSerializationId to saga.serializationId,
+                                        TimeoutTable.timeoutId to it.timeoutId,
+                                        TimeoutTable.timeout to OffsetDateTime.ofInstant(it.triggerAt, ZoneOffset.UTC)
+                                )
                             }
-                            .toTypedArray()
-            )
+                        }
+                        .toTypedArray()
+        )
 
-            template.batchUpdate(
-                    "INSERT INTO $TimeoutTable (${TimeoutTable.sagaCorrelationId}, ${TimeoutTable.sagaSerializationId}, ${TimeoutTable.timeoutId}, ${TimeoutTable.timeout}, ${TimeoutTable.error}) VALUES (:${TimeoutTable.sagaCorrelationId}, :${TimeoutTable.sagaSerializationId}, :${TimeoutTable.timeoutId}, :${TimeoutTable.timeout}, 0)",
-                    states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
-                            .flatMap { saga ->
-                                saga.timeouts.map {
-                                    mutableMapOf(
-                                            TimeoutTable.sagaCorrelationId to saga.correlationId,
-                                            TimeoutTable.sagaSerializationId to saga.serializationId,
-                                            TimeoutTable.timeoutId to it.timeoutId,
-                                            TimeoutTable.timeout to OffsetDateTime.ofInstant(it.triggerAt, ZoneOffset.UTC)
-                                    )
-                                }
-                            }
-                            .toTypedArray()
-            )
+        template.batchUpdate(
+                "UPDATE $SagaTable SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
+                states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
+                        .filter { it.newState != null }
+                        .map {
+                            mutableMapOf(
+                                    SagaTable.correlationId to it.correlationId,
+                                    SagaTable.serializationId to it.serializationId,
+                                    SagaTable.data to sagaStateSerdes.serialize(it.newState!!))
+                        }
+                        .toTypedArray()
+        )
 
-            template.batchUpdate(
-                    "UPDATE $SagaTable SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
-                    states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
-                            .filter { it.newState != null }
-                            .map {
-                                mutableMapOf(
-                                        SagaTable.correlationId to it.correlationId,
-                                        SagaTable.serializationId to it.serializationId,
-                                        SagaTable.data to sagaStateSerdes.serialize(it.newState!!))
-                            }
-                            .toTypedArray()
-            )
-
-            template.batchUpdate(
-                    """ 
+        template.batchUpdate(
+                """ 
                         INSERT INTO $CmdTable (${CmdTable.serializationId}, ${CmdTable.aggregateId}, ${CmdTable.retries}, ${CmdTable.nextExecution}, ${CmdTable.error}, ${CmdTable.data}) 
                         VALUES (:${CmdTable.serializationId}, :${CmdTable.aggregateId}, 0, :${CmdTable.nextExecution}, 0, :${CmdTable.data})                        
                         """,
-                    states.flatMap { it.commands }.map {
-                        mutableMapOf(
-                                CmdTable.serializationId to AnnotationUtil.getSerializationId(it::class),
-                                CmdTable.aggregateId to it.aggregateId,
-                                CmdTable.nextExecution to OffsetDateTime.now(ZoneOffset.UTC),
-                                CmdTable.data to cmdSerdes.serialize(it))
-                    }
-                            .toTypedArray())
+                states.flatMap { it.commands }.map {
+                    mutableMapOf(
+                            CmdTable.serializationId to AnnotationUtil.getSerializationId(it::class),
+                            CmdTable.aggregateId to it.aggregateId,
+                            CmdTable.nextExecution to OffsetDateTime.now(ZoneOffset.UTC),
+                            CmdTable.data to cmdSerdes.serialize(it))
+                }
+                        .toTypedArray())
 
-            template.update("UPDATE $HwmTable SET ${HwmTable.sagaHwm} = :${HwmTable.sagaHwm}",
-                    mutableMapOf(HwmTable.sagaHwm to hwm))
+        template.update("UPDATE $HwmTable SET ${HwmTable.sagaHwm} = :${HwmTable.sagaHwm}",
+                mutableMapOf(HwmTable.sagaHwm to hwm))
 
     }
 

@@ -9,7 +9,7 @@ class Shipments : Projection() {
     private val missing: MutableSet<UUID> = mutableSetOf()
 
     init {
-        on<Shipment.Created> { created.put(it.basketId, it.items) }
+        on<Shipment.Prepared> { created.put(it.basketId, it.items) }
         on<Shipment.Failed> { failed.add(it.basketId) }
         on<Shipment.WarehouseNotifiedOfMissingShipment> { missing.add(it.basketId) }
     }
