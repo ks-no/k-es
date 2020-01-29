@@ -8,7 +8,6 @@ import no.ks.kes.esjc.EsjcEventUtil
 import no.ks.kes.lib.*
 import no.ks.kes.sagajdbc.SqlServerCommandQueueManager
 import no.ks.kes.sagajdbc.SqlServerSagaRepository
-import no.ks.kes.sagajdbc.SqlServerSagaTimeoutManager
 import no.ks.kes.serdes.jackson.JacksonCmdSerdes
 import no.ks.kes.serdes.jackson.JacksonEventSerdes
 import no.ks.kes.serdes.jackson.JacksonSagaStateSerdes
@@ -99,16 +98,10 @@ class Application {
 
     @Bean
     @DependsOn("flyway", "flywayInitializer")
-    fun sagaManager(dataSource: DataSource,
+    fun sqlServerSagaRepository(dataSource: DataSource,
                     cmdSerdes: CmdSerdes<String>,
-                    eventSubscriber: EventSubscriber): SagaManager {
-        return SagaManager(eventSubscriber, SqlServerSagaRepository(dataSource, JacksonSagaStateSerdes(), cmdSerdes), setOf(CreateShipmentSaga()))
-    }
-
-    @Bean
-    @DependsOn("flyway", "flywayInitializer")
-    fun sqlServerSagaTimeoutManager(dataSource: DataSource, sagaManager: SagaManager): SqlServerSagaTimeoutManager {
-        return SqlServerSagaTimeoutManager(dataSource, sagaManager)
+                    eventSubscriber: EventSubscriber): SqlServerSagaRepository {
+        return SqlServerSagaRepository(dataSource, JacksonSagaStateSerdes(), cmdSerdes, eventSubscriber, SagaManager(setOf(CreateShipmentSaga())))
     }
 
     @Bean
@@ -134,11 +127,11 @@ class Application {
     }
 
     @Component
-    class TimeoutPoller(val timeoutManager: SqlServerSagaTimeoutManager) {
+    class TimeoutPoller(val sagaRepository: SqlServerSagaRepository) {
 
         @Scheduled(fixedDelay = 1000)
         fun poll() {
-            timeoutManager.poll()
+            sagaRepository.poll()
         }
     }
 

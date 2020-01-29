@@ -29,28 +29,34 @@ abstract class JdbcCommandQueue(
 
         if (currentShouldProcessCmds) {
             TransactionTemplate(transactionManager).execute {
-                val incomingCmd = nextCmd()
+                try {
+                    val incomingCmd = nextCmd()
 
-                if (incomingCmd == null)
-                    log.info { "polled for cmds, found none" }
-                else
-                    log.info { "polled for cmds, found cmd with id ${incomingCmd.id}" }
+                    if (incomingCmd == null)
+                        log.info { "polled for cmds, found none" }
+                    else
+                        log.info { "polled for cmds, found cmd with id ${incomingCmd.id}" }
 
-                incomingCmd?.let { wrapper ->
-                    val handler = handledCmds[wrapper.cmd::class] ?: error("no handler for cmd ${wrapper.cmd::class}")
-                    val result = try {
-                        handler.handleAsync(wrapper.cmd, wrapper.retries)
-                    } catch (e: Exception) {
-                        val errorId = UUID.randomUUID()
-                        log.error("Error handling cmd ${wrapper.cmd::class.simpleName} (id: ${wrapper.id}), assigning errorId $errorId", e)
-                        incrementAndSetError(wrapper.id, errorId)
+                    incomingCmd?.let { wrapper ->
+                        val handler = handledCmds[wrapper.cmd::class]
+                                ?: error("no handler for cmd ${wrapper.cmd::class}")
+                        val result = try {
+                            handler.handleAsync(wrapper.cmd, wrapper.retries)
+                        } catch (e: Exception) {
+                            val errorId = UUID.randomUUID()
+                            log.error("Error handling cmd ${wrapper.cmd::class.simpleName} (id: ${wrapper.id}), assigning errorId $errorId", e)
+                            incrementAndSetError(wrapper.id, errorId)
+                            throw e
+                        }
+
+                        when (result) {
+                            is CmdHandler.AsyncResult.Success -> delete(wrapper.id)
+                            is CmdHandler.AsyncResult.Fail -> delete(wrapper.id)
+                            is CmdHandler.AsyncResult.Retry -> incrementAndSetNextExecution(wrapper.id, result.nextExecution)
+                        }
                     }
-
-                    when (result) {
-                        is CmdHandler.AsyncResult.Success -> delete(wrapper.id)
-                        is CmdHandler.AsyncResult.Fail -> delete(wrapper.id)
-                        is CmdHandler.AsyncResult.Retry -> incrementAndSetNextExecution(wrapper.id, result.nextExecution)
-                    }
+                } catch (e: Exception){
+                    log.error("An exception was encountered while executing cmd, transaction will roll back", e)
                 }
             }
         }

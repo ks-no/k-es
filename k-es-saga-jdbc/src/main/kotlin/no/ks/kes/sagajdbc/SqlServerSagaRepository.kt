@@ -1,10 +1,7 @@
 package no.ks.kes.sagajdbc
 
 import mu.KotlinLogging
-import no.ks.kes.lib.AnnotationUtil
-import no.ks.kes.lib.CmdSerdes
-import no.ks.kes.lib.SagaRepository
-import no.ks.kes.lib.SagaStateSerdes
+import no.ks.kes.lib.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.core.simple.SimpleJdbcCall
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
@@ -17,39 +14,92 @@ import kotlin.reflect.KClass
 import kotlin.system.exitProcess
 
 private val log = KotlinLogging.logger {}
-private const val SAGA_LOCK_TIMEOUT = 60
+private const val SAGA_LOCK_TIMEOUT = 60000
 
 
 class SqlServerSagaRepository(
         dataSource: DataSource,
         private val sagaStateSerdes: SagaStateSerdes<String>,
-        private val cmdSerdes: CmdSerdes<String>
+        private val cmdSerdes: CmdSerdes<String>,
+        eventSubscriber: EventSubscriber,
+        val sagaManager: SagaManager
 ) : SagaRepository {
     private val template = NamedParameterJdbcTemplate(dataSource)
     private val transactionManager = DataSourceTransactionManager(dataSource)
-    private val obtainApplicationLock: SimpleJdbcCall = SimpleJdbcCall(dataSource)
-            .withFunctionName("sp_getapplock")
+
+    init {
+        eventSubscriber.addSubscriber(
+                consumerName = "SagaManager",
+                fromEvent = getCurrentHwm(),
+                onEvent = { event ->
+                    TransactionTemplate(transactionManager).executeWithoutResult {
+                        try {
+                            update(event.eventNumber, sagaManager.onEvent(event) { id, stateClass -> getSagaState(id.correlationId, id.serializationId, stateClass) })
+                        } catch (e: Exception){
+                            log.error ( "An error was encountered while handling incoming event ${event.event::class.simpleName} with sequence number ${event.eventNumber}", e )
+                            throw e
+                        }
+                    }
+                }
+        )
+    }
+
+    fun poll() {
+        TransactionTemplate(transactionManager).executeWithoutResult {
+            try {
+                getReadyTimeouts()
+                        ?.also {
+                            log.info { "polled for timeouts, found timeout with sagaSerializationId: \"${it.sagaSerializationId}\", sagaCorrelationId: \"${it.sagaCorrelationId}\", timeoutId: \"${it.timeoutId}\"" }
+                        }
+                        ?.apply {
+                            sagaManager.onTimeout(sagaSerializationId, sagaCorrelationId, timeoutId) { id, stateClass -> getSagaState(id.correlationId, id.serializationId, stateClass) }
+                                    ?.apply {update(this as SagaRepository.SagaUpsert.SagaUpdate) }
+                            deleteTimeout(sagaSerializationId, sagaCorrelationId, timeoutId)
+                        } ?: log.info { "polled for timeouts, found none" }
+            } catch (e: Exception){
+                log.error ( "An error was encountered while retrieving and executing saga-timeouts, transaction will be rolled back", e )
+                throw e
+            }
+        }
+    }
+
+    private fun getReadyTimeouts(): SagaRepository.Timeout? {
+        return template.query("""
+            SELECT TOP 1 ${TimeoutTable.sagaSerializationId}, ${TimeoutTable.sagaCorrelationId}, ${TimeoutTable.timeoutId}             
+            FROM $TimeoutTable 
+            WITH (XLOCK)
+            WHERE ${TimeoutTable.error} = 0
+            AND ${TimeoutTable.timeout}  < CURRENT_TIMESTAMP 
+        """) { r, _ ->
+            SagaRepository.Timeout(
+                    sagaSerializationId = r.getString(TimeoutTable.sagaSerializationId),
+                    sagaCorrelationId = UUID.fromString(r.getString(TimeoutTable.sagaCorrelationId)),
+                    timeoutId = r.getString(TimeoutTable.timeoutId)
+            )
+        }.singleOrNull()
+    }
+
+    private fun deleteTimeout(sagaSerializationId: String, sagaCorrelationId: UUID, timeoutId: String){
+        template.update(
+                """DELETE FROM $TimeoutTable 
+                   WHERE ${TimeoutTable.sagaCorrelationId} = :${TimeoutTable.sagaCorrelationId}
+                   AND ${TimeoutTable.sagaSerializationId} = :${TimeoutTable.sagaSerializationId}
+                   AND ${TimeoutTable.timeoutId} = :${TimeoutTable.timeoutId}
+                """,
+                mutableMapOf(
+                        TimeoutTable.sagaSerializationId to sagaSerializationId,
+                        TimeoutTable.sagaCorrelationId to sagaCorrelationId,
+                        TimeoutTable.timeoutId to timeoutId
+                )
+        )
+    }
 
     override fun <T : Any> getSagaState(correlationId: UUID, serializationId: String, sagaStateClass: KClass<T>): T? {
-        val lockRequestResponse = obtainApplicationLock.executeFunction(
-                Int::class.java,
-                mutableMapOf(
-                        "LockOwner" to "Transaction",
-                        "LockMode" to "Exclusive",
-                        "Resource" to correlationId.toString() + serializationId,
-                        "DbPrincipal" to "public",
-                        "LockTimeout" to SAGA_LOCK_TIMEOUT
-                ))
-
-        if (lockRequestResponse != 0) {
-            log.error { "Could not obtain lock on saga $correlationId-$serializationId: lock request response was $lockRequestResponse" }
-            exitProcess(1)
-        }
-
         return template.query(
                 """
-                    SELECT ${SagaTable.data}                    
+                    SELECT ${SagaTable.data}                                                            
                     FROM $SagaTable
+                    WITH (XLOCK)
                     WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} 
                     AND ${SagaTable.serializationId} = :${SagaTable.serializationId}""",
                 mutableMapOf(
@@ -73,7 +123,7 @@ class SqlServerSagaRepository(
 
     override fun update(hwm: Long, states: Set<SagaRepository.SagaUpsert>) {
         log.info { "updating sagas: $states" }
-        TransactionTemplate(transactionManager).executeWithoutResult {
+
             template.batchUpdate(
                     "INSERT INTO $SagaTable (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, :${SagaTable.serializationId}, :${SagaTable.data})",
                     states.filterIsInstance<SagaRepository.SagaUpsert.SagaInsert>()
@@ -131,11 +181,10 @@ class SqlServerSagaRepository(
 
             template.update("UPDATE $HwmTable SET ${HwmTable.sagaHwm} = :${HwmTable.sagaHwm}",
                     mutableMapOf(HwmTable.sagaHwm to hwm))
-        }
+
     }
 
     override fun update(upsert: SagaRepository.SagaUpsert.SagaUpdate) {
-
         upsert.newState?.apply {
             template.update(
                     "UPDATE $SagaTable SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",

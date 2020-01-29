@@ -47,7 +47,8 @@ class SqlServerCommandQueueManager(dataSource: DataSource, private val cmdSerdes
                         FROM cmd
                     )
                     SELECT TOP 1 id, serializationId, aggregateId, retries, data
-                    FROM cte WITH (UPDLOCK, NOWAIT)
+                    FROM cte
+                    WITH (XLOCK)
                     WHERE rn = 1
                     AND ${CmdTable.error} = 0
                     AND ${CmdTable.nextExecution} < CURRENT_TIMESTAMP

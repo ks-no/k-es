@@ -1,19 +1,17 @@
 package no.ks.kes.lib
 
-import mu.KotlinLogging
 import java.util.*
+import kotlin.reflect.KClass
 
 
-private val log = KotlinLogging.logger {}
-
-class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaRepository, sagas: Set<Saga<*>>) {
+class SagaManager(sagas: Set<Saga<*>>) {
     private val eventHandlers = sagas
             .map { it.getConfiguration() }
             .flatMap { saga ->
                 saga.onEvents
                         .map { onEvent ->
-                            onEvent.eventClass to { e: EventWrapper<Event<*>> ->
-                                sagaRepository.getSagaState(onEvent.correlationId(e), AnnotationUtil.getSerializationId(saga.sagaClass), saga.stateClass)
+                            onEvent.eventClass to { e: EventWrapper<Event<*>>, r: (SagaId, KClass<Any>) -> Any? ->
+                                r.invoke(SagaId(AnnotationUtil.getSerializationId(saga.sagaClass), onEvent.correlationId(e)), saga.stateClass)
                                         ?.let {
                                             onEvent.handler.invoke(e, Saga.SagaContext(it))
                                         }
@@ -25,14 +23,14 @@ class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaReposito
                                                         newState = it.newState,
                                                         commands = it.commands,
                                                         timeouts = it.timeouts.toSet()
-                                                )
+                                                ) as SagaRepository.SagaUpsert
                                             else
                                                 null
                                         }
                             }
                         }
                         .plus(
-                                saga.initializer.eventClass to { e: EventWrapper<Event<*>> ->
+                                saga.initializer.eventClass to { e: EventWrapper<Event<*>>, _ ->
                                     saga.initializer.handler(e, Saga.InitContext())
                                             .let {
                                                 if (it.newState != null)
@@ -57,19 +55,18 @@ class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaReposito
                     TimeoutHandlerId(
                             sagaSerializationId = AnnotationUtil.getSerializationId(saga.sagaClass),
                             timeoutId = it.timeoutId
-                    ) to { correlationId: UUID ->
-                        with(it.handler(Saga.SagaContext(sagaRepository.getSagaState(
-                                correlationId = correlationId,
-                                serializationId = AnnotationUtil.getSerializationId(saga.sagaClass),
-                                sagaStateClass = saga.stateClass)
+                    ) to { correlationId: UUID, r: (SagaId, KClass<Any>) -> Any?  ->
+                        with(it.handler(Saga.SagaContext(r.invoke(
+                                SagaId(AnnotationUtil.getSerializationId(saga.sagaClass), correlationId),
+                                saga.stateClass)
                                 ?: error("no saga found on serializationId ${AnnotationUtil.getSerializationId(saga.sagaClass)}, correlationId $correlationId"))))
                         {
-                            sagaRepository.update(SagaRepository.SagaUpsert.SagaUpdate(
+                            SagaRepository.SagaUpsert.SagaUpdate(
                                     newState = newState,
                                     correlationId = correlationId,
                                     timeouts = timeouts.toSet(),
                                     commands = commands,
-                                    serializationId = AnnotationUtil.getSerializationId(saga.sagaClass))
+                                    serializationId = AnnotationUtil.getSerializationId(saga.sagaClass)
                             )
                         }
                     }
@@ -77,27 +74,18 @@ class SagaManager(eventSubscriber: EventSubscriber, sagaRepository: SagaReposito
             }
             .toMap()
 
-    fun onTimeoutReady(sagaSerializationId: String, sagaCorrelationId: UUID, timeoutId: String) {
+    fun onTimeout(sagaSerializationId: String, sagaCorrelationId: UUID, timeoutId: String, sagaStateRetriever: (SagaId, KClass<Any>) -> Any?): SagaRepository.SagaUpsert? {
         val id = TimeoutHandlerId(sagaSerializationId, timeoutId)
-        (timeoutHandlers[id] ?: error("no timeout handler found for id $id"))
-                .invoke(sagaCorrelationId)
+        return (timeoutHandlers[id] ?: error("no timeout handler found for id $id"))
+                .invoke(sagaCorrelationId, sagaStateRetriever)
     }
-
-    init {
-        eventSubscriber.addSubscriber(
-                consumerName = "SagaManager",
-                fromEvent = sagaRepository.getCurrentHwm(),
-                onEvent = { event ->
-                    eventHandlers[event.event::class]
-                            ?.mapNotNull { it.second.invoke(event) }
-                            ?.toSet()
-                            ?.apply {
-                                sagaRepository.update(event.eventNumber, this)
-                            }
-                }
-        )
-    }
+    
+    fun onEvent(event: EventWrapper<Event<*>>, sagaStateRetriever: (SagaId, KClass<Any>) -> Any?): Set<SagaRepository.SagaUpsert> =
+        eventHandlers[event.event::class]
+                ?.mapNotNull { it.second.invoke(event, sagaStateRetriever) }
+                ?.toSet() ?: emptySet()
 
     data class TimeoutHandlerId(val sagaSerializationId: String, val timeoutId: String)
+    data class SagaId(val serializationId: String, val correlationId: UUID)
 }
 

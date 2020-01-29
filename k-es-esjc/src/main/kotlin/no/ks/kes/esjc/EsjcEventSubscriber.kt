@@ -28,13 +28,13 @@ class EsjcEventSubscriber(
                         onLive.invoke()
                     }
 
-                    override fun onEvent(p0: CatchUpSubscription, resolvedEvent: ResolvedEvent) {
+                    override fun onEvent(subscription: CatchUpSubscription, resolvedEvent: ResolvedEvent) {
                         when {
                             !resolvedEvent.isResolved ->
                                 log.info("$consumerName: event not resolved: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}")
                             EsjcEventUtil.isIgnorableEvent(resolvedEvent) ->
                                 log.info("$consumerName: event ignored: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}")
-                            else ->
+                            else -> try {
                                 onEvent.invoke(EventWrapper(
                                         event = EventUpgrader.upgrade(serdes.deserialize(String(resolvedEvent.event.data), resolvedEvent.event.eventType)),
                                         eventNumber = resolvedEvent.originalEventNumber()))
@@ -42,6 +42,10 @@ class EsjcEventSubscriber(
                                             log.info("$consumerName: event ${resolvedEvent.originalEventNumber()}@${resolvedEvent.originalStreamId()}: " +
                                                     "${resolvedEvent.event.eventType}(${resolvedEvent.event.eventId}) received")
                                         }
+                            } catch (e: Exception) {
+                                log.info("Event handler for $consumerName threw exception: ", e)
+                                throw e
+                            }
                         }
                     }
                 }

@@ -4,7 +4,7 @@ import no.ks.kes.lib.Saga
 import no.ks.kes.lib.SerializationId
 import java.util.*
 
-data class CreateShipmentSagaState(val orderId: UUID, val basketId: UUID, val delivered: Boolean = false)
+data class CreateShipmentSagaState(val orderId: UUID, val basketId: UUID, val delivered: Boolean = false,  val failed: Boolean = false)
 
 @SerializationId("CreateShipmentSaga")
 class CreateShipmentSaga : Saga<CreateShipmentSagaState>(CreateShipmentSagaState::class) {
@@ -20,8 +20,12 @@ class CreateShipmentSaga : Saga<CreateShipmentSagaState>(CreateShipmentSagaState
             setState(state.copy(delivered = true))
         }
 
+        on<Shipment.Failed>({it.basketId}){
+            setState(state.copy(failed = true))
+        }
+
         createTimeoutOn<Shipment.Created>({it.timestamp.plusSeconds(5)}, {it.basketId}) {
-            if (!state.delivered)
+            if (!state.delivered && !state.failed)
                 dispatch(ShipmentCmds.SendMissingShipmentAlert(state.orderId, state.basketId))
         }
     }

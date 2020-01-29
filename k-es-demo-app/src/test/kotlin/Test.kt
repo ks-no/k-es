@@ -38,6 +38,7 @@ class Test {
         basketCmds.handle(BasketCmds.AddItem(basketId, itemId))
         basketCmds.handle(BasketCmds.CheckOut(basketId))
 
+        Thread.sleep(5000)
         await untilCallTo { shipments.isFailedShipment(basketId) } matches { it == true }
     }
 
