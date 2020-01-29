@@ -49,11 +49,11 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>) {
     protected inline fun <reified E : Event<*>> on(crossinline correlationId: (E) -> UUID = { it.aggregateId }, crossinline handler: SagaContext<STATE>.(E) -> Unit) =
             onWrapper({ correlationId.invoke(it.event) }, { w: EventWrapper<E> -> handler.invoke(this, w.event) })
 
-    protected inline fun <reified E : Event<*>> createTimeoutOn(crossinline timeoutAt: (E) -> Instant, crossinline correlationId: (E) -> UUID = { it.aggregateId }, crossinline handler: SagaContext<STATE>.() -> Unit) {
-        createTimeoutOnWrapper<E>({ timeoutAt.invoke(it.event) }, { correlationId.invoke(it.event) }, handler)
+    protected inline fun <reified E : Event<*>> createTimeoutOn(crossinline correlationId: (E) -> UUID = { it.aggregateId }, crossinline timeoutAt: (E) -> Instant, crossinline handler: SagaContext<STATE>.() -> Unit) {
+        createTimeoutOnWrapper<E>({ correlationId.invoke(it.event) }, { timeoutAt.invoke(it.event) }, handler)
     }
 
-    protected inline fun <reified E : Event<*>> createTimeoutOnWrapper(crossinline timeoutAt: (EventWrapper<E>) -> Instant, crossinline correlationId: (EventWrapper<E>) -> UUID = { it.event.aggregateId }, crossinline handler: SagaContext<STATE>.() -> Unit) {
+    protected inline fun <reified E : Event<*>> createTimeoutOnWrapper(crossinline correlationId: (EventWrapper<E>) -> UUID = { it.event.aggregateId }, crossinline timeoutAt: (EventWrapper<E>) -> Instant, crossinline handler: SagaContext<STATE>.() -> Unit) {
         onEventCreateTimeout.add(OnEvent(E::class, { correlationId.invoke(it) }, { e, p -> p.apply { timeouts.add(Timeout(timeoutAt.invoke(e), AnnotationUtil.getSerializationId(E::class))) } }))
         onTimeout.add(OnTimeout(AnnotationUtil.getSerializationId(E::class)) { context -> handler.invoke(context); context})
     }
