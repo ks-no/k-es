@@ -24,7 +24,7 @@ class CreateShipmentSaga : Saga<CreateShipmentSagaState>(CreateShipmentSagaState
             setState(state.copy(failed = true))
         }
 
-        createTimeoutOn<Shipment.Created>({it.timestamp.plusSeconds(5)}, {it.basketId}) {
+        createTimeoutOn<Shipment.Created>({it.basketId}, {it.timestamp.plusSeconds(5)}) {
             if (!state.delivered && !state.failed)
                 dispatch(ShipmentCmds.SendMissingShipmentAlert(state.orderId, state.basketId))
         }
