@@ -4,7 +4,9 @@ import io.kotlintest.matchers.string.shouldContain
 import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
 import no.ks.kes.lib.testdomain.ConfidentialityAgreementRejected
+import no.ks.kes.lib.testdomain.Employee
 import no.ks.kes.lib.testdomain.Hired
+import java.time.Instant
 import java.util.*
 
 class SagaTest : StringSpec() {
@@ -29,6 +31,23 @@ class SagaTest : StringSpec() {
             }
             shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
                 message shouldContain  "Please specify a single initializer"
+            }
+
+        }
+
+        "test that creating a saga which inits on deprecated event throws exception" {
+            data class SomeState(val id: UUID)
+
+            @Deprecated(message = "dont use this event")
+            data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant): Event<Employee>
+
+            val saga = object : Saga<SomeState>(SomeState::class) {
+                init {
+                    initOn<SomeEvent>({it.aggregateId}) {SomeState(it.aggregateId)}
+                }
+            }
+            shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
+                message shouldContain  "subscribes to the following events which has been deprecated"
             }
 
         }
