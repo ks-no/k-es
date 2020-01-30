@@ -1,13 +1,16 @@
 package no.ks.kes.sagajdbc
 
-import no.ks.kes.lib.Cmd
-import no.ks.kes.lib.CmdHandler
-import no.ks.kes.lib.CmdSerdes
+import no.ks.kes.lib.*
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.jdbc.datasource.DataSourceTransactionManager
+import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import java.util.*
 import javax.sql.DataSource
 
-class SqlServerCommandQueueManager(dataSource: DataSource, private val cmdSerdes: CmdSerdes<String>, cmdHandlers: Set<CmdHandler<*>>) : JdbcCommandQueue(dataSource, cmdHandlers) {
+class SqlServerCommandQueueManager(dataSource: DataSource, private val cmdSerdes: CmdSerdes<String>, cmdHandlers: Set<CmdHandler<*>>) : CommandQueue(cmdHandlers) {
+    private val template = NamedParameterJdbcTemplate(dataSource)
+    private val transactionManager = DataSourceTransactionManager(dataSource)
 
     override fun delete(cmdId: Long) {
         template.update(
@@ -61,4 +64,10 @@ class SqlServerCommandQueueManager(dataSource: DataSource, private val cmdSerdes
                         retries = rs.getInt(CmdTable.retries)
                 )
             }.singleOrNull()
+
+    override fun transactionally(runnable: () -> Unit) {
+        TransactionTemplate(transactionManager).execute {
+            runnable.invoke()
+        }
+    }
 }

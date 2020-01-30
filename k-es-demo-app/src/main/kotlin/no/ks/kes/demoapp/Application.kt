@@ -101,7 +101,13 @@ class Application {
     fun sqlServerSagaRepository(dataSource: DataSource,
                                 cmdSerdes: CmdSerdes<String>,
                                 eventSubscriber: EventSubscriber): SqlServerSagaRepository {
-        return SqlServerSagaRepository(dataSource, JacksonSagaStateSerdes(), cmdSerdes, eventSubscriber, SagaManager(setOf(CreateShipmentSaga())))
+        return SqlServerSagaRepository(
+                dataSource = dataSource,
+                sagaStateSerdes = JacksonSagaStateSerdes(),
+                cmdSerdes = cmdSerdes,
+                eventSubscriber = eventSubscriber,
+                sagaManager = SagaManager(setOf(CreateShipmentSaga()))
+        )
     }
 
     @Bean

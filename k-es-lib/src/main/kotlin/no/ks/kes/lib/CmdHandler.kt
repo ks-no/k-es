@@ -26,7 +26,9 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
         val aggregate = readAggregate(cmd)
 
         when (val result = invokeHandler(cmd, aggregate)) {
-            is Result.Fail<A>, is Result.RetryOrFail<A> ->
+            is Result.Fail,
+            is Result.RetryOrFail,
+            is Result.Error ->
                 throw result.exception!!
             is Result.Succeed<A> -> {
                 write(aggregate, cmd, result.events)
@@ -59,6 +61,9 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
                 write(aggregate, cmd, result.events)
                 AsyncResult.Success
             }
+            is Result.Error<A> -> {
+                AsyncResult.Error(result.exception!!)
+            }
         }
     }
 
@@ -78,14 +83,25 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
     private fun invokeHandler(cmd: Cmd<A>, aggregate: A): Result<A> =
             if (aggregate.currentEventNumber == -1L) {
                 initializers.singleOrNull { it.cmdClass == cmd::class }
-                        ?.handler
-                        ?.invoke(cmd)
+                        ?.run {
+                            try {
+                                this.handler.invoke(cmd)
+                            } catch (e: Exception) {
+                                Result.Error<A>(e)
+                            }
+                        }
                         ?: error("Aggregate ${cmd.aggregateId} does not exist, and no handler found for cmd ${cmd::class.simpleName}")
+
             } else {
                 handlers
                         .singleOrNull { it.cmdClass == cmd::class }
-                        ?.handler
-                        ?.invoke(aggregate, cmd)
+                        ?.run {
+                            try {
+                                this.handler.invoke(aggregate, cmd)
+                            } catch (e: Exception) {
+                                Result.Error<A>(e)
+                            }
+                        }
                         ?: error("No handler found for cmd ${cmd::class.simpleName}")
             }
 
@@ -111,6 +127,8 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
             constructor(exception: Exception) : this(exception, emptyList(), RetryStrategies.DEFAULT)
         }
 
+        internal class Error<A : Aggregate>(exception: Exception) : Result<A>(exception)
+
         class Succeed<A : Aggregate>(val events: List<Event<A>>) : Result<A>(null) {
             constructor(event: Event<A>) : this(listOf(event))
             constructor() : this(emptyList())
@@ -121,6 +139,7 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
         object Success : AsyncResult()
         object Fail : AsyncResult()
         class Retry(val nextExecution: Instant) : AsyncResult()
+        class Error(val exception: Exception) : AsyncResult()
     }
 
 }
