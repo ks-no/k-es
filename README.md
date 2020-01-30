@@ -2,7 +2,7 @@
 
 Kotlin library for persistance through event-sourced aggregates. Support for projections and sagas included, check out the demo-app to see how it all fits together.
 
-Currently supports ESJC (netty based client for [eventstore.org](https://eventstore.org/)) as a aggregate repository and Microsoft Sql Server as a command and saga repository. 
+Currently supports [ESJC](https://github.com/msemys/esjc) (a netty based client for [eventstore.org](https://eventstore.org/)) as the event store, Microsoft Sql Server as a command and saga repository, and JSON/Jackson as a serialization method, but a modular design should allow other databases and serialization types to be supported in the future. 
 
 ## Events
 Events classes must implement the `Event<Aggregate>` interface and be annotated with `@SerializationId".  
@@ -79,6 +79,8 @@ class BasketCmds(repo: AggregateRepository) : CmdHandler<Basket>(repo) {
 }
 ```
 
+Commands can be passed to a command handler through the `handle` or `handleAsync` method. The first is adapted to synchronous invocations where the command result is required right away, such as a user action, the latter to asynchronous invocations. Commands retrieved from the command queue use `handleAsync` 
+
 Each command can complete in four different ways:
 * By returning `Fail`. This signals that the command should fail permanently with an included exception and an optional event. If the command has been invoked synchronously the exception will be thrown, if the invocation was asynchronous the event will be appended to the relevant aggregate.  
 * By returning `RetryOrFail` This signals that the command should fail permanently, unless the specified retry strategy determines that another attempt should be performed.
@@ -99,7 +101,7 @@ class Shipments : Projection() {
 }
 ```
 
-## Sagas and the Command Queue
+## Sagas
 
 ## Bringing it all together
 
