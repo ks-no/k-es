@@ -15,7 +15,17 @@ Events classes must implement the `Event<Aggregate>` interface and be annotated 
 * _aggregateId_: The specific instance of the aggregate associated with the event.
 * _timestamp_: The of the event occurrence.
 
+As time moves on the system (and the world it describes) changes, and altering or replacing events might become necessary. K-ES supports this through event upgrading: an event may implement an upgrade function which will be invoked when the event is read from the event-store, either through projection or saga subscriptions or when restoring aggregates. It is also recommended to tag the older version with the `@Deprecated` annotation, which will make it easier to identify usages of the replaced event. K-ES will throw an error if an aggregate, projection or saga subscribe to a deprecated event.  
 
+```kotlin
+    @SerializationId("BasketSessionStarted")
+    @Deprecated("This event has been replaced by a newer version", replaceWith = ReplaceWith("Basket.Created(aggregateId, timestamp)"), level = DeprecationLevel.ERROR)
+    data class SessionStarted(override val aggregateId: UUID, override val timestamp: Instant) : Event<Basket> {
+        override fun upgrade(): Event<Basket>? {
+            return Created(aggregateId, timestamp)
+        }
+    }
+```
 ## Aggregates
 Aggregate classes extend the abstract `Aggregate` superclass. An aggregateType must be specified, and the aggregate state typically consists of variables which are mutated as the aggregates events play out.   
 
@@ -76,6 +86,18 @@ Each command can complete in four different ways:
 * By throwing a exception. If the command execution throws an uncaught exception the command will be market as `Error` in the command queue, and no more attempts to execute will be performed. This will effectivly block further command execution on this aggregate until this status is manually lifted.
  
 ## Projections
+Projections subscribe to events from the event store, and build state based on these. 
+```kotlin
+class Shipments : Projection() {
+    private val failed: MutableSet<UUID> = mutableSetOf()
+
+    init {
+        on<Shipment.Failed> { failed.add(it.basketId) }
+    }
+
+    fun isFailedShipment(basketId: UUID): Boolean = failed.contains(basketId)
+}
+```
 
 ## Sagas and the Command Queue
 
