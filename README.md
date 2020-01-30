@@ -44,8 +44,42 @@ class Basket : Aggregate() {
 ```
 
 ## Commands and Command Handlers
+Aggregates are mutated by submitting commands to an associated command handler. The command handler will retrieve the aggregate from the event-store, play out any pre-existing events, and apply the logic defined in the `initOn` or the `on` functions to the current aggregate state: any derived events are appended to the aggregates event log in the store. The command handler functions will often involve side effects, such as invoking external api's. Clients for these can be injected into the command handler. 
 
+```kotlin
+class BasketCmds(repo: AggregateRepository) : CmdHandler<Basket>(repo) {
+    override fun initAggregate(): Basket = Basket()
 
+    @SerializationId("BasketCreate")
+    data class Create(override val aggregateId: UUID) : Cmd<Basket>
+
+    @SerializationId("BasketAddItem")
+    data class AddItem(override val aggregateId: UUID, val itemId: UUID) : Cmd<Basket>
+
+    init {
+        initOn<Create> { Succeed(Basket.Created(it.aggregateId, Instant.now())) }
+
+        on<AddItem> {
+            if (basketClosed)
+                Fail(IllegalStateException("Can't add items to a closed basket"))
+            else
+                Succeed(Basket.ItemAdded(it.aggregateId, Instant.now(), it.itemId))
+        }
+    }
+}
+```
+
+Each command can complete in four different ways:
+* By returning `Fail`. This signals that the command should fail permanently with an included exception and an optional event. If the command has been invoked synchronously the exception will be thrown, if the invocation was asynchronous the event will be appended to the relevant aggregate.  
+* By returning `RetryOrFail` This signals that the command should fail permanently, unless the specified retry strategy determines that another attempt should be performed.
+* By returning `Success` This signals that the command is successful. If an event is specified it will be appended to the aggregate.
+* By throwing a exception. If the command execution throws an uncaught exception the command will be market as `Error` in the command queue, and no more attempts to execute will be performed. This will effectivly block further command execution on this aggregate until this status is manually lifted.
+ 
 ## Projections
 
 ## Sagas and the Command Queue
+
+## Bringing it all together
+
+![Overview](https://www.lucidchart.com/publicSegments/view/18fde347-2a62-4f77-af4a-a955f6f77ab1/image.png)
+
