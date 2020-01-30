@@ -103,5 +103,5 @@ class Shipments : Projection() {
 
 ## Bringing it all together
 
-![Overview](https://www.lucidchart.com/publicSegments/view/18fde347-2a62-4f77-af4a-a955f6f77ab1/image.png)
+![Overview](https://www.lucidchart.com/publicSegments/view/895679bf-a290-46cd-b77e-c32b7f37ce52/image.png)
 
