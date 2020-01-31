@@ -54,7 +54,6 @@ class SagaManagerTest : StringSpec() {
             }
         }
 
-
         "test that the saga manager should extract \"create timeout\" when one is configured as an event reaction" {
             data class SomeState(val id: UUID, val startDate: LocalDate)
 
@@ -75,6 +74,29 @@ class SagaManagerTest : StringSpec() {
 
             with(onEvent.single() as SagaRepository.SagaUpsert.SagaUpdate) {
                 timeouts.single() shouldBe Saga.Timeout(timeoutTime, AnnotationUtil.getSerializationId(StartDateChanged::class))
+            }
+        }
+
+        "test that the saga manager should execute the timeout handler when a triggered timeout arrives" {
+            data class SomeState(val id: UUID, val startDate: LocalDate, val timeoutTriggered: Boolean = false)
+
+            val event = StartDateChanged(UUID.randomUUID(), LocalDate.now(), Instant.now())
+
+            val timeoutTime = Instant.now()
+            val result = Sagas(
+                    setOf<Saga<SomeState>>(@SerializationId("SomeState") object : Saga<SomeState>(SomeState::class) {
+                        init {
+                            initOn<Hired> {
+                                setState(SomeState(it.aggregateId, it.startDate))
+                            }
+
+                            createTimeoutOn<StartDateChanged>({it.aggregateId}, {timeoutTime}) {setState(state.copy(timeoutTriggered = true))}
+                        }
+                    })) { _, _ -> SomeState(event.aggregateId, LocalDate.now().minusDays(1))}
+                    .onTimeout("SomeState", event.aggregateId, AnnotationUtil.getSerializationId(StartDateChanged::class))
+
+            with(result.newState!! as SomeState) {
+                timeoutTriggered shouldBe true
             }
         }
 

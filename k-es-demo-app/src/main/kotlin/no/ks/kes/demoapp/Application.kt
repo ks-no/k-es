@@ -6,7 +6,7 @@ import no.ks.kes.esjc.EsjcAggregateRepository
 import no.ks.kes.esjc.EsjcEventSubscriber
 import no.ks.kes.esjc.EsjcEventUtil
 import no.ks.kes.lib.*
-import no.ks.kes.sagajdbc.SqlServerCommandQueueManager
+import no.ks.kes.sagajdbc.SqlServerCommandQueue
 import no.ks.kes.sagajdbc.SqlServerSagaRepository
 import no.ks.kes.serdes.jackson.JacksonCmdSerdes
 import no.ks.kes.serdes.jackson.JacksonEventSerdes
@@ -51,15 +51,6 @@ class Application {
     ))
 
     @Bean
-    fun cmdSerdes(): CmdSerdes<String> = JacksonCmdSerdes(setOf(
-            BasketCmds.Create::class,
-            BasketCmds.AddItem::class,
-            BasketCmds.CheckOut::class,
-            ShipmentCmds.Request::class,
-            ShipmentCmds.SendMissingShipmentAlert::class
-    ))
-
-    @Bean
     fun shippedBaskets(): Shipments = Shipments()
 
     @Bean
@@ -73,6 +64,12 @@ class Application {
             ShipmentCmds(aggregateRepository, warehouseManager)
 
     @Bean
+    fun eventStore(): EventStore = EventStoreBuilder.newBuilder()
+            .singleNodeAddress("localhost", 1113)
+            .userCredentials("admin", "changeit")
+            .build()
+
+    @Bean
     fun subscriber(eventStore: EventStore, eventSerdes: EventSerdes<String>): EventSubscriber =
             EsjcEventSubscriber(eventStore, eventSerdes, "no.ks.kes.demoapp")
 
@@ -82,56 +79,43 @@ class Application {
             EsjcAggregateRepository(eventStore, eventSerdes, EsjcEventUtil.defaultStreamName("no.ks.kes.demoapp"))
 
     @Bean
-    fun eventStore(): EventStore = EventStoreBuilder.newBuilder()
-            .singleNodeAddress("localhost", 1113)
-            .userCredentials("admin", "changeit")
-            .build()
-
-    @Bean
-    @DependsOn("flyway", "flywayInitializer")
-    fun sqlServerCmdQueueManager(dataSource: DataSource, cmdSerdes: CmdSerdes<String>, basketCmds: BasketCmds, shipmentCmds: ShipmentCmds): SqlServerCommandQueueManager {
-        return SqlServerCommandQueueManager(dataSource, cmdSerdes, setOf(basketCmds, shipmentCmds))
-    }
-
-    @Bean
-    @DependsOn("flyway", "flywayInitializer")
-    fun sqlServerSagaRepository(dataSource: DataSource,
-                                cmdSerdes: CmdSerdes<String>,
-                                eventSubscriber: EventSubscriber): SqlServerSagaRepository {
-        return SqlServerSagaRepository(
-                dataSource = dataSource,
-                sagaStateSerdes = JacksonSagaStateSerdes(),
-                cmdSerdes = cmdSerdes
-        )
-    }
-
-    @Bean
     fun warehouseManager(): WarehouseManager = MyWarehouseManager()
 
     @Component
     class MyInitializer(
-            val shippedBaskets: Shipments,
+            val shipments: Shipments,
             val eventSubscriber: EventSubscriber,
-            val sagaRepository: SagaRepository,
-            val commandQueue: CommandQueue
+            val dataSource: DataSource,
+            val basketCmds: BasketCmds,
+            val shipmentCmds: ShipmentCmds
     ) : ApplicationListener<ApplicationReadyEvent> {
         override fun onApplicationEvent(applicationReadyEvent: ApplicationReadyEvent) {
+            val cmdSerdes = JacksonCmdSerdes(setOf(
+                    BasketCmds.Create::class,
+                    BasketCmds.AddItem::class,
+                    BasketCmds.CheckOut::class,
+                    ShipmentCmds.Request::class,
+                    ShipmentCmds.SendMissingShipmentAlert::class))
+
             Projections.initialize(
                     eventSubscriber = eventSubscriber,
-                    projections = setOf(shippedBaskets),
+                    projections = setOf(shipments),
                     fromEvent = 0,
                     hwmUpdater = {}
             )
+
             Sagas.initialize(
                     eventSubscriber = eventSubscriber,
-                    sagaRepository = sagaRepository,
+                    sagaRepository = SqlServerSagaRepository(
+                            dataSource = dataSource,
+                            sagaStateSerdes = JacksonSagaStateSerdes(),
+                            cmdSerdes = cmdSerdes),
                     sagas = setOf(CreateShipmentSaga()),
-                    commandQueue = commandQueue,
+                    commandQueue = SqlServerCommandQueue(dataSource, cmdSerdes, setOf(basketCmds, shipmentCmds)),
                     pollInterval = 500
             )
         }
     }
-
 
     class MyWarehouseManager : WarehouseManager {
         private var fail: AtomicReference<Exception?> = AtomicReference(null)

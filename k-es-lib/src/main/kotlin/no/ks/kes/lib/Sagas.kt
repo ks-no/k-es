@@ -7,7 +7,7 @@ import kotlin.reflect.KClass
 
 private val log = KotlinLogging.logger {}
 
-class Sagas internal constructor(sagas: Set<Saga<*>>, val stateRetriever: (SagaId, KClass<Any>) -> Any?) {
+class Sagas internal constructor(sagas: Set<Saga<*>>, stateRetriever: (SagaId, KClass<Any>) -> Any?) {
 
     fun onEvent(event: EventWrapper<Event<*>>): Set<SagaRepository.SagaUpsert> {
         return eventHandlers[event.event::class]
@@ -20,9 +20,7 @@ class Sagas internal constructor(sagas: Set<Saga<*>>, val stateRetriever: (SagaI
     fun onTimeout(sagaSerializationId: String, sagaCorrelationId: UUID, timeoutId: String): SagaRepository.SagaUpsert.SagaUpdate {
         val id = TimeoutHandlerId(sagaSerializationId, timeoutId)
         return (timeoutHandlers[id] ?: error("no timeout handler found for id $id"))
-                .invoke(sagaCorrelationId) { sagaId, stateClass ->
-                    stateRetriever.invoke(sagaId, stateClass)
-                }
+                .invoke(sagaCorrelationId)
     }
 
     private val eventHandlers = sagas
@@ -75,8 +73,8 @@ class Sagas internal constructor(sagas: Set<Saga<*>>, val stateRetriever: (SagaI
                     TimeoutHandlerId(
                             sagaSerializationId = AnnotationUtil.getSerializationId(saga.sagaClass),
                             timeoutId = it.timeoutId
-                    ) to { correlationId: UUID, r: (SagaId, KClass<Any>) -> Any? ->
-                        with(it.handler(Saga.SagaContext(r.invoke(
+                    ) to { correlationId: UUID ->
+                        with(it.handler(Saga.SagaContext(stateRetriever.invoke(
                                 SagaId(AnnotationUtil.getSerializationId(saga.sagaClass), correlationId),
                                 saga.stateClass)
                                 ?: error("no saga found on serializationId ${AnnotationUtil.getSerializationId(saga.sagaClass)}, correlationId $correlationId"))))
@@ -126,7 +124,6 @@ class Sagas internal constructor(sagas: Set<Saga<*>>, val stateRetriever: (SagaI
 
             Timer("PollingTimeouts", false).schedule(0, pollInterval) {
                 sagaRepository.transactionally {
-
                     sagaRepository.getReadyTimeouts()
                             ?.also {
                                 log.info { "polled for timeouts, found timeout with sagaSerializationId: \"${it.sagaSerializationId}\", sagaCorrelationId: \"${it.sagaCorrelationId}\", timeoutId: \"${it.timeoutId}\"" }
