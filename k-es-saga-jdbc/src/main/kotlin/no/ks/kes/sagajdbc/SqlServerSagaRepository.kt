@@ -1,7 +1,10 @@
 package no.ks.kes.sagajdbc
 
 import mu.KotlinLogging
-import no.ks.kes.lib.*
+import no.ks.kes.lib.AnnotationUtil
+import no.ks.kes.lib.CmdSerdes
+import no.ks.kes.lib.SagaRepository
+import no.ks.kes.lib.SagaStateSerdes
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
@@ -15,25 +18,31 @@ private val log = KotlinLogging.logger {}
 
 class SqlServerSagaRepository(
         dataSource: DataSource,
-        eventSubscriber: EventSubscriber,
-        sagaManager: SagaManager,
         private val sagaStateSerdes: SagaStateSerdes<String>,
         private val cmdSerdes: CmdSerdes<String>
-) : SagaRepository(eventSubscriber, sagaManager) {
+) : SagaRepository {
     private val template = NamedParameterJdbcTemplate(dataSource)
     private val transactionManager = DataSourceTransactionManager(dataSource)
 
-    init {
-        subscribeToEvents(getCurrentHwm())
-    }
+    override fun currentHwm(): Long =
+            template.queryForObject(
+                    "SELECT ${HwmTable.sagaHwm} FROM $HwmTable",
+                    mutableMapOf<String, Any>(),
+                    Long::class.java
+            ) ?: error("No hwm found in ${SagaTable}_HWM")
 
     override fun transactionally(runnable: () -> Unit) {
         TransactionTemplate(transactionManager).execute {
-            runnable.invoke()
+            try {
+                runnable.invoke()
+            } catch (e: Exception) {
+                log.error("An error was encountered while retrieving and executing saga-timeouts, transaction will be rolled back", e)
+                throw e
+            }
         }
     }
 
-    override fun getReadyTimeouts(): Timeout? {
+    override fun getReadyTimeouts(): SagaRepository.Timeout? {
         return template.query("""
             SELECT TOP 1 ${TimeoutTable.sagaSerializationId}, ${TimeoutTable.sagaCorrelationId}, ${TimeoutTable.timeoutId}             
             FROM $TimeoutTable 
@@ -41,7 +50,7 @@ class SqlServerSagaRepository(
             WHERE ${TimeoutTable.error} = 0
             AND ${TimeoutTable.timeout}  < CURRENT_TIMESTAMP 
         """) { r, _ ->
-            Timeout(
+            SagaRepository.Timeout(
                     sagaSerializationId = r.getString(TimeoutTable.sagaSerializationId),
                     sagaCorrelationId = UUID.fromString(r.getString(TimeoutTable.sagaCorrelationId)),
                     timeoutId = r.getString(TimeoutTable.timeoutId)
@@ -83,19 +92,12 @@ class SqlServerSagaRepository(
                 }
     }
 
-    override fun getCurrentHwm(): Long =
-            template.queryForObject(
-                    "SELECT ${HwmTable.sagaHwm} FROM $HwmTable",
-                    mutableMapOf<String, Any>(),
-                    Long::class.java
-            ) ?: error("No hwm found in ${SagaTable}_HWM")
-
-    override fun update(hwm: Long, states: Set<SagaUpsert>) {
+    override fun update(hwm: Long, states: Set<SagaRepository.SagaUpsert>) {
         log.info { "updating sagas: $states" }
 
         template.batchUpdate(
                 "INSERT INTO $SagaTable (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, :${SagaTable.serializationId}, :${SagaTable.data})",
-                states.filterIsInstance<SagaUpsert.SagaInsert>()
+                states.filterIsInstance<SagaRepository.SagaUpsert.SagaInsert>()
                         .map {
                             mutableMapOf(
                                     SagaTable.correlationId to it.correlationId,
@@ -107,7 +109,7 @@ class SqlServerSagaRepository(
 
         template.batchUpdate(
                 "INSERT INTO $TimeoutTable (${TimeoutTable.sagaCorrelationId}, ${TimeoutTable.sagaSerializationId}, ${TimeoutTable.timeoutId}, ${TimeoutTable.timeout}, ${TimeoutTable.error}) VALUES (:${TimeoutTable.sagaCorrelationId}, :${TimeoutTable.sagaSerializationId}, :${TimeoutTable.timeoutId}, :${TimeoutTable.timeout}, 0)",
-                states.filterIsInstance<SagaUpsert.SagaUpdate>()
+                states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
                         .flatMap { saga ->
                             saga.timeouts.map {
                                 mutableMapOf(
@@ -123,7 +125,7 @@ class SqlServerSagaRepository(
 
         template.batchUpdate(
                 "UPDATE $SagaTable SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
-                states.filterIsInstance<SagaUpsert.SagaUpdate>()
+                states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
                         .filter { it.newState != null }
                         .map {
                             mutableMapOf(
@@ -152,7 +154,7 @@ class SqlServerSagaRepository(
                 mutableMapOf(HwmTable.sagaHwm to hwm))
     }
 
-    override fun update(upsert: SagaUpsert.SagaUpdate) {
+    override fun update(upsert: SagaRepository.SagaUpsert.SagaUpdate) {
         upsert.newState?.apply {
             template.update(
                     "UPDATE $SagaTable SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",

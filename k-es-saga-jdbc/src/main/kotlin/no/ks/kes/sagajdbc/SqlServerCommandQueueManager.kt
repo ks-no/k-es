@@ -5,6 +5,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.*
 import javax.sql.DataSource
 
@@ -36,7 +38,7 @@ class SqlServerCommandQueueManager(dataSource: DataSource, private val cmdSerdes
                 "UPDATE $CmdTable SET ${CmdTable.nextExecution} = :${CmdTable.nextExecution}, ${CmdTable.retries} = ${CmdTable.retries} + 1 WHERE ${CmdTable.id} = :${CmdTable.id}",
                 mutableMapOf(
                         CmdTable.id to cmdId,
-                        CmdTable.nextExecution to nextExecution
+                        CmdTable.nextExecution to OffsetDateTime.ofInstant(nextExecution, ZoneOffset.UTC)
                 )
         )
     }

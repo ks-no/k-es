@@ -21,10 +21,10 @@ class SagaManagerTest : StringSpec() {
                 }
             }
 
-            val sagaManager = SagaManager(setOf(saga))
+            val sagaManager = Sagas(setOf(saga)) { _, _ -> null }
 
             val event = Hired(UUID.randomUUID(), UUID.randomUUID(), LocalDate.now(), Instant.now())
-            val onEvent = sagaManager.onEvent(EventWrapper(event, 0L)) { _, _ -> null }
+            val onEvent = sagaManager.onEvent(EventWrapper(event, 0L))
 
             with(onEvent.single() as SagaRepository.SagaUpsert.SagaInsert) {
                 newState shouldBe SomeState(event.aggregateId)
@@ -35,7 +35,7 @@ class SagaManagerTest : StringSpec() {
             data class SomeState(val id: UUID, val startDate: LocalDate)
 
             val event = StartDateChanged(UUID.randomUUID(), LocalDate.now(), Instant.now())
-            val onEvent = SagaManager(
+            val onEvent = Sagas(
                     setOf<Saga<SomeState>>(@SerializationId("SomeState") object : Saga<SomeState>(SomeState::class) {
                         init {
                             initOn<Hired> {
@@ -46,8 +46,8 @@ class SagaManagerTest : StringSpec() {
                                 setState(state.copy(startDate = it.newStartDate))
                             }
                         }
-                    }))
-                    .onEvent(EventWrapper(event, 0L)) { _, _ -> SomeState(event.aggregateId, LocalDate.now().minusDays(1)) }
+                    })) { _, _ -> SomeState(event.aggregateId, LocalDate.now().minusDays(1)) }
+                    .onEvent(EventWrapper(event, 0L))
 
             with(onEvent.single() as SagaRepository.SagaUpsert.SagaUpdate) {
                 newState shouldBe SomeState(event.aggregateId, event.newStartDate)
@@ -61,7 +61,7 @@ class SagaManagerTest : StringSpec() {
             val event = StartDateChanged(UUID.randomUUID(), LocalDate.now(), Instant.now())
 
             val timeoutTime = Instant.now()
-            val onEvent = SagaManager(
+            val onEvent = Sagas(
                     setOf<Saga<SomeState>>(@SerializationId("SomeState") object : Saga<SomeState>(SomeState::class) {
                         init {
                             initOn<Hired> {
@@ -70,8 +70,8 @@ class SagaManagerTest : StringSpec() {
 
                             createTimeoutOn<StartDateChanged>({it.aggregateId}, {timeoutTime}) {}
                         }
-                    }))
-                    .onEvent(EventWrapper(event, 0L)) { _, _ -> SomeState(event.aggregateId, LocalDate.now().minusDays(1)) }
+                    })) { _, _ -> SomeState(event.aggregateId, LocalDate.now().minusDays(1))}
+                    .onEvent(EventWrapper(event, 0L))
 
             with(onEvent.single() as SagaRepository.SagaUpsert.SagaUpdate) {
                 timeouts.single() shouldBe Saga.Timeout(timeoutTime, AnnotationUtil.getSerializationId(StartDateChanged::class))

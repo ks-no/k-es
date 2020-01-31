@@ -18,8 +18,6 @@ import org.springframework.boot.jdbc.DataSourceBuilder
 import org.springframework.context.ApplicationListener
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.DependsOn
-import org.springframework.scheduling.annotation.EnableScheduling
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
@@ -31,7 +29,6 @@ fun main(args: Array<String>) {
 }
 
 @SpringBootApplication
-@EnableScheduling
 class Application {
 
     @Bean
@@ -104,9 +101,7 @@ class Application {
         return SqlServerSagaRepository(
                 dataSource = dataSource,
                 sagaStateSerdes = JacksonSagaStateSerdes(),
-                cmdSerdes = cmdSerdes,
-                eventSubscriber = eventSubscriber,
-                sagaManager = SagaManager(setOf(CreateShipmentSaga()))
+                cmdSerdes = cmdSerdes
         )
     }
 
@@ -114,32 +109,29 @@ class Application {
     fun warehouseManager(): WarehouseManager = MyWarehouseManager()
 
     @Component
-    class MyBootListener(
+    class MyInitializer(
             val shippedBaskets: Shipments,
-            val eventSubscriber: EventSubscriber
+            val eventSubscriber: EventSubscriber,
+            val sagaRepository: SagaRepository,
+            val commandQueue: CommandQueue
     ) : ApplicationListener<ApplicationReadyEvent> {
         override fun onApplicationEvent(applicationReadyEvent: ApplicationReadyEvent) {
-            ProjectionManager(eventSubscriber, setOf(shippedBaskets), 0, {}, {})
+            Projections.initialize(
+                    eventSubscriber = eventSubscriber,
+                    projections = setOf(shippedBaskets),
+                    fromEvent = 0,
+                    hwmUpdater = {}
+            )
+            Sagas.initialize(
+                    eventSubscriber = eventSubscriber,
+                    sagaRepository = sagaRepository,
+                    sagas = setOf(CreateShipmentSaga()),
+                    commandQueue = commandQueue,
+                    pollInterval = 500
+            )
         }
     }
 
-    @Component
-    class QueuePoller(val cmdQueueManager: SqlServerCommandQueueManager) {
-
-        @Scheduled(fixedDelay = 1000)
-        fun poll() {
-            cmdQueueManager.poll()
-        }
-    }
-
-    @Component
-    class TimeoutPoller(val sagaRepository: SqlServerSagaRepository) {
-
-        @Scheduled(fixedDelay = 1000)
-        fun poll() {
-            sagaRepository.poll()
-        }
-    }
 
     class MyWarehouseManager : WarehouseManager {
         private var fail: AtomicReference<Exception?> = AtomicReference(null)

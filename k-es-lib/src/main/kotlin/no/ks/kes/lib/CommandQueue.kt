@@ -71,7 +71,6 @@ abstract class CommandQueue(
     protected abstract fun incrementAndSetNextExecution(cmdId: Long, nextExecution: Instant)
     protected abstract fun nextCmd(): CmdWrapper<Cmd<*>>?
     protected abstract fun transactionally(runnable: () -> Unit)
-
 }
 
 data class CmdWrapper<T : Cmd<*>>(

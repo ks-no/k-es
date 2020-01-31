@@ -11,7 +11,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
-internal class ProjectionManagerTest : StringSpec() {
+internal class ProjectionsTest : StringSpec() {
 
     init {
         "test that a projection can handle incoming events and mutate its state accordingly" {
@@ -29,7 +29,7 @@ internal class ProjectionManagerTest : StringSpec() {
 
             val slot = slot<(EventWrapper<*>) -> Unit>()
 
-            ProjectionManager(
+            Projections.initialize(
                     eventSubscriber = mockk<EventSubscriber>()
                             .apply { every { addSubscriber(
                                     consumerName = "ProjectionManager",

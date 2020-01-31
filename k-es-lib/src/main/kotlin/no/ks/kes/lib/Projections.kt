@@ -1,14 +1,13 @@
 package no.ks.kes.lib
 
 
-class ProjectionManager(
-        eventSubscriber: EventSubscriber,
-        projections: Set<Projection>,
-        fromEvent: Long,
-        hwmUpdater: (Long) -> Unit,
-        onClose: (Exception) -> Unit
-) {
-    init {
+object Projections {
+    fun initialize(
+            eventSubscriber: EventSubscriber,
+            projections: Set<Projection>,
+            fromEvent: Long,
+            hwmUpdater: (Long) -> Unit,
+            onClose: (Exception) -> Unit = {}) {
         eventSubscriber.addSubscriber(
                 consumerName = "ProjectionManager",
                 onEvent = { wrapper ->

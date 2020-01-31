@@ -2,7 +2,6 @@ package no.ks.kes.lib
 
 import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.hasAnnotation
 
 object AnnotationUtil {
     fun <T : Any> getSerializationId(event: KClass<T>): String =

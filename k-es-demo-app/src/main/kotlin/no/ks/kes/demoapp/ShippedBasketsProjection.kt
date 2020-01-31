@@ -14,10 +14,13 @@ class Shipments : Projection() {
         on<Shipment.WarehouseNotifiedOfMissingShipment> { missing.add(it.basketId) }
     }
 
+    @Synchronized
     fun getShipments(basketId: UUID): Map<UUID, Int>? =
             created[basketId]
 
+    @Synchronized
     fun isFailedShipment(basketId: UUID): Boolean = failed.contains(basketId)
 
+    @Synchronized
     fun isMissingShipment(basketId: UUID): Boolean = missing.contains(basketId)
 }

@@ -8,10 +8,9 @@ import io.mockk.verify
 import no.ks.kes.lib.testdomain.Employee
 import java.time.Instant
 import java.util.*
-import kotlin.reflect.typeOf
 
 @ExperimentalStdlibApi
-class JdbcCommandQueueTest : StringSpec() {
+class CommandQueueTest : StringSpec() {
     class TestQueue(cmdHandler: CmdHandler<*>) : CommandQueue(setOf(cmdHandler)) {
         override fun delete(cmdId: Long) {}
         override fun incrementAndSetError(cmdId: Long, errorId: UUID) {}
@@ -96,5 +95,29 @@ class JdbcCommandQueueTest : StringSpec() {
             verify { queue["incrementAndSetError"](1L, any<UUID>())}
         }
 
+
+        "test that a command fails with retry is designated with a new execution if the retry strategy allows"{
+            data class SomeCmd(override val aggregateId: UUID) : Cmd<Employee>
+
+            val queue = spyk(
+                    objToCopy = TestQueue(object : CmdHandler<Employee>(
+                            mockk<AggregateRepository>().apply {
+                                every { read(any(), any<Employee>()) } returns Employee()
+                            }) {
+                        override fun initAggregate(): Employee = Employee()
+
+                        init {
+                            on<SomeCmd> {
+                                Result.RetryOrFail(IllegalStateException("something went wrong"), RetryStrategies.DEFAULT)
+                            }
+                        }
+                    }),
+                    recordPrivateCalls = true)
+            every { queue["nextCmd"]() } returns CmdWrapper(cmd = SomeCmd(UUID.randomUUID()), id = 1L, retries = 0)
+
+            queue.poll()
+
+            verify { queue["incrementAndSetNextExecution"](1L, any<Instant>())}
+        }
     }
 }

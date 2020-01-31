@@ -87,6 +87,24 @@ class SagaTest : StringSpec() {
             }
         }
 
+        "test that a saga which constructs multiple timeouts on the same event throws exception" {
+            data class SomeState(val id: UUID)
+
+            @SerializationId("SomeEvent")
+            data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant): Event<Employee>
+
+            val saga = object : Saga<SomeState>(SomeState::class) {
+                init {
+                    initOn<Hired> {setState(SomeState(it.aggregateId))}
+                    createTimeoutOn<SomeEvent>({it.aggregateId}, {e -> Instant.now()}) {setState(SomeState(UUID.randomUUID()))}
+                    createTimeoutOn<SomeEvent>({it.aggregateId}, {e -> Instant.now()}) {setState(SomeState(UUID.randomUUID()))}
+                }
+            }
+            shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
+                message shouldContain  "The following events occur multiple times in a \"createTimeout\" specification"
+            }
+        }
+
         "test that creating a saga with initializer and handler for same event throws exception" {
             data class SomeState(val id: UUID)
 
