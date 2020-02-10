@@ -126,13 +126,13 @@ class Sagas internal constructor(sagas: Set<Saga<*>>, stateRetriever: (SagaId, K
                 sagaRepository.transactionally {
                     sagaRepository.getReadyTimeouts()
                             ?.also {
-                                log.info { "polled for timeouts, found timeout with sagaSerializationId: \"${it.sagaSerializationId}\", sagaCorrelationId: \"${it.sagaCorrelationId}\", timeoutId: \"${it.timeoutId}\"" }
+                                log.debug { "polled for timeouts, found timeout with sagaSerializationId: \"${it.sagaSerializationId}\", sagaCorrelationId: \"${it.sagaCorrelationId}\", timeoutId: \"${it.timeoutId}\"" }
                             }
                             ?.apply {
                                 sagaManager.onTimeout(sagaSerializationId, sagaCorrelationId, timeoutId)
                                         .apply { sagaRepository.update(this) }
                                 sagaRepository.deleteTimeout(sagaSerializationId, sagaCorrelationId, timeoutId)
-                            } ?: log.info { "polled for timeouts, found none" }
+                            } ?: log.debug { "polled for timeouts, found none" }
                 }
             }
 

@@ -25,9 +25,9 @@ abstract class CommandQueue(
                     val incomingCmd = nextCmd()
 
                     if (incomingCmd == null)
-                        log.info { "polled for cmds, found none" }
+                        log.debug { "polled for cmds, found none" }
                     else
-                        log.info { "polled for cmds, found cmd with id ${incomingCmd.id}" }
+                        log.debug { "polled for cmds, found cmd with id ${incomingCmd.id}" }
 
                     incomingCmd?.let { wrapper ->
                         val handler = handledCmds[wrapper.cmd::class]
