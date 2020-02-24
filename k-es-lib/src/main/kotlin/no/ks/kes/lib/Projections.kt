@@ -5,8 +5,7 @@ object Projections {
     fun initialize(
             eventSubscriber: EventSubscriber,
             projections: Set<Projection>,
-            fromEvent: Long,
-            hwmUpdater: (Long) -> Unit,
+            projectionRepository: ProjectionRepository,
             onClose: (Exception) -> Unit = {}) {
         eventSubscriber.addSubscriber(
                 consumerName = "ProjectionManager",
@@ -16,9 +15,9 @@ object Projections {
                                 event = wrapper.event,
                                 eventNumber = wrapper.eventNumber))
                     }
-                            .also { hwmUpdater.invoke(wrapper.eventNumber) }
+                            .also { projectionRepository.updateHwm(wrapper.eventNumber) }
                 },
-                fromEvent = fromEvent,
+                fromEvent = projectionRepository.currentHwm(),
                 onClose = { onClose.invoke(it) },
                 onLive = { projections.forEach { it.onLive() } }
         )

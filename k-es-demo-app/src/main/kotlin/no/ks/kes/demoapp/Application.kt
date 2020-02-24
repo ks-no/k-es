@@ -6,6 +6,7 @@ import no.ks.kes.esjc.EsjcAggregateRepository
 import no.ks.kes.esjc.EsjcEventSubscriber
 import no.ks.kes.esjc.EsjcEventUtil
 import no.ks.kes.lib.*
+import no.ks.kes.projectionjdbc.SqlServerProjectionRepository
 import no.ks.kes.sagajdbc.SqlServerCommandQueue
 import no.ks.kes.sagajdbc.SqlServerSagaRepository
 import no.ks.kes.serdes.jackson.JacksonCmdSerdes
@@ -81,6 +82,7 @@ class Application {
     @Bean
     fun warehouseManager(): WarehouseManager = MyWarehouseManager()
 
+
     @Component
     class MyInitializer(
             val shipments: Shipments,
@@ -100,8 +102,7 @@ class Application {
             Projections.initialize(
                     eventSubscriber = eventSubscriber,
                     projections = setOf(shipments),
-                    fromEvent = 0,
-                    hwmUpdater = {}
+                    projectionRepository = SqlServerProjectionRepository(dataSource)
             )
 
             Sagas.initialize(

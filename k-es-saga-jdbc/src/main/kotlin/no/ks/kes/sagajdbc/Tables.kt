@@ -37,3 +37,9 @@ object HwmTable {
 
     val sagaHwm = "sagaHwm"
 }
+
+object ProjectionsHwmTable {
+    override fun toString(): String = "projectionhwm"
+
+    val projectionHwm = "projectionHwm"
+}

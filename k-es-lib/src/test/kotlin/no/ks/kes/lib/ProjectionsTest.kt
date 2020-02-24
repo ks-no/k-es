@@ -39,8 +39,12 @@ internal class ProjectionsTest : StringSpec() {
                                     onLive = any()
                             ) } returns Unit},
                     projections = setOf(startDates),
-                    fromEvent = 0L,
-                    hwmUpdater = {},
+                    projectionRepository = object: ProjectionRepository {
+                        override fun updateHwm(currentEvent: Long) {
+                        }
+
+                        override fun currentHwm(): Long = 0
+                    },
                     onClose = {}
             )
 

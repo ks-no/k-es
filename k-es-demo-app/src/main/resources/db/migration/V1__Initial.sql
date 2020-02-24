@@ -34,4 +34,11 @@ CREATE TABLE hwm
     sagaHwm INTEGER NOT NULL
 )
 
-INSERT INTO hwm VALUES (0)
+INSERT INTO hwm VALUES (0);
+
+CREATE TABLE projectionhwm
+(
+    projectionHwm INTEGER NOT NULL
+);
+
+INSERT INTO projectionhwm VALUES (0);
