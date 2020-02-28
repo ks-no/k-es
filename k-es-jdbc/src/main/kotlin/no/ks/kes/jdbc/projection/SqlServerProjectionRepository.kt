@@ -1,8 +1,8 @@
-package no.ks.kes.projectionjdbc
+package no.ks.kes.jdbc.projection
 
 import mu.KotlinLogging
+import no.ks.kes.jdbc.ProjectionsHwmTable
 import no.ks.kes.lib.ProjectionRepository
-import no.ks.kes.sagajdbc.ProjectionsHwmTable
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager

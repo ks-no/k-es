@@ -5,10 +5,10 @@ import com.github.msemys.esjc.EventStoreBuilder
 import no.ks.kes.esjc.EsjcAggregateRepository
 import no.ks.kes.esjc.EsjcEventSubscriber
 import no.ks.kes.esjc.EsjcEventUtil
+import no.ks.kes.jdbc.projection.SqlServerProjectionRepository
+import no.ks.kes.jdbc.saga.SqlServerCommandQueue
+import no.ks.kes.jdbc.saga.SqlServerSagaRepository
 import no.ks.kes.lib.*
-import no.ks.kes.projectionjdbc.SqlServerProjectionRepository
-import no.ks.kes.sagajdbc.SqlServerCommandQueue
-import no.ks.kes.sagajdbc.SqlServerSagaRepository
 import no.ks.kes.serdes.jackson.JacksonCmdSerdes
 import no.ks.kes.serdes.jackson.JacksonEventSerdes
 import no.ks.kes.serdes.jackson.JacksonSagaStateSerdes

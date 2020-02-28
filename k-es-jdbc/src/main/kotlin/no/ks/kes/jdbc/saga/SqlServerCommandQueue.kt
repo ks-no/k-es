@@ -1,5 +1,6 @@
-package no.ks.kes.sagajdbc
+package no.ks.kes.jdbc.saga
 
+import no.ks.kes.jdbc.CmdTable
 import no.ks.kes.lib.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager

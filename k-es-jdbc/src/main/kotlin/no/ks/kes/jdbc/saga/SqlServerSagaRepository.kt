@@ -1,6 +1,10 @@
-package no.ks.kes.sagajdbc
+package no.ks.kes.jdbc.saga
 
 import mu.KotlinLogging
+import no.ks.kes.jdbc.CmdTable
+import no.ks.kes.jdbc.HwmTable
+import no.ks.kes.jdbc.SagaTable
+import no.ks.kes.jdbc.TimeoutTable
 import no.ks.kes.lib.AnnotationUtil
 import no.ks.kes.lib.CmdSerdes
 import no.ks.kes.lib.SagaRepository

@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>k-es-jdbc</artifactId>
+    <description>JDBC support for sagas and projections</description>
 
     <dependencies>
         <!--internal-->

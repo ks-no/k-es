@@ -1,4 +1,4 @@
-package no.ks.kes.sagajdbc
+package no.ks.kes.jdbc
 
 object SagaTable {
     override fun toString(): String = "saga"
