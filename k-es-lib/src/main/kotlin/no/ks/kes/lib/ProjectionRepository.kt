@@ -1,7 +1,7 @@
 package no.ks.kes.lib
 
-interface ProjectionRepository {
+interface ProjectionRepository: TransactionAwareRepository {
 
-    fun updateHwm(currentEvent: Long)
-    fun currentHwm(): Long
+    fun updateHwm(currentEvent: Long, consumerName: String)
+    fun currentHwm(consumerName: String): Long
 }

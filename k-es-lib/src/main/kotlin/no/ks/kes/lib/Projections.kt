@@ -6,18 +6,21 @@ object Projections {
             eventSubscriber: EventSubscriber,
             projections: Set<Projection>,
             projectionRepository: ProjectionRepository,
-            onClose: (Exception) -> Unit = {}) {
+            onClose: (Exception) -> Unit = {},
+            consumerName: String) {
         eventSubscriber.addSubscriber(
-                consumerName = "ProjectionManager",
+                consumerName = consumerName,
                 onEvent = { wrapper ->
-                    projections.forEach {
-                        it.accept(EventWrapper(
-                                event = wrapper.event,
-                                eventNumber = wrapper.eventNumber))
+                    projectionRepository.transactionally {
+                        projections.forEach {
+                            it.accept(EventWrapper(
+                                    event = wrapper.event,
+                                    eventNumber = wrapper.eventNumber))
+                        }
+                                .also { projectionRepository.updateHwm(wrapper.eventNumber, consumerName) }
                     }
-                            .also { projectionRepository.updateHwm(wrapper.eventNumber) }
                 },
-                fromEvent = projectionRepository.currentHwm(),
+                fromEvent = projectionRepository.currentHwm(consumerName),
                 onClose = { onClose.invoke(it) },
                 onLive = { projections.forEach { it.onLive() } }
         )

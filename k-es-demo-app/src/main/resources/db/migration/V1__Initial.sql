@@ -38,7 +38,9 @@ INSERT INTO hwm VALUES (0);
 
 CREATE TABLE projectionhwm
 (
-    projectionHwm INTEGER NOT NULL
+    id int identity primary key,
+    projectionHwm INTEGER NOT NULL,
+    consumerName nvarchar(512) NOT NULL
 );
 
-INSERT INTO projectionhwm VALUES (0);
+CREATE UNIQUE INDEX IX_jobb_aggregate on projectionhwm (consumerName);

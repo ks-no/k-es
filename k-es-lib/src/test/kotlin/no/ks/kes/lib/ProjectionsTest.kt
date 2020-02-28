@@ -28,11 +28,11 @@ internal class ProjectionsTest : StringSpec() {
             }
 
             val slot = slot<(EventWrapper<*>) -> Unit>()
-
+            val consumerName = "ProjectionManager"
             Projections.initialize(
                     eventSubscriber = mockk<EventSubscriber>()
                             .apply { every { addSubscriber(
-                                    consumerName = "ProjectionManager",
+                                    consumerName = consumerName,
                                     fromEvent = 0L,
                                     onEvent = capture(slot),
                                     onClose = any(),
@@ -40,12 +40,17 @@ internal class ProjectionsTest : StringSpec() {
                             ) } returns Unit},
                     projections = setOf(startDates),
                     projectionRepository = object: ProjectionRepository {
-                        override fun updateHwm(currentEvent: Long) {
+                        override fun updateHwm(currentEvent: Long, consumerName: String) {
                         }
 
-                        override fun currentHwm(): Long = 0
+                        override fun currentHwm(consumerName: String): Long = 0
+
+                        override fun transactionally(runnable: () -> Unit) {
+                            runnable.invoke()
+                        }
                     },
-                    onClose = {}
+                    onClose = {},
+                    consumerName = consumerName
             )
 
             val hiredEvent = Hired(

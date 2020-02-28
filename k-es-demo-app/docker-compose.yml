@@ -1,16 +1,18 @@
-mssql:
-  image: docker-all.artifactory.fiks.ks.no/fiks-mssql
-  environment:
-    - ACCEPT_EULA=Y
-    - SA_PASSWORD=Test1234!
-    - DB_NAME=kesdemo
-  ports:
-    - 1433:1433
+version: '3'
+services:
+  mssql:
+    image: docker-all.artifactory.fiks.ks.no/fiks-mssql
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Test1234!
+      - DB_NAME=kesdemo
+    ports:
+      - 1433:1433
 
-eventstore:
-  image: eventstore/eventstore
-  environment:
-    - EVENTSTORE_RUN_PROJECTIONS=All
-    - EVENTSTORE_START_STANDARD_PROJECTIONS=True
-  ports:
-    - 1113:1113
+  eventstore:
+    image: eventstore/eventstore
+    environment:
+      - EVENTSTORE_RUN_PROJECTIONS=All
+      - EVENTSTORE_START_STANDARD_PROJECTIONS=True
+    ports:
+      - 1113:1113

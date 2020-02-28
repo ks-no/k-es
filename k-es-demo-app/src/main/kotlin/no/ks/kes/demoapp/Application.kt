@@ -36,7 +36,7 @@ class Application {
     fun datasource(): DataSource =
             DataSourceBuilder.create().apply {
                 driverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver")
-                url("jdbc:sqlserver://localhost:1433;databaseName=kesdemo")
+                url("jdbc:sqlserver://mssql:1433;databaseName=kesdemo")
                 username("SA")
                 password("Test1234!")
             }.build()
@@ -66,7 +66,7 @@ class Application {
 
     @Bean
     fun eventStore(): EventStore = EventStoreBuilder.newBuilder()
-            .singleNodeAddress("localhost", 1113)
+            .singleNodeAddress("eventstore", 1113)
             .userCredentials("admin", "changeit")
             .build()
 
@@ -102,7 +102,8 @@ class Application {
             Projections.initialize(
                     eventSubscriber = eventSubscriber,
                     projections = setOf(shipments),
-                    projectionRepository = SqlServerProjectionRepository(dataSource)
+                    projectionRepository = SqlServerProjectionRepository(dataSource),
+                    consumerName = "ProjectionManager"
             )
 
             Sagas.initialize(
