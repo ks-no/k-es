@@ -4,17 +4,26 @@ import mu.KotlinLogging
 import no.ks.kes.jdbc.ProjectionsHwmTable
 import no.ks.kes.lib.ProjectionRepository
 import org.springframework.dao.support.DataAccessUtils
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
+import org.springframework.transaction.support.TransactionOperations
 import org.springframework.transaction.support.TransactionTemplate
 import javax.sql.DataSource
 
 private val log = KotlinLogging.logger {}
 
-class SqlServerProjectionRepository(dataSource: DataSource) : ProjectionRepository {
+class SqlServerProjectionRepository : ProjectionRepository {
 
-    private val template = NamedParameterJdbcTemplate(dataSource)
-    private val transactionManager = DataSourceTransactionManager(dataSource)
+    private var jdbcTemplate: NamedParameterJdbcOperations
+    private var transactionTemplate: TransactionOperations
+
+    constructor(dataSource: DataSource) : this(NamedParameterJdbcTemplate(dataSource), TransactionTemplate(DataSourceTransactionManager(dataSource)))
+
+    constructor(namedParameterJdbcTemplate: NamedParameterJdbcOperations, transactionTemplate: TransactionOperations) {
+        this.jdbcTemplate = namedParameterJdbcTemplate
+        this.transactionTemplate = transactionTemplate
+    }
 
     override fun updateHwm(currentEvent: Long, consumerName: String) {
         if (hasHwm(consumerName)) {
@@ -25,23 +34,22 @@ class SqlServerProjectionRepository(dataSource: DataSource) : ProjectionReposito
 
     }
 
-
     override fun currentHwm(consumerName: String): Long {
-        return template.queryForList("""SELECT ${ProjectionsHwmTable.projectionHwm} FROM $ProjectionsHwmTable 
+        return jdbcTemplate.queryForList("""SELECT ${ProjectionsHwmTable.projectionHwm} FROM $ProjectionsHwmTable 
                                 |WHERE ${ProjectionsHwmTable.consumerName} = :${ProjectionsHwmTable.consumerName}""".trimMargin(),
                 mutableMapOf(ProjectionsHwmTable.consumerName to consumerName.trim().toUpperCase()), Long::class.java).let { DataAccessUtils.singleResult(it) }
                 ?: 0
     }
 
     private fun hasHwm(consumerName: String): Boolean {
-        return template.queryForObject("""SELECT COUNT(*) FROM $ProjectionsHwmTable 
+        return jdbcTemplate.queryForObject("""SELECT COUNT(*) FROM $ProjectionsHwmTable 
                                         |WHERE ${ProjectionsHwmTable.consumerName} = :${ProjectionsHwmTable.consumerName}""".trimMargin(),
                 mutableMapOf<String, Any>(ProjectionsHwmTable.consumerName to consumerName.toUpperCase()), Long::class.java)
                 ?.let { it > 0 } ?: false
     }
 
     override fun transactionally(runnable: () -> Unit) {
-        TransactionTemplate(transactionManager).execute {
+        transactionTemplate.execute {
             try {
                 runnable.invoke()
             } catch (e: Exception) {
@@ -52,14 +60,14 @@ class SqlServerProjectionRepository(dataSource: DataSource) : ProjectionReposito
     }
 
     private fun updateExistingHwm(currentEvent: Long, consumerName: String) {
-        template.update("""UPDATE $ProjectionsHwmTable set ${ProjectionsHwmTable.projectionHwm} = :${ProjectionsHwmTable.projectionHwm}
+        jdbcTemplate.update("""UPDATE $ProjectionsHwmTable set ${ProjectionsHwmTable.projectionHwm} = :${ProjectionsHwmTable.projectionHwm}
                 |WHERE ${ProjectionsHwmTable.consumerName}=:${ProjectionsHwmTable.consumerName}""".trimMargin(),
                 mutableMapOf(ProjectionsHwmTable.projectionHwm to currentEvent,
                         ProjectionsHwmTable.consumerName to consumerName.trim().toUpperCase()))
     }
 
     private fun insertNewHwm(currentEvent: Long, consumerName: String) {
-        template.update("""INSERT INTO $ProjectionsHwmTable(${ProjectionsHwmTable.projectionHwm}, ${ProjectionsHwmTable.consumerName}) 
+        jdbcTemplate.update("""INSERT INTO $ProjectionsHwmTable(${ProjectionsHwmTable.projectionHwm}, ${ProjectionsHwmTable.consumerName}) 
             |VALUES (:${ProjectionsHwmTable.projectionHwm}, :${ProjectionsHwmTable.consumerName})""".trimMargin(),
                 mutableMapOf(ProjectionsHwmTable.projectionHwm to currentEvent,
                         ProjectionsHwmTable.consumerName to consumerName.toUpperCase()))

@@ -89,7 +89,7 @@ class SqlServerSagaRepository(
                         SagaTable.correlationId to correlationId,
                         SagaTable.serializationId to serializationId
                 )
-        ) { r, i -> r.getString(SagaTable.data) }
+        ) { r, _ -> r.getString(SagaTable.data) }
                 .singleOrNull()
                 ?.let {
                     sagaStateSerdes.deserialize(it, sagaStateClass)
