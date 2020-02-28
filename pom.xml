@@ -49,6 +49,7 @@
         <kotlintest-runner-junit.version>3.4.2</kotlintest-runner-junit.version>
         <jacoco-maven-plugin.version>0.8.5</jacoco-maven-plugin.version>
         <junit.jupiter.version>5.5.2</junit.jupiter.version>
+        <java.version>11</java.version>
     </properties>
 
     <dependencyManagement>
@@ -192,7 +193,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <jvmTarget>1.8</jvmTarget>
+                    <jvmTarget>${java.version}</jvmTarget>
                 </configuration>
             </plugin>
             <plugin>
@@ -259,7 +260,7 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven-compiler-plugin.version}</version>
                     <configuration>
-                        <release>11</release>
+                        <release>${java.version}</release>
                     </configuration>
                 </plugin>
                 <plugin>
