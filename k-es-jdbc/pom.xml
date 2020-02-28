@@ -10,7 +10,7 @@
         <version>1.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>k-es-saga-jdbc</artifactId>
+    <artifactId>k-es-jdbc</artifactId>
 
     <dependencies>
         <!--internal-->

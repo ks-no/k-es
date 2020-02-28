@@ -20,7 +20,7 @@
         </dependency>
         <dependency>
             <groupId>no.ks</groupId>
-            <artifactId>k-es-saga-jdbc</artifactId>
+            <artifactId>k-es-jdbc</artifactId>
         </dependency>
         <dependency>
             <groupId>no.ks</groupId>

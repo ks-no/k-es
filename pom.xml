@@ -12,7 +12,7 @@
     <modules>
         <module>k-es-esjc</module>
         <module>k-es-lib</module>
-        <module>k-es-saga-jdbc</module>
+        <module>k-es-jdbc</module>
         <module>k-es-serdes-jackson</module>
     </modules>
 
@@ -65,7 +65,7 @@
             </dependency>
             <dependency>
                 <groupId>no.ks</groupId>
-                <artifactId>k-es-saga-jdbc</artifactId>
+                <artifactId>k-es-jdbc</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
