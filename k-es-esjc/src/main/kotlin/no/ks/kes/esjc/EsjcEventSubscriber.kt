@@ -19,20 +19,21 @@ class EsjcEventSubscriber(
                 CatchUpSubscriptionSettings.newBuilder().resolveLinkTos(true).build(),
                 object : CatchUpSubscriptionListener {
                     override fun onClose(subscription: CatchUpSubscription, reason: SubscriptionDropReason, exception: java.lang.Exception) {
-                        log.error("$consumerName: subscription closed: $reason", exception)
+                        log.info(exception) { "$consumerName: subscription closed: $reason" }
                         onClose.invoke(exception)
                     }
 
                     override fun onLiveProcessingStarted(subscription: CatchUpSubscription?) {
-                        log.error("$consumerName: subscription is live!")
+                        log.info { "$consumerName: subscription is live!" }
                         onLive.invoke()
                     }
 
-                    override fun onEvent(subscription: CatchUpSubscription, resolvedEvent: ResolvedEvent) {
+                    override fun onEvent(subscription: CatchUpSubscription?, resolvedEvent: ResolvedEvent?) {
+                        log.debug { "$consumerName: received event \"$resolvedEvent\"" }
                         when {
-                            !resolvedEvent.isResolved ->
+                            !resolvedEvent!!.isResolved ->
                                 log.info("$consumerName: event not resolved: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}")
-                            EsjcEventUtil.isIgnorableEvent(resolvedEvent) ->
+                            EsjcEventUtil.isIgnorableEvent(resolvedEvent!!) ->
                                 log.info("$consumerName: event ignored: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}")
                             else -> try {
                                 onEvent.invoke(EventWrapper(
