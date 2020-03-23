@@ -16,11 +16,11 @@ internal class EsjcEventSubscriberTest : StringSpec() {
 
             val eventStoreMock = mockk<EventStore>(relaxed = true)
 
-            EsjcEventSubscriber(
+            EsjcEventSubscriberFactory(
                     eventStore = eventStoreMock,
                     category = category,
                     serdes = mockk()
-            ).addSubscriber(consumerName = "aSubscriber", onEvent =  { run {} }, fromEvent = hwm)
+            ).createSubscriber(subscriber = "aSubscriber", onEvent =  { run {} }, fromEvent = hwm)
             verify(exactly = 1) { eventStoreMock.subscribeToStreamFrom("\$ce-$category", eq(hwm), any(), ofType<CatchUpSubscriptionListener>()) }
         }
     }

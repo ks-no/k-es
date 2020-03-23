@@ -3,11 +3,14 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <properties>
+        <spring-boot-version>2.2.5.RELEASE</spring-boot-version>
+    </properties>
 
     <parent>
         <groupId>no.ks</groupId>
         <artifactId>k-es</artifactId>
-        <version>1.0.1-SNAPSHOT</version>
+        <version>1.0.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>k-es-demo-app</artifactId>
@@ -44,7 +47,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
-            <version>2.2.2.RELEASE</version>
+            <version>${spring-boot-version}</version>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
@@ -80,7 +83,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <version>2.2.2.RELEASE</version>
+            <version>${spring-boot-version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -98,7 +101,6 @@
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <configuration>
                     <compilerPlugins>
-                        <plugin>jpa</plugin>
                         <plugin>spring</plugin>
                     </compilerPlugins>
                     <args>

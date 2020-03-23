@@ -1,5 +1,5 @@
 package no.ks.kes.lib
 
-interface TransactionAwareRepository {
+interface TransactionalRepository {
     fun transactionally(runnable: () -> Unit)
 }

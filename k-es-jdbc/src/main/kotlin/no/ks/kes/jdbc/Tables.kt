@@ -34,8 +34,8 @@ object CmdTable {
 
 object HwmTable {
     override fun toString(): String = "hwm"
-
-    const val sagaHwm = "sagaHwm"
+    const val subscriber = "subscriber"
+    const val hwm = "hwm"
 }
 
 object ProjectionsHwmTable {

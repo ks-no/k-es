@@ -2,13 +2,10 @@ package no.ks.kes.jdbc.saga
 
 import mu.KotlinLogging
 import no.ks.kes.jdbc.CmdTable
-import no.ks.kes.jdbc.HwmTable
 import no.ks.kes.jdbc.SagaTable
 import no.ks.kes.jdbc.TimeoutTable
-import no.ks.kes.lib.AnnotationUtil
-import no.ks.kes.lib.CmdSerdes
-import no.ks.kes.lib.SagaRepository
-import no.ks.kes.lib.SagaStateSerdes
+import no.ks.kes.jdbc.hwm.SqlServerHwmTrackerRepository
+import no.ks.kes.lib.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
@@ -28,12 +25,7 @@ class SqlServerSagaRepository(
     private val template = NamedParameterJdbcTemplate(dataSource)
     private val transactionManager = DataSourceTransactionManager(dataSource)
 
-    override fun currentHwm(): Long =
-            template.queryForObject(
-                    "SELECT ${HwmTable.sagaHwm} FROM $HwmTable",
-                    mutableMapOf<String, Any>(),
-                    Long::class.java
-            ) ?: error("No hwm found in ${SagaTable}_HWM")
+    override val hwmTracker = SqlServerHwmTrackerRepository(template)
 
     override fun transactionally(runnable: () -> Unit) {
         TransactionTemplate(transactionManager).execute {
@@ -96,7 +88,7 @@ class SqlServerSagaRepository(
                 }
     }
 
-    override fun update(hwm: Long, states: Set<SagaRepository.SagaUpsert>) {
+    override fun update(states: Set<SagaRepository.SagaUpsert>) {
         log.info { "updating sagas: $states" }
 
         template.batchUpdate(
@@ -153,35 +145,5 @@ class SqlServerSagaRepository(
                             CmdTable.data to cmdSerdes.serialize(it))
                 }
                         .toTypedArray())
-
-        template.update("UPDATE $HwmTable SET ${HwmTable.sagaHwm} = :${HwmTable.sagaHwm}",
-                mutableMapOf(HwmTable.sagaHwm to hwm))
     }
-
-    override fun update(upsert: SagaRepository.SagaUpsert.SagaUpdate) {
-        upsert.newState?.apply {
-            template.update(
-                    "UPDATE $SagaTable SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
-                    mutableMapOf(
-                            SagaTable.correlationId to upsert.correlationId,
-                            SagaTable.serializationId to upsert.serializationId,
-                            SagaTable.data to sagaStateSerdes.serialize(this)))
-        }
-
-        if (upsert.commands.isNotEmpty())
-            template.batchUpdate(
-                    """ 
-                        INSERT INTO $CmdTable (${CmdTable.serializationId}, ${CmdTable.aggregateId}, ${CmdTable.retries}, ${CmdTable.nextExecution}, ${CmdTable.error}, ${CmdTable.data}) 
-                        VALUES (:${CmdTable.serializationId}, :${CmdTable.aggregateId}, 0, :${CmdTable.nextExecution}, 0, :${CmdTable.data})                        
-                        """,
-                    upsert.commands.map {
-                        mutableMapOf(
-                                CmdTable.serializationId to AnnotationUtil.getSerializationId(it::class),
-                                CmdTable.aggregateId to it.aggregateId,
-                                CmdTable.nextExecution to OffsetDateTime.now(ZoneOffset.UTC),
-                                CmdTable.data to cmdSerdes.serialize(it))
-                    }
-                            .toTypedArray())
-    }
-
 }

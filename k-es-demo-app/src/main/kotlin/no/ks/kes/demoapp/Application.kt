@@ -3,7 +3,7 @@ package no.ks.kes.demoapp
 import com.github.msemys.esjc.EventStore
 import com.github.msemys.esjc.EventStoreBuilder
 import no.ks.kes.esjc.EsjcAggregateRepository
-import no.ks.kes.esjc.EsjcEventSubscriber
+import no.ks.kes.esjc.EsjcEventSubscriberFactory
 import no.ks.kes.esjc.EsjcEventUtil
 import no.ks.kes.jdbc.projection.SqlServerProjectionRepository
 import no.ks.kes.jdbc.saga.SqlServerCommandQueue
@@ -36,10 +36,16 @@ class Application {
     fun datasource(): DataSource =
             DataSourceBuilder.create().apply {
                 driverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver")
-                url("jdbc:sqlserver://mssql:1433;databaseName=kesdemo")
+                url("jdbc:sqlserver://localhost:1433;databaseName=kesdemo")
                 username("SA")
                 password("Test1234!")
             }.build()
+
+    @Bean
+    fun eventStore(): EventStore = EventStoreBuilder.newBuilder()
+            .singleNodeAddress("localhost", 1113)
+            .userCredentials("admin", "changeit")
+            .build()
 
     @Bean
     fun eventSerdes(): EventSerdes<String> = JacksonEventSerdes(setOf(
@@ -55,38 +61,31 @@ class Application {
     fun shippedBaskets(): Shipments = Shipments()
 
     @Bean
+    @DependsOn("flyway", "flywayInitializer")
+    fun aggregateRepo(eventStore: EventStore, eventSerdes: EventSerdes<String>): AggregateRepository =
+            EsjcAggregateRepository(eventStore, eventSerdes, EsjcEventUtil.defaultStreamName("no.ks.kes.demoapp"))
+
+    @Bean
     fun basketCmd(aggregateRepository: AggregateRepository): BasketCmds =
             BasketCmds(aggregateRepository, object : PaymentProcessor {
                 override fun process(orderId: UUID) {}
             })
 
     @Bean
+    fun warehouseManager(): WarehouseManager = MyWarehouseManager()
+
+    @Bean
     fun shipmentCmd(aggregateRepository: AggregateRepository, warehouseManager: WarehouseManager): ShipmentCmds =
             ShipmentCmds(aggregateRepository, warehouseManager)
 
     @Bean
-    fun eventStore(): EventStore = EventStoreBuilder.newBuilder()
-            .singleNodeAddress("eventstore", 1113)
-            .userCredentials("admin", "changeit")
-            .build()
-
-    @Bean
-    fun subscriber(eventStore: EventStore, eventSerdes: EventSerdes<String>): EventSubscriber =
-            EsjcEventSubscriber(eventStore, eventSerdes, "no.ks.kes.demoapp")
-
-    @Bean
-    @DependsOn("flyway", "flywayInitializer")
-    fun aggregateRepo(eventStore: EventStore, eventSerdes: EventSerdes<String>): AggregateRepository =
-            EsjcAggregateRepository(eventStore, eventSerdes, EsjcEventUtil.defaultStreamName("no.ks.kes.demoapp"))
-
-    @Bean
-    fun warehouseManager(): WarehouseManager = MyWarehouseManager()
-
+    fun subscriber(eventStore: EventStore, eventSerdes: EventSerdes<String>): EventSubscriberFactory =
+            EsjcEventSubscriberFactory(eventStore, eventSerdes, "no.ks.kes.demoapp")
 
     @Component
     class MyInitializer(
             val shipments: Shipments,
-            val eventSubscriber: EventSubscriber,
+            val eventSubscriberFactory: EventSubscriberFactory,
             val dataSource: DataSource,
             val basketCmds: BasketCmds,
             val shipmentCmds: ShipmentCmds
@@ -100,14 +99,14 @@ class Application {
                     ShipmentCmds.SendMissingShipmentAlert::class))
 
             Projections.initialize(
-                    eventSubscriber = eventSubscriber,
+                    eventSubscriberFactory = eventSubscriberFactory,
                     projections = setOf(shipments),
                     projectionRepository = SqlServerProjectionRepository(dataSource),
-                    consumerName = "ProjectionManager"
+                    subscriber = "ProjectionManager"
             )
 
             Sagas.initialize(
-                    eventSubscriber = eventSubscriber,
+                    eventSubscriberFactory = eventSubscriberFactory,
                     sagaRepository = SqlServerSagaRepository(
                             dataSource = dataSource,
                             sagaStateSerdes = JacksonSagaStateSerdes(),

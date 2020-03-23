@@ -31,16 +31,7 @@ CREATE TABLE timeout
 
 CREATE TABLE hwm
 (
-    sagaHwm INTEGER NOT NULL
+    subscriber nvarchar(512) primary key,
+    hwm INTEGER NOT NULL
 )
 
-INSERT INTO hwm VALUES (0);
-
-CREATE TABLE projectionhwm
-(
-    id int identity primary key,
-    projectionHwm INTEGER NOT NULL,
-    consumerName nvarchar(512) NOT NULL
-);
-
-CREATE UNIQUE INDEX IX_jobb_aggregate on projectionhwm (consumerName);

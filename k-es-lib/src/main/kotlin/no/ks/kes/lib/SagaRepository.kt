@@ -4,13 +4,11 @@ import java.util.*
 import kotlin.reflect.KClass
 
 
-interface SagaRepository: TransactionAwareRepository {
+interface SagaRepository: TransactionalRepository, HighWaterMarkedRepository {
     fun <T : Any> getSagaState(correlationId: UUID, serializationId: String, sagaStateClass: KClass<T>): T?
-    fun update(hwm: Long, states: Set<SagaUpsert>)
-    fun update(upsert: SagaUpsert.SagaUpdate)
+    fun update(states: Set<SagaUpsert>)
     fun getReadyTimeouts(): Timeout?
     fun deleteTimeout(sagaSerializationId: String, sagaCorrelationId: UUID, timeoutId: String)
-    fun currentHwm(): Long
 
     data class Timeout(val sagaCorrelationId: UUID, val sagaSerializationId: String, val timeoutId: String)
     sealed class SagaUpsert {

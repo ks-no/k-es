@@ -6,6 +6,7 @@ import kotlin.concurrent.schedule
 import kotlin.reflect.KClass
 
 private val log = KotlinLogging.logger {}
+private const val SAGA_SUBSCRIBER = "SagaManager"
 
 class Sagas internal constructor(sagas: Set<Saga<*>>, stateRetriever: (SagaId, KClass<Any>) -> Any?) {
 
@@ -96,7 +97,7 @@ class Sagas internal constructor(sagas: Set<Saga<*>>, stateRetriever: (SagaId, K
     data class SagaId(val serializationId: String, val correlationId: UUID)
 
     companion object {
-        fun initialize(eventSubscriber: EventSubscriber, sagaRepository: SagaRepository, sagas: Set<Saga<*>>, commandQueue: CommandQueue, pollInterval: Long = 5000) {
+        fun initialize(eventSubscriberFactory: EventSubscriberFactory, sagaRepository: SagaRepository, sagas: Set<Saga<*>>, commandQueue: CommandQueue, pollInterval: Long = 5000) {
             val sagaManager = Sagas(sagas) { id, stateClass ->
                 sagaRepository.getSagaState(
                         correlationId = id.correlationId,
@@ -104,16 +105,17 @@ class Sagas internal constructor(sagas: Set<Saga<*>>, stateRetriever: (SagaId, K
                         sagaStateClass = stateClass
                 )
             }
-            eventSubscriber.addSubscriber(
-                    consumerName = "SagaManager",
-                    fromEvent = sagaRepository.currentHwm(),
+
+            eventSubscriberFactory.createSubscriber(
+                    subscriber = SAGA_SUBSCRIBER,
+                    fromEvent = sagaRepository.hwmTracker.getOrInit(SAGA_SUBSCRIBER),
                     onEvent = { event ->
                         sagaRepository.transactionally {
                             try {
                                 sagaRepository.update(
-                                        hwm = event.eventNumber,
                                         states = sagaManager.onEvent(event)
                                 )
+                                sagaRepository.hwmTracker.update(SAGA_SUBSCRIBER, event.eventNumber)
                             } catch (e: Exception) {
                                 log.error("An error was encountered while handling incoming event ${event.event::class.simpleName} with sequence number ${event.eventNumber}", e)
                                 throw e
@@ -130,7 +132,7 @@ class Sagas internal constructor(sagas: Set<Saga<*>>, stateRetriever: (SagaId, K
                             }
                             ?.apply {
                                 sagaManager.onTimeout(sagaSerializationId, sagaCorrelationId, timeoutId)
-                                        .apply { sagaRepository.update(this) }
+                                        .apply { sagaRepository.update(setOf(this)) }
                                 sagaRepository.deleteTimeout(sagaSerializationId, sagaCorrelationId, timeoutId)
                             } ?: log.debug { "polled for timeouts, found none" }
                 }
