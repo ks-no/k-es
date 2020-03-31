@@ -10,10 +10,13 @@ import javax.sql.DataSource
 
 private val log = KotlinLogging.logger {}
 
-class SqlServerProjectionRepository(dataSource: DataSource) : ProjectionRepository {
+class SqlServerProjectionRepository(dataSource: DataSource, schema: String? = null) : ProjectionRepository {
 
     private val transactionManager =  TransactionTemplate(DataSourceTransactionManager(dataSource))
-    override val hwmTracker = SqlServerHwmTrackerRepository(NamedParameterJdbcTemplate(dataSource))
+    override val hwmTracker = SqlServerHwmTrackerRepository(
+            template = NamedParameterJdbcTemplate(dataSource),
+            schema = schema
+    )
 
     override fun transactionally(runnable: () -> Unit) {
         transactionManager.execute {
