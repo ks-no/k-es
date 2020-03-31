@@ -7,12 +7,12 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 
 private val log = KotlinLogging.logger {}
 
-class SqlServerHwmTrackerRepository(private val template: NamedParameterJdbcTemplate) : HwmTrackerRepository {
+class SqlServerHwmTrackerRepository(private val template: NamedParameterJdbcTemplate, private val schema: String? = null) : HwmTrackerRepository {
 
     override fun getOrInit(subscriber: String): Long =
             template.queryForList(
                     """
-                        SELECT ${HwmTable.hwm} FROM $HwmTable 
+                        SELECT ${HwmTable.hwm} FROM ${HwmTable.qualifiedName(schema)} 
                         WHERE ${HwmTable.subscriber} = :${HwmTable.subscriber}  
                         """,
                     mapOf(HwmTable.subscriber to subscriber),
@@ -23,7 +23,7 @@ class SqlServerHwmTrackerRepository(private val template: NamedParameterJdbcTemp
     override fun update(subscriber: String, hwm: Long) {
         template.update(
                         """
-                    UPDATE $HwmTable SET ${HwmTable.hwm} = :${HwmTable.hwm}
+                    UPDATE ${HwmTable.qualifiedName(schema)}  SET ${HwmTable.hwm} = :${HwmTable.hwm}
                     WHERE ${HwmTable.subscriber} = :${HwmTable.subscriber}
                  """,
                         mapOf(
@@ -36,7 +36,7 @@ class SqlServerHwmTrackerRepository(private val template: NamedParameterJdbcTemp
     private fun initHwm(subscriber: String): Long {
         template.update(
                         """ 
-                    INSERT INTO $HwmTable (${HwmTable.subscriber}, ${HwmTable.hwm})
+                    INSERT INTO ${HwmTable.qualifiedName(schema)}  (${HwmTable.subscriber}, ${HwmTable.hwm})
                     VALUES (:${HwmTable.subscriber}, 0) 
                 """,
                         mapOf(HwmTable.subscriber to subscriber))

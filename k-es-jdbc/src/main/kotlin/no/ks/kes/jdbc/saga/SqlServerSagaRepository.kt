@@ -20,7 +20,8 @@ private val log = KotlinLogging.logger {}
 class SqlServerSagaRepository(
         dataSource: DataSource,
         private val sagaStateSerdes: SagaStateSerdes<String>,
-        private val cmdSerdes: CmdSerdes<String>
+        private val cmdSerdes: CmdSerdes<String>,
+        private val schema: String? = null
 ) : SagaRepository {
     private val template = NamedParameterJdbcTemplate(dataSource)
     private val transactionManager = DataSourceTransactionManager(dataSource)
@@ -41,7 +42,7 @@ class SqlServerSagaRepository(
     override fun getReadyTimeouts(): SagaRepository.Timeout? {
         return template.query("""
             SELECT TOP 1 ${TimeoutTable.sagaSerializationId}, ${TimeoutTable.sagaCorrelationId}, ${TimeoutTable.timeoutId}             
-            FROM $TimeoutTable 
+            FROM ${TimeoutTable.qualifiedName(schema)} 
             WITH (XLOCK)
             WHERE ${TimeoutTable.error} = 0
             AND ${TimeoutTable.timeout}  < CURRENT_TIMESTAMP 
@@ -56,7 +57,7 @@ class SqlServerSagaRepository(
 
     override fun deleteTimeout(sagaSerializationId: String, sagaCorrelationId: UUID, timeoutId: String) {
         template.update(
-                """DELETE FROM $TimeoutTable 
+                """DELETE FROM ${TimeoutTable.qualifiedName(schema)}  
                    WHERE ${TimeoutTable.sagaCorrelationId} = :${TimeoutTable.sagaCorrelationId}
                    AND ${TimeoutTable.sagaSerializationId} = :${TimeoutTable.sagaSerializationId}
                    AND ${TimeoutTable.timeoutId} = :${TimeoutTable.timeoutId}
@@ -73,7 +74,7 @@ class SqlServerSagaRepository(
         return template.query(
                 """
                     SELECT ${SagaTable.data}                                                            
-                    FROM $SagaTable
+                    FROM ${SagaTable.qualifiedName(schema)}
                     WITH (XLOCK)
                     WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} 
                     AND ${SagaTable.serializationId} = :${SagaTable.serializationId}""",
@@ -92,7 +93,7 @@ class SqlServerSagaRepository(
         log.info { "updating sagas: $states" }
 
         template.batchUpdate(
-                "INSERT INTO $SagaTable (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, :${SagaTable.serializationId}, :${SagaTable.data})",
+                "INSERT INTO ${SagaTable.qualifiedName(schema)} (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, :${SagaTable.serializationId}, :${SagaTable.data})",
                 states.filterIsInstance<SagaRepository.SagaUpsert.SagaInsert>()
                         .map {
                             mutableMapOf(
@@ -104,7 +105,7 @@ class SqlServerSagaRepository(
         )
 
         template.batchUpdate(
-                "INSERT INTO $TimeoutTable (${TimeoutTable.sagaCorrelationId}, ${TimeoutTable.sagaSerializationId}, ${TimeoutTable.timeoutId}, ${TimeoutTable.timeout}, ${TimeoutTable.error}) VALUES (:${TimeoutTable.sagaCorrelationId}, :${TimeoutTable.sagaSerializationId}, :${TimeoutTable.timeoutId}, :${TimeoutTable.timeout}, 0)",
+                "INSERT INTO ${TimeoutTable.qualifiedName(schema)} (${TimeoutTable.sagaCorrelationId}, ${TimeoutTable.sagaSerializationId}, ${TimeoutTable.timeoutId}, ${TimeoutTable.timeout}, ${TimeoutTable.error}) VALUES (:${TimeoutTable.sagaCorrelationId}, :${TimeoutTable.sagaSerializationId}, :${TimeoutTable.timeoutId}, :${TimeoutTable.timeout}, 0)",
                 states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
                         .flatMap { saga ->
                             saga.timeouts.map {
@@ -120,7 +121,7 @@ class SqlServerSagaRepository(
         )
 
         template.batchUpdate(
-                "UPDATE $SagaTable SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
+                "UPDATE ${SagaTable.qualifiedName(schema)} SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
                 states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
                         .filter { it.newState != null }
                         .map {
@@ -134,7 +135,7 @@ class SqlServerSagaRepository(
 
         template.batchUpdate(
                 """ 
-                        INSERT INTO $CmdTable (${CmdTable.serializationId}, ${CmdTable.aggregateId}, ${CmdTable.retries}, ${CmdTable.nextExecution}, ${CmdTable.error}, ${CmdTable.data}) 
+                        INSERT INTO ${CmdTable.qualifiedName(schema)} (${CmdTable.serializationId}, ${CmdTable.aggregateId}, ${CmdTable.retries}, ${CmdTable.nextExecution}, ${CmdTable.error}, ${CmdTable.data}) 
                         VALUES (:${CmdTable.serializationId}, :${CmdTable.aggregateId}, 0, :${CmdTable.nextExecution}, 0, :${CmdTable.data})                        
                         """,
                 states.flatMap { it.commands }.map {

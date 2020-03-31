@@ -1,47 +1,42 @@
 package no.ks.kes.jdbc
 
-object SagaTable {
-    override fun toString(): String = "saga"
-
-    val correlationId = "correlationId"
-    val serializationId = "serializationId"
-    val data = "data"
+object SagaTable : Table(){
+    override val tableName = "saga"
+    const val correlationId = "correlationId"
+    const val serializationId = "serializationId"
+    const val data = "data"
 }
 
-object TimeoutTable {
-    override fun toString(): String = "timeout"
-
-    val sagaCorrelationId = "sagaCorrelationId"
-    val sagaSerializationId = "sagaSerializationId"
-    val timeoutId = "timeoutId"
-    val timeout = "timeout"
-    val error = "error"
-    val errorId = "errorId"
+object TimeoutTable : Table(){
+    override val tableName = "timeout"
+    const val sagaCorrelationId = "sagaCorrelationId"
+    const val sagaSerializationId = "sagaSerializationId"
+    const val timeoutId = "timeoutId"
+    const val timeout = "timeout"
+    const val error = "error"
+    const val errorId = "errorId"
 }
 
-object CmdTable {
-    override fun toString(): String = "cmd"
-
-    val id = "id"
-    val aggregateId = "aggregateId"
-    val nextExecution = "nextExecution"
-    val retries = "retries"
-    val serializationId = "serializationId"
-    val error = "error"
-    val errorId = "errorId"
-    val data = "data"
+object CmdTable : Table(){
+    override val tableName = "cmd"
+    const val id = "id"
+    const val aggregateId = "aggregateId"
+    const val nextExecution = "nextExecution"
+    const val retries = "retries"
+    const val serializationId = "serializationId"
+    const val error = "error"
+    const val errorId = "errorId"
+    const val data = "data"
 }
 
-object HwmTable {
-    override fun toString(): String = "hwm"
+object HwmTable : Table(){
+    override val tableName = "hwm"
     const val subscriber = "subscriber"
     const val hwm = "hwm"
 }
 
-object ProjectionsHwmTable {
-    override fun toString(): String = "projectionhwm"
-
-    const val projectionHwm = "projectionHwm"
-
-    const val consumerName = "consumerName"
+abstract class Table{
+    protected abstract val tableName: String
+    fun qualifiedName(schema: String?): String =
+            if (schema != null) "$schema.$tableName" else tableName
 }

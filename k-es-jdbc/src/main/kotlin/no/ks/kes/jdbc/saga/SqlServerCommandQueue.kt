@@ -11,13 +11,13 @@ import java.time.ZoneOffset
 import java.util.*
 import javax.sql.DataSource
 
-class SqlServerCommandQueue(dataSource: DataSource, private val cmdSerdes: CmdSerdes<String>, cmdHandlers: Set<CmdHandler<*>>) : CommandQueue(cmdHandlers) {
+class SqlServerCommandQueue(dataSource: DataSource, private val cmdSerdes: CmdSerdes<String>, cmdHandlers: Set<CmdHandler<*>>, private val schema: String? = null) : CommandQueue(cmdHandlers) {
     private val template = NamedParameterJdbcTemplate(dataSource)
     private val transactionManager = DataSourceTransactionManager(dataSource)
 
     override fun delete(cmdId: Long) {
         template.update(
-                "DELETE FROM $CmdTable WHERE ${CmdTable.id} = :${CmdTable.id}",
+                "DELETE FROM ${CmdTable.qualifiedName(schema)} WHERE ${CmdTable.id} = :${CmdTable.id}",
                 mutableMapOf(
                         CmdTable.id to cmdId
                 )
@@ -26,7 +26,7 @@ class SqlServerCommandQueue(dataSource: DataSource, private val cmdSerdes: CmdSe
 
     override fun incrementAndSetError(cmdId: Long, errorId: UUID) {
         template.update(
-                "UPDATE $CmdTable SET ${CmdTable.error} = 1, ${CmdTable.errorId} = :${CmdTable.errorId}, ${CmdTable.retries} = ${CmdTable.retries} + 1 WHERE ${CmdTable.id} = :${CmdTable.id}",
+                "UPDATE ${CmdTable.qualifiedName(schema)} SET ${CmdTable.error} = 1, ${CmdTable.errorId} = :${CmdTable.errorId}, ${CmdTable.retries} = ${CmdTable.retries} + 1 WHERE ${CmdTable.id} = :${CmdTable.id}",
                 mutableMapOf(
                         CmdTable.id to cmdId,
                         CmdTable.errorId to errorId
@@ -36,7 +36,7 @@ class SqlServerCommandQueue(dataSource: DataSource, private val cmdSerdes: CmdSe
 
     override fun incrementAndSetNextExecution(cmdId: Long, nextExecution: Instant) {
         template.update(
-                "UPDATE $CmdTable SET ${CmdTable.nextExecution} = :${CmdTable.nextExecution}, ${CmdTable.retries} = ${CmdTable.retries} + 1 WHERE ${CmdTable.id} = :${CmdTable.id}",
+                "UPDATE ${CmdTable.qualifiedName(schema)} SET ${CmdTable.nextExecution} = :${CmdTable.nextExecution}, ${CmdTable.retries} = ${CmdTable.retries} + 1 WHERE ${CmdTable.id} = :${CmdTable.id}",
                 mutableMapOf(
                         CmdTable.id to cmdId,
                         CmdTable.nextExecution to OffsetDateTime.ofInstant(nextExecution, ZoneOffset.UTC)
@@ -50,7 +50,7 @@ class SqlServerCommandQueue(dataSource: DataSource, private val cmdSerdes: CmdSe
                     (
                         SELECT *,
                         ROW_NUMBER() OVER (PARTITION BY ${CmdTable.aggregateId} ORDER BY ${CmdTable.id}) AS rn
-                        FROM cmd
+                        FROM ${CmdTable.qualifiedName(schema)}
                     )
                     SELECT TOP 1 id, serializationId, aggregateId, retries, data
                     FROM cte
