@@ -3,13 +3,19 @@ package no.ks.kes.lib
 import io.kotlintest.matchers.string.shouldContain
 import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
-import no.ks.kes.lib.testdomain.ConfidentialityAgreementRejected
-import no.ks.kes.lib.testdomain.Employee
-import no.ks.kes.lib.testdomain.Hired
 import java.time.Instant
 import java.util.*
 
 class SagaTest : StringSpec() {
+    data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
+
+    @SerializationId("some-id")
+    data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+
+    @SerializationId("some-other-id")
+    data class SomeOtherEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+
+
     init {
         "test that creating a saga without an initializer throws exception" {
             data class SomeState(val id: UUID)
@@ -25,8 +31,8 @@ class SagaTest : StringSpec() {
 
             val saga = object : Saga<SomeState>(SomeState::class) {
                 init {
-                    initOn<Hired>({it.aggregateId}) {SomeState(it.aggregateId)}
-                    initOn<ConfidentialityAgreementRejected>({it.aggregateId}) {SomeState(it.aggregateId)}
+                    initOn<SomeEvent>({it.aggregateId}) {SomeState(it.aggregateId)}
+                    initOn<SomeOtherEvent>({it.aggregateId}) {SomeState(it.aggregateId)}
                 }
             }
             shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
@@ -39,7 +45,7 @@ class SagaTest : StringSpec() {
             data class SomeState(val id: UUID)
 
             @Deprecated(message = "dont use this event")
-            data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant): Event<Employee>
+            data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant): Event<SomeAggregate>
 
             val saga = object : Saga<SomeState>(SomeState::class) {
                 init {
@@ -55,13 +61,13 @@ class SagaTest : StringSpec() {
             data class SomeState(val id: UUID)
 
             @Deprecated(message = "dont use this event")
-            @SerializationId("SomeEvent")
-            data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant): Event<Employee>
+            @SerializationId("some-deprecated-event")
+            data class SomeDeprecatedEvent(override val aggregateId: UUID, override val timestamp: Instant): Event<SomeAggregate>
 
             val saga = object : Saga<SomeState>(SomeState::class) {
                 init {
-                    initOn<Hired> {setState(SomeState(it.aggregateId))}
-                    on<SomeEvent> {setState(SomeState(it.aggregateId))}
+                    initOn<SomeEvent> {setState(SomeState(it.aggregateId))}
+                    on<SomeDeprecatedEvent> {setState(SomeState(it.aggregateId))}
                 }
             }
             shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
@@ -73,13 +79,13 @@ class SagaTest : StringSpec() {
             data class SomeState(val id: UUID)
 
             @Deprecated(message = "dont use this event")
-            @SerializationId("SomeEvent")
-            data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant): Event<Employee>
+            @SerializationId("some-deprecated-event")
+            data class SomeDeprecatedEvent(override val aggregateId: UUID, override val timestamp: Instant): Event<SomeAggregate>
 
             val saga = object : Saga<SomeState>(SomeState::class) {
                 init {
-                    initOn<Hired> {setState(SomeState(it.aggregateId))}
-                    createTimeoutOn<SomeEvent>({it.aggregateId}, {e -> Instant.now()}) {setState(SomeState(UUID.randomUUID()))}
+                    initOn<SomeEvent> {setState(SomeState(it.aggregateId))}
+                    createTimeoutOn<SomeDeprecatedEvent>({it.aggregateId}, { e -> Instant.now()}) {setState(SomeState(UUID.randomUUID()))}
                 }
             }
             shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
@@ -90,14 +96,11 @@ class SagaTest : StringSpec() {
         "test that a saga which constructs multiple timeouts on the same event throws exception" {
             data class SomeState(val id: UUID)
 
-            @SerializationId("SomeEvent")
-            data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant): Event<Employee>
-
             val saga = object : Saga<SomeState>(SomeState::class) {
                 init {
-                    initOn<Hired> {setState(SomeState(it.aggregateId))}
-                    createTimeoutOn<SomeEvent>({it.aggregateId}, {e -> Instant.now()}) {setState(SomeState(UUID.randomUUID()))}
-                    createTimeoutOn<SomeEvent>({it.aggregateId}, {e -> Instant.now()}) {setState(SomeState(UUID.randomUUID()))}
+                    initOn<SomeEvent> {setState(SomeState(it.aggregateId))}
+                    createTimeoutOn<SomeOtherEvent>({it.aggregateId}, {e -> Instant.now()}) {setState(SomeState(UUID.randomUUID()))}
+                    createTimeoutOn<SomeOtherEvent>({it.aggregateId}, {e -> Instant.now()}) {setState(SomeState(UUID.randomUUID()))}
                 }
             }
             shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
@@ -110,8 +113,8 @@ class SagaTest : StringSpec() {
 
             val saga = object : Saga<SomeState>(SomeState::class) {
                 init {
-                    initOn<Hired>({it.aggregateId}) {SomeState(it.aggregateId)}
-                    on<Hired>({it.aggregateId}) {state.copy()}
+                    initOn<SomeEvent>({it.aggregateId}) {SomeState(it.aggregateId)}
+                    on<SomeEvent>({it.aggregateId}) {state.copy()}
                 }
             }
             shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {
@@ -125,9 +128,9 @@ class SagaTest : StringSpec() {
 
             val saga = object : Saga<SomeState>(SomeState::class) {
                 init {
-                    initOn<Hired>({it.aggregateId}) {SomeState(it.aggregateId)}
-                    on<ConfidentialityAgreementRejected>({it.aggregateId}) {state.copy()}
-                    on<ConfidentialityAgreementRejected>({it.aggregateId}) {state.copy()}
+                    initOn<SomeEvent>({it.aggregateId}) {SomeState(it.aggregateId)}
+                    on<SomeOtherEvent>({it.aggregateId}) {state.copy()}
+                    on<SomeOtherEvent>({it.aggregateId}) {state.copy()}
                 }
             }
             shouldThrow<IllegalStateException> { saga.getConfiguration() }.apply {

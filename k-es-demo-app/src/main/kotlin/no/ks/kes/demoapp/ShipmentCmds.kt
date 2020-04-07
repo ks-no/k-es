@@ -8,17 +8,10 @@ import no.ks.kes.lib.SerializationId
 import java.time.Instant
 import java.util.*
 
-class ShipmentCmds(repo: AggregateRepository, warehouseManager: WarehouseManager) : CmdHandler<Shipment>(repo) {
-    override fun initAggregate(): Shipment = Shipment()
-
-    @SerializationId("ShipmentRequest")
-    data class Request(override val aggregateId: UUID, val items: Map<UUID, Int>, val basketId: UUID) : Cmd<Shipment>
-
-    @SerializationId("SendMissingShipmentAlert")
-    data class SendMissingShipmentAlert(override val aggregateId: UUID, val basketId: UUID) : Cmd<Shipment>
+class ShipmentCmds(repo: AggregateRepository, warehouseManager: WarehouseManager) : CmdHandler<ShipmentAggregate>(repo, Shipment) {
 
     init {
-        initOn<Request> {
+        init<Request> {
             try {
                 warehouseManager.shipOrder(it.aggregateId)
                 Succeed(Shipment.Prepared(it.aggregateId, Instant.now(), it.basketId, it.items))
@@ -29,11 +22,17 @@ class ShipmentCmds(repo: AggregateRepository, warehouseManager: WarehouseManager
             }
         }
 
-        on<SendMissingShipmentAlert> {
+        apply<SendMissingShipmentAlert> {
             warehouseManager.investigateMissingShipment(it.aggregateId)
             Succeed(Shipment.WarehouseNotifiedOfMissingShipment(it.aggregateId, Instant.now(), it.basketId))
         }
     }
+
+    @SerializationId("ShipmentRequest")
+    data class Request(override val aggregateId: UUID, val items: Map<UUID, Int>, val basketId: UUID) : Cmd<ShipmentAggregate>
+
+    @SerializationId("SendMissingShipmentAlert")
+    data class SendMissingShipmentAlert(override val aggregateId: UUID, val basketId: UUID) : Cmd<ShipmentAggregate>
 }
 
 class ItemNoLongerCarried : RuntimeException()

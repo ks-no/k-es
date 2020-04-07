@@ -6,24 +6,25 @@ import io.mockk.every
 import io.mockk.invoke
 import io.mockk.mockk
 import io.mockk.slot
-import no.ks.kes.lib.testdomain.Hired
 import java.time.Instant
-import java.time.LocalDate
 import java.util.*
 
 internal class ProjectionsTest : StringSpec() {
 
+    @SerializationId("some-id")
+    data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SagaTest.SomeAggregate>
+
     init {
         "test that a projection can handle incoming events and mutate its state accordingly" {
             val startDates = object: Projection() {
-                private val startDates: MutableMap<UUID, LocalDate> = HashMap()
+                private val startDates: MutableSet<UUID> = mutableSetOf()
 
-                fun getStartDate(aggregateId: UUID?): LocalDate? {
-                    return startDates[aggregateId]
+                fun hasBeenProjected(aggregateId: UUID): Boolean {
+                    return startDates.contains(aggregateId)
                 }
 
                 init {
-                    on<Hired> { startDates.put(it.aggregateId, it.startDate) }
+                    on<SomeEvent> { startDates.add(it.aggregateId) }
                 }
             }
 
@@ -53,17 +54,16 @@ internal class ProjectionsTest : StringSpec() {
                     subscriber = consumerName
             )
 
-            val hiredEvent = Hired(
+            val hiredEvent = SomeEvent(
                     aggregateId = UUID.randomUUID(),
-                    startDate = LocalDate.now(),
-                    timestamp = Instant.now(),
-                    recruitedBy = UUID.randomUUID())
+                    timestamp = Instant.now()
+            )
 
             //when we invoke the captured handler from the manager with the subscribed event
             slot.invoke(EventWrapper(hiredEvent, 0))
 
             //the projection should update
-            startDates.getStartDate(hiredEvent.aggregateId)!! shouldBe hiredEvent.startDate
+            startDates.hasBeenProjected(hiredEvent.aggregateId) shouldBe true
         }
     }
 }

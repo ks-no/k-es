@@ -9,7 +9,7 @@ import no.ks.kes.lib.*
 import java.util.*
 import kotlin.streams.asSequence
 
-private const val FROM_EVENT_NUMBER = 0L
+private const val FIRST_EVENT = 0L
 private const val BATCH_SIZE = 100
 
 private val log = KotlinLogging.logger {}
@@ -18,26 +18,9 @@ class EsjcAggregateRepository(
         private val eventStore: EventStore,
         private val deserializer: EventSerdes<String>,
         private val streamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String
-) : AggregateRepository {
-    override fun <A : Aggregate> read(aggregateId: UUID, aggregate: A): A =
-            try {
-                eventStore.streamEventsForward(
-                        streamIdGenerator.invoke(aggregate.aggregateType, aggregateId),
-                        FROM_EVENT_NUMBER,
-                        BATCH_SIZE,
-                        true
-                )
-                        .asSequence()
-                        .filter { !EsjcEventUtil.isIgnorableEvent(it) }
-                        .fold(aggregate, { a, e ->
-                            @Suppress("UNCHECKED_CAST")
-                            a.applyEvent(deserializer.deserialize(String(e.event.data), e.event.eventType) as Event<A>, e.event.eventNumber)
-                        })
-            } catch (e: StreamNotFoundException) {
-                aggregate.withCurrentEventNumber(-1)
-            }
+) : AggregateRepository() {
 
-    override fun write(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<Event<*>>) {
+    override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<Event<*>>) {
         val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
         try {
             eventStore.appendToStream(
@@ -56,6 +39,29 @@ class EsjcAggregateRepository(
             throw RuntimeException("Error while appending events to stream $streamId", e)
         }
     }
+
+    override fun <A : Aggregate> read(aggregateId: UUID, aggregateType: String, applicator: (state: A?, event: EventWrapper<*>) -> A?): AggregateReadResult =
+            try {
+                eventStore.streamEventsForward(
+                        streamIdGenerator.invoke(aggregateType, aggregateId),
+                        FIRST_EVENT,
+                        BATCH_SIZE,
+                        true
+                )
+                        .asSequence()
+                        .filter { !EsjcEventUtil.isIgnorableEvent(it) }
+                        .fold(null as Pair<A, Long>?, { a, e ->
+                            applicator.invoke(
+                                    a?.first,
+                                    EventWrapper(deserializer.deserialize(String(e.event.data), e.event.eventType) as Event<A>, e.event.eventNumber)
+                            )
+                                    ?.let { it to e.event.eventNumber }
+                        })
+                        ?.let { AggregateReadResult.ExistingAggregate(it.first, it.second) }
+                        ?: error("Aggregate $aggregateId has events, but applying event handlers did not produce an aggregate state!")
+            } catch (e: StreamNotFoundException) {
+                AggregateReadResult.NonExistingAggregate
+            }
 
     private fun resolveExpectedEventNumber(expectedEventNumber: ExpectedEventNumber): Long =
             when (expectedEventNumber) {

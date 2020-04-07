@@ -9,7 +9,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
-internal class SyncCmdHandlerTest : StringSpec() {
+internal class CmdHandlerTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
     @SerializationId("some-id")
@@ -28,27 +28,42 @@ internal class SyncCmdHandlerTest : StringSpec() {
     }
 
     init {
-        "Test that a cmd can initialize an aggregate, and that the derived state is returned" {
+        "Test that multiple \"init\" handlers results in an exception being thrown" {
             data class HireCmd(override val aggregateId: UUID, val startDate: LocalDate) : Cmd<SomeAggregate>
+            shouldThrow<IllegalStateException> {
+                object : CmdHandler<SomeAggregate>(mockk(), mockk()) {
+                    init {
+                        init<HireCmd> {
+                            Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
+                        }
 
-            val hireCmd = HireCmd(
-                    aggregateId = UUID.randomUUID(),
-                    startDate = LocalDate.now()
-            )
-
-            val repoMock = mockk<AggregateRepository>().apply {
-                every { read(hireCmd.aggregateId, someAggregateConfiguration) } returns AggregateReadResult.NonExistingAggregate
-                every { append("some-aggregate", hireCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, any()) } returns
-                        Unit
-            }
-
-            object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
-                init {
-                    init<HireCmd> {
-                        Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
+                        init<HireCmd> {
+                            Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
+                        }
                     }
                 }
-            }.handle(hireCmd).apply { stateInitialized shouldBe true }
+            }.apply {
+                message shouldBe "There are multiple \"init\" configurations for the command HireCmd in the command handler null, only a single \"init\" handler is allowed for each command"
+            }
+        }
+
+        "Test that multiple \"apply\" handlers results in an exception being thrown" {
+            data class HireCmd(override val aggregateId: UUID, val startDate: LocalDate) : Cmd<SomeAggregate>
+            shouldThrow<IllegalStateException> {
+                object : CmdHandler<SomeAggregate>(mockk(), mockk()) {
+                    init {
+                        apply<HireCmd> {
+                            Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
+                        }
+
+                        apply<HireCmd> {
+                            Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
+                        }
+                    }
+                }
+            }.apply {
+                message shouldBe "There are multiple \"apply\" configurations for the command HireCmd in the command handler null, only a single \"apply\" handler is allowed for each command"
+            }
         }
 
         "Test that a command can result in an event being applied to an existing aggregate" {
