@@ -5,7 +5,10 @@ import no.ks.kes.jdbc.CmdTable
 import no.ks.kes.jdbc.SagaTable
 import no.ks.kes.jdbc.TimeoutTable
 import no.ks.kes.jdbc.hwm.SqlServerHwmTrackerRepository
-import no.ks.kes.lib.*
+import no.ks.kes.lib.AnnotationUtil
+import no.ks.kes.lib.CmdSerdes
+import no.ks.kes.lib.SagaRepository
+import no.ks.kes.lib.SagaStateSerdes
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
@@ -55,7 +58,7 @@ class SqlServerSagaRepository(
         }.singleOrNull()
     }
 
-    override fun deleteTimeout(sagaSerializationId: String, sagaCorrelationId: UUID, timeoutId: String) {
+    override fun deleteTimeout(timeout: SagaRepository.Timeout) {
         template.update(
                 """DELETE FROM ${TimeoutTable.qualifiedName(schema)}  
                    WHERE ${TimeoutTable.sagaCorrelationId} = :${TimeoutTable.sagaCorrelationId}
@@ -63,9 +66,9 @@ class SqlServerSagaRepository(
                    AND ${TimeoutTable.timeoutId} = :${TimeoutTable.timeoutId}
                 """,
                 mutableMapOf(
-                        TimeoutTable.sagaSerializationId to sagaSerializationId,
-                        TimeoutTable.sagaCorrelationId to sagaCorrelationId,
-                        TimeoutTable.timeoutId to timeoutId
+                        TimeoutTable.sagaSerializationId to timeout.sagaSerializationId,
+                        TimeoutTable.sagaCorrelationId to timeout.sagaCorrelationId,
+                        TimeoutTable.timeoutId to timeout.timeoutId
                 )
         )
     }

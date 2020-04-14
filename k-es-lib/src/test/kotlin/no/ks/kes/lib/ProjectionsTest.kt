@@ -11,8 +11,10 @@ import java.util.*
 
 internal class ProjectionsTest : StringSpec() {
 
+    private data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
+
     @SerializationId("some-id")
-    data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SagaTest.SomeAggregate>
+    data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
 
     init {
         "test that a projection can handle incoming events and mutate its state accordingly" {

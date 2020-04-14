@@ -111,7 +111,7 @@ class Application {
                             dataSource = dataSource,
                             sagaStateSerdes = JacksonSagaStateSerdes(),
                             cmdSerdes = cmdSerdes),
-                    sagas = setOf(CreateShipmentSaga()),
+                    sagas = setOf(ShipmentSaga),
                     commandQueue = SqlServerCommandQueue(dataSource, cmdSerdes, setOf(basketCmds, shipmentCmds)),
                     pollInterval = 500
             )

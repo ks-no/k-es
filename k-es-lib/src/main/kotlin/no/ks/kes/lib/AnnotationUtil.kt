@@ -10,7 +10,16 @@ object AnnotationUtil {
                     ?: error("The class ${event.simpleName} is not annotated with @SerializationId")
 
 
-    fun isDeprecated(it: KClass<Any>): Boolean {
+    fun <T : Any> isDeprecated(it: KClass<T>): Boolean {
         return it.findAnnotation<Deprecated>() != null
     }
+
+
 }
+
+
+val <T: Event<*>> KClass<T>.serializationId: String
+    get() = AnnotationUtil.getSerializationId(this)
+
+val <T: Event<*>> KClass<T>.deprecated: Boolean
+    get() = AnnotationUtil.isDeprecated(this)

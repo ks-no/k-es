@@ -8,7 +8,7 @@ interface SagaRepository: TransactionalRepository, HighWaterMarkedRepository {
     fun <T : Any> getSagaState(correlationId: UUID, serializationId: String, sagaStateClass: KClass<T>): T?
     fun update(states: Set<SagaUpsert>)
     fun getReadyTimeouts(): Timeout?
-    fun deleteTimeout(sagaSerializationId: String, sagaCorrelationId: UUID, timeoutId: String)
+    fun deleteTimeout(timeout: Timeout)
 
     data class Timeout(val sagaCorrelationId: UUID, val sagaSerializationId: String, val timeoutId: String)
     sealed class SagaUpsert {
