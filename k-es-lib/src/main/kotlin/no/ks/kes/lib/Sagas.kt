@@ -46,7 +46,6 @@ object Sagas {
                                 matchingSagas.size > 1 -> error("Timeout $timeout was triggered, but multiple sagas matching the serializationId \"${timeout.sagaSerializationId}\" was found. Please check your saga configuration")
                                 else -> matchingSagas.single()
                             }
-
                             saga.handleTimeout(
                                     timeout = timeout,
                                     stateProvider = { correlationId: UUID, stateClass: KClass<*> ->

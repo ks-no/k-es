@@ -92,12 +92,12 @@ class SqlServerSagaRepository(
                 }
     }
 
-    override fun update(states: Set<SagaRepository.SagaUpsert>) {
+    override fun update(states: Set<SagaRepository.Operation>) {
         log.info { "updating sagas: $states" }
 
         template.batchUpdate(
                 "INSERT INTO ${SagaTable.qualifiedName(schema)} (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, :${SagaTable.serializationId}, :${SagaTable.data})",
-                states.filterIsInstance<SagaRepository.SagaUpsert.SagaInsert>()
+                states.filterIsInstance<SagaRepository.Operation.Insert>()
                         .map {
                             mutableMapOf(
                                     SagaTable.correlationId to it.correlationId,
@@ -109,7 +109,7 @@ class SqlServerSagaRepository(
 
         template.batchUpdate(
                 "INSERT INTO ${TimeoutTable.qualifiedName(schema)} (${TimeoutTable.sagaCorrelationId}, ${TimeoutTable.sagaSerializationId}, ${TimeoutTable.timeoutId}, ${TimeoutTable.timeout}, ${TimeoutTable.error}) VALUES (:${TimeoutTable.sagaCorrelationId}, :${TimeoutTable.sagaSerializationId}, :${TimeoutTable.timeoutId}, :${TimeoutTable.timeout}, 0)",
-                states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
+                states.filterIsInstance<SagaRepository.Operation.SagaUpdate>()
                         .flatMap { saga ->
                             saga.timeouts.map {
                                 mutableMapOf(
@@ -125,7 +125,7 @@ class SqlServerSagaRepository(
 
         template.batchUpdate(
                 "UPDATE ${SagaTable.qualifiedName(schema)} SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
-                states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
+                states.filterIsInstance<SagaRepository.Operation.SagaUpdate>()
                         .filter { it.newState != null }
                         .map {
                             mutableMapOf(

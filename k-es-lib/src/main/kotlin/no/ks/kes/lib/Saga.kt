@@ -12,7 +12,7 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val seri
     protected val onTimeoutApply = mutableMapOf<String, (s: ApplyContext<STATE>) -> ApplyContext<STATE>>()
 
     @Suppress("UNCHECKED_CAST")
-    fun handleEvent(wrapper: EventWrapper<Event<*>>, stateProvider: (correlationId: UUID, stateClass: KClass<*>) -> Any?): SagaRepository.SagaUpsert? {
+    fun handleEvent(wrapper: EventWrapper<Event<*>>, stateProvider: (correlationId: UUID, stateClass: KClass<*>) -> Any?): SagaRepository.Operation? {
         val correlationIds = (onEventInit + onEventApply)
                 .filter { it.key == AnnotationUtil.getSerializationId(wrapper.event::class) }
                 .map { it.value }
@@ -33,7 +33,7 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val seri
             onEventInit[wrapper.event::class.serializationId]
                     ?.let {
                         val context = it.handler.invoke(wrapper, InitContext())
-                        SagaRepository.SagaUpsert.SagaInsert(
+                        SagaRepository.Operation.Insert(
                                 correlationId = it.correlationId.invoke(wrapper),
                                 serializationId = serializationId,
                                 newState = context.newState!!,
@@ -48,7 +48,7 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val seri
                         if (context.newState == null && context.commands.isEmpty() && context.timeouts.isEmpty())
                             null
                         else
-                            SagaRepository.SagaUpsert.SagaUpdate(
+                            SagaRepository.Operation.SagaUpdate(
                                     correlationId = it.correlationId.invoke(wrapper),
                                     serializationId = serializationId,
                                     newState = context.newState,
@@ -63,7 +63,7 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val seri
     internal fun handleTimeout(
             timeout: SagaRepository.Timeout,
             stateProvider: (correlationId: UUID, stateClass: KClass<*>) -> Any?
-    ): SagaRepository.SagaUpsert.SagaUpdate? =
+    ): SagaRepository.Operation.SagaUpdate? =
             if (timeout.sagaSerializationId != serializationId)
                 null
             else
@@ -71,7 +71,7 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val seri
                         ?.invoke(ApplyContext((stateProvider.invoke(timeout.sagaCorrelationId, stateClass)
                                 ?: error("A timeout was triggered, but the saga-repository does not contain the saga state: $timeout")) as STATE))
                         ?.let {
-                            SagaRepository.SagaUpsert.SagaUpdate(
+                            SagaRepository.Operation.SagaUpdate(
                                     correlationId = timeout.sagaCorrelationId,
                                     serializationId = timeout.sagaSerializationId,
                                     newState = it.newState,

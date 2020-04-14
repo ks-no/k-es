@@ -6,12 +6,12 @@ import kotlin.reflect.KClass
 
 interface SagaRepository: TransactionalRepository, HighWaterMarkedRepository {
     fun <T : Any> getSagaState(correlationId: UUID, serializationId: String, sagaStateClass: KClass<T>): T?
-    fun update(states: Set<SagaUpsert>)
+    fun update(states: Set<Operation>)
     fun getReadyTimeouts(): Timeout?
     fun deleteTimeout(timeout: Timeout)
 
     data class Timeout(val sagaCorrelationId: UUID, val sagaSerializationId: String, val timeoutId: String)
-    sealed class SagaUpsert {
+    sealed class Operation {
 
         abstract val commands: List<Cmd<*>>
 
@@ -21,13 +21,13 @@ interface SagaRepository: TransactionalRepository, HighWaterMarkedRepository {
                 val newState: Any?,
                 val timeouts: Set<Saga.Timeout>,
                 override val commands: List<Cmd<*>>
-        ) : SagaUpsert()
+        ) : Operation()
 
-        data class SagaInsert(
+        data class Insert(
                 val correlationId: UUID,
                 val serializationId: String,
                 val newState: Any,
                 override val commands: List<Cmd<*>>
-        ) : SagaUpsert()
+        ) : Operation()
     }
 }
