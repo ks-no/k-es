@@ -5,7 +5,10 @@ import no.ks.kes.jdbc.CmdTable
 import no.ks.kes.jdbc.SagaTable
 import no.ks.kes.jdbc.TimeoutTable
 import no.ks.kes.jdbc.hwm.SqlServerHwmTrackerRepository
-import no.ks.kes.lib.*
+import no.ks.kes.lib.AnnotationUtil
+import no.ks.kes.lib.CmdSerdes
+import no.ks.kes.lib.SagaRepository
+import no.ks.kes.lib.SagaStateSerdes
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
@@ -55,7 +58,7 @@ class SqlServerSagaRepository(
         }.singleOrNull()
     }
 
-    override fun deleteTimeout(sagaSerializationId: String, sagaCorrelationId: UUID, timeoutId: String) {
+    override fun deleteTimeout(timeout: SagaRepository.Timeout) {
         template.update(
                 """DELETE FROM ${TimeoutTable.qualifiedName(schema)}  
                    WHERE ${TimeoutTable.sagaCorrelationId} = :${TimeoutTable.sagaCorrelationId}
@@ -63,9 +66,9 @@ class SqlServerSagaRepository(
                    AND ${TimeoutTable.timeoutId} = :${TimeoutTable.timeoutId}
                 """,
                 mutableMapOf(
-                        TimeoutTable.sagaSerializationId to sagaSerializationId,
-                        TimeoutTable.sagaCorrelationId to sagaCorrelationId,
-                        TimeoutTable.timeoutId to timeoutId
+                        TimeoutTable.sagaSerializationId to timeout.sagaSerializationId,
+                        TimeoutTable.sagaCorrelationId to timeout.sagaCorrelationId,
+                        TimeoutTable.timeoutId to timeout.timeoutId
                 )
         )
     }
@@ -89,12 +92,12 @@ class SqlServerSagaRepository(
                 }
     }
 
-    override fun update(states: Set<SagaRepository.SagaUpsert>) {
+    override fun update(states: Set<SagaRepository.Operation>) {
         log.info { "updating sagas: $states" }
 
         template.batchUpdate(
                 "INSERT INTO ${SagaTable.qualifiedName(schema)} (${SagaTable.correlationId}, ${SagaTable.serializationId}, ${SagaTable.data}) VALUES (:${SagaTable.correlationId}, :${SagaTable.serializationId}, :${SagaTable.data})",
-                states.filterIsInstance<SagaRepository.SagaUpsert.SagaInsert>()
+                states.filterIsInstance<SagaRepository.Operation.Insert>()
                         .map {
                             mutableMapOf(
                                     SagaTable.correlationId to it.correlationId,
@@ -106,7 +109,7 @@ class SqlServerSagaRepository(
 
         template.batchUpdate(
                 "INSERT INTO ${TimeoutTable.qualifiedName(schema)} (${TimeoutTable.sagaCorrelationId}, ${TimeoutTable.sagaSerializationId}, ${TimeoutTable.timeoutId}, ${TimeoutTable.timeout}, ${TimeoutTable.error}) VALUES (:${TimeoutTable.sagaCorrelationId}, :${TimeoutTable.sagaSerializationId}, :${TimeoutTable.timeoutId}, :${TimeoutTable.timeout}, 0)",
-                states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
+                states.filterIsInstance<SagaRepository.Operation.SagaUpdate>()
                         .flatMap { saga ->
                             saga.timeouts.map {
                                 mutableMapOf(
@@ -122,7 +125,7 @@ class SqlServerSagaRepository(
 
         template.batchUpdate(
                 "UPDATE ${SagaTable.qualifiedName(schema)} SET ${SagaTable.data} = :${SagaTable.data} WHERE ${SagaTable.correlationId} = :${SagaTable.correlationId} AND ${SagaTable.serializationId} = :${SagaTable.serializationId}",
-                states.filterIsInstance<SagaRepository.SagaUpsert.SagaUpdate>()
+                states.filterIsInstance<SagaRepository.Operation.SagaUpdate>()
                         .filter { it.newState != null }
                         .map {
                             mutableMapOf(

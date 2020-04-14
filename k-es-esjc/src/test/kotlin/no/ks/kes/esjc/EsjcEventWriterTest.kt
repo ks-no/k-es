@@ -10,11 +10,8 @@ import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import no.ks.kes.lib.EventSerdes
-import no.ks.kes.lib.ExpectedEventNumber
-import no.ks.kes.lib.testdomain.Hired
+import no.ks.kes.lib.*
 import java.time.Instant
-import java.time.LocalDate
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
@@ -22,14 +19,14 @@ internal class EsjcEventWriterTest : StringSpec() {
 
     init {
         "Test at esjc writer blir korrekt invokert under skriving av hendelser til aggregat" {
+            data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
+
+            @SerializationId("some-id")
+            data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+
             val eventAggregateType = UUID.randomUUID().toString()
 
-            val event = Hired(
-                    aggregateId = UUID.randomUUID(),
-                    startDate = LocalDate.now(),
-                    timestamp = Instant.now(),
-                    recruitedBy = UUID.randomUUID()
-            )
+            val event = SomeEvent(UUID.randomUUID(), Instant.now())
 
             val capturedEventData = slot<List<EventData>>()
             val eventStoreMock = mockk<EventStore>().apply {
@@ -37,18 +34,18 @@ internal class EsjcEventWriterTest : StringSpec() {
                         CompletableFuture.completedFuture(WriteResult(0, Position(0L, 0L)))
             }
 
-            val deserializer = mockk<EventSerdes<String>>().apply { every { serialize(event) } returns "hired"}
+            val deserializer = mockk<EventSerdes<String>>().apply { every { serialize(event) } returns "some-id"}
             val esjcEventWriter = EsjcAggregateRepository(
                     eventStore = eventStoreMock,
                     streamIdGenerator = { t: String, id: UUID -> "ks.fiks.$t.$id" },
                     deserializer = deserializer)
 
-            esjcEventWriter.write(eventAggregateType, event.aggregateId, ExpectedEventNumber.Exact(0L), listOf(event))
+            esjcEventWriter.append(eventAggregateType, event.aggregateId, ExpectedEventNumber.Exact(0L), listOf(event))
 
             with(capturedEventData.captured.single()) {
                 this.data!! contentEquals  "foo".toByteArray()
                 isJsonData shouldBe true
-                type shouldBe "Hired"
+                type shouldBe "some-id"
                 eventId shouldNotBe null
             }
 

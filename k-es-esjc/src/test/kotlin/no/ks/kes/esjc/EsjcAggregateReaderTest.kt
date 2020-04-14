@@ -5,66 +5,73 @@ import com.github.msemys.esjc.ResolvedEvent
 import com.github.msemys.esjc.operation.StreamNotFoundException
 import com.github.msemys.esjc.proto.EventStoreClientMessages
 import com.google.protobuf.ByteString
+import io.kotlintest.matchers.beInstanceOf
+import io.kotlintest.should
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
-import no.ks.kes.lib.EventSerdes
-import no.ks.kes.lib.testdomain.Employee
-import no.ks.kes.lib.testdomain.Hired
-import no.ks.kes.lib.testdomain.StartDateChanged
+import no.ks.kes.lib.*
 import java.time.Instant
-import java.time.LocalDate
 import java.util.*
 import java.util.stream.Stream
 
 class EsjcAggregateReaderTest : StringSpec() {
+    data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
+
+    @SerializationId("some-id")
+    data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+
+
+    @SerializationId("some-other-id")
+    data class SomeOtherEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+
+
+    private val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
+        init {
+            init<SomeEvent> {
+                SomeAggregate(stateInitialized = true)
+            }
+            apply<SomeOtherEvent> {
+                copy(stateUpdated = true)
+            }
+        }
+    }
+
     init {
         "Test that the reader can retrieve and deserialize aggregate events from the event-store" {
-
-            val hired = Hired(
-                    aggregateId = UUID.randomUUID(),
-                    startDate = LocalDate.now(),
-                    timestamp = Instant.now(),
-                    recruitedBy = UUID.randomUUID()
-
-            )
-            val startDateChanged = StartDateChanged(
-                    aggregateId = UUID.randomUUID(),
-                    newStartDate = LocalDate.now().plusDays(1),
-                    timestamp = Instant.now()
-            )
-
+            val someEvent = SomeEvent(UUID.randomUUID(), Instant.now())
+            val someOtherEvent = SomeOtherEvent(UUID.randomUUID(), Instant.now())
             val eventStoreMock = mockk<EventStore>()
                     .apply {
                         every { streamEventsForward(any(), any(), any(), any()) } returns
                                 Stream.of(ResolvedEvent(EventStoreClientMessages.ResolvedIndexedEvent.newBuilder()
                                         .setEvent(EventStoreClientMessages.EventRecord.newBuilder()
-                                                .setData(ByteString.copyFrom("hired".toByteArray()))
+                                                .setData(ByteString.copyFrom("some-id".toByteArray()))
                                                 .setDataContentType(1)
                                                 .setEventStreamId(UUID.randomUUID().toString())
                                                 .setEventNumber(0)
                                                 .setEventId(ByteString.copyFrom(UUID.randomUUID().toString(), "UTF-8"))
-                                                .setEventType("Hired")
+                                                .setEventType("some-id")
                                                 .setMetadataContentType(1)
                                                 .build())
                                         .build()),
                                         ResolvedEvent(EventStoreClientMessages.ResolvedIndexedEvent.newBuilder()
                                                 .setEvent(EventStoreClientMessages.EventRecord.newBuilder()
-                                                        .setData(ByteString.copyFrom("startDateChanged".toByteArray()))
+                                                        .setData(ByteString.copyFrom("some-other-id".toByteArray()))
                                                         .setDataContentType(1)
                                                         .setEventStreamId(UUID.randomUUID().toString())
                                                         .setEventNumber(0)
                                                         .setEventId(ByteString.copyFrom(UUID.randomUUID().toString(), "UTF-8"))
-                                                        .setEventType("StartDateChangedEvent")
+                                                        .setEventType("some-other-id")
                                                         .setMetadataContentType(1)
                                                         .build())
                                                 .build()))
                     }
 
             val deserializer = mockk<EventSerdes<String>>().apply {
-                every { deserialize("hired", any()) } returns hired
-                every { deserialize("startDateChanged", any()) } returns startDateChanged
+                every { deserialize("some-id", any()) } returns someEvent
+                every { deserialize("some-other-id", any()) } returns someOtherEvent
             }
 
             EsjcAggregateRepository(
@@ -72,10 +79,12 @@ class EsjcAggregateReaderTest : StringSpec() {
                     deserializer = deserializer,
                     streamIdGenerator = { t, id -> "$t.$id" }
             )
-                    .read(UUID.randomUUID(), Employee())
+                    .read(UUID.randomUUID(), someAggregateConfiguration)
                     .apply {
-                        aggregateId shouldBe hired.aggregateId
-                        startDate shouldBe startDateChanged.newStartDate
+                        with(this as AggregateReadResult.ExistingAggregate<SomeAggregate>) {
+                            aggregateState.stateInitialized shouldBe true
+                            aggregateState.stateUpdated shouldBe true
+                        }
                     }
         }
 
@@ -89,11 +98,9 @@ class EsjcAggregateReaderTest : StringSpec() {
                     deserializer = mockk(),
                     streamIdGenerator = { t, id -> "$t.$id" }
             )
-                    .read(UUID.randomUUID(), Employee())
+                    .read(UUID.randomUUID(), someAggregateConfiguration)
                     .apply {
-                        currentEventNumber shouldBe -1
-                        startDate shouldBe null
-                        aggregateId shouldBe null
+                        this should beInstanceOf<AggregateReadResult.NonExistingAggregate>()
                     }
         }
 

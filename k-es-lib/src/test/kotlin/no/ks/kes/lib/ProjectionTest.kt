@@ -2,8 +2,6 @@ package no.ks.kes.lib
 
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
-import no.ks.kes.lib.testdomain.Hired
-import no.ks.kes.lib.testdomain.StartDatesProjection
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
@@ -12,6 +10,27 @@ internal class ProjectionTest : StringSpec() {
 
     init {
         "test that a projection can handle incoming events and mutate its state accordingly" {
+            data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
+
+            @SerializationId("Hired")
+            data class Hired(
+                    override val aggregateId: UUID,
+                    val recruitedBy: UUID,
+                    val startDate: LocalDate,
+                    override val timestamp: Instant) : Event<SomeAggregate>
+
+            class StartDatesProjection : Projection() {
+                private val startDates: MutableMap<UUID, LocalDate> = HashMap()
+
+                fun getStartDate(aggregateId: UUID?): LocalDate? {
+                    return startDates[aggregateId]
+                }
+
+                init {
+                    on<Hired> { startDates.put(it.aggregateId, it.startDate) }
+                }
+            }
+
             val hiredEvent = Hired(
                     aggregateId = UUID.randomUUID(),
                     startDate = LocalDate.now(),

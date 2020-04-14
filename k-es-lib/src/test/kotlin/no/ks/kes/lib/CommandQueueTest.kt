@@ -5,7 +5,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
-import no.ks.kes.lib.testdomain.Employee
 import java.time.Instant
 import java.util.*
 
@@ -21,19 +20,32 @@ class CommandQueueTest : StringSpec() {
         }
     }
 
+    data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
+
+    @SerializationId("some-id")
+    data class SomeInitEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+
+    val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
+        init {
+            init<SomeInitEvent> {
+                SomeAggregate(stateInitialized = true)
+            }
+        }
+    }
+
     init {
         "test that a command which is executed successfully is removed from the queue"{
-            data class SomeCmd(override val aggregateId: UUID) : Cmd<Employee>
+            data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
+
+            val repository = mockk<AggregateRepository>()
+                    .apply {
+                        every { read(any(), someAggregateConfiguration) } returns AggregateReadResult.NonExistingAggregate
+                    }
 
             val queue = spyk(
-                    objToCopy = TestQueue(object : CmdHandler<Employee>(
-                            mockk<AggregateRepository>().apply {
-                                every { read(any(), any<Employee>()) } returns Employee()
-                            }) {
-                        override fun initAggregate(): Employee = Employee()
-
+                    objToCopy = TestQueue(object : CmdHandler<SomeAggregate>(repository, someAggregateConfiguration) {
                         init {
-                            on<SomeCmd> {
+                            init<SomeCmd> {
                                 Result.Succeed()
                             }
                         }
@@ -48,17 +60,17 @@ class CommandQueueTest : StringSpec() {
         }
 
         "test that a command which is fails permanently is removed from the queue"{
-            data class SomeCmd(override val aggregateId: UUID) : Cmd<Employee>
+            data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
+
+            val repository = mockk<AggregateRepository>().apply {
+                every { read(any(), someAggregateConfiguration) } returns AggregateReadResult.NonExistingAggregate
+            }
 
             val queue = spyk(
-                    objToCopy = TestQueue(object : CmdHandler<Employee>(
-                            mockk<AggregateRepository>().apply {
-                                every { read(any(), any<Employee>()) } returns Employee()
-                            }) {
-                        override fun initAggregate(): Employee = Employee()
+                    objToCopy = TestQueue(object : CmdHandler<SomeAggregate>(repository, someAggregateConfiguration) {
 
                         init {
-                            on<SomeCmd> {
+                            init<SomeCmd> {
                                 Result.Fail(IllegalStateException("something went wrong"))
                             }
                         }
@@ -72,17 +84,16 @@ class CommandQueueTest : StringSpec() {
         }
 
         "test that a command which throws an uncaught exception is marked as in error"{
-            data class SomeCmd(override val aggregateId: UUID) : Cmd<Employee>
+            data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
+
+            val repository = mockk<AggregateRepository>().apply {
+                every { read(any(), someAggregateConfiguration) } returns AggregateReadResult.NonExistingAggregate
+            }
 
             val queue = spyk(
-                    objToCopy = TestQueue(object : CmdHandler<Employee>(
-                            mockk<AggregateRepository>().apply {
-                                every { read(any(), any<Employee>()) } returns Employee()
-                            }) {
-                        override fun initAggregate(): Employee = Employee()
-
+                    objToCopy = TestQueue(object : CmdHandler<SomeAggregate>(repository, someAggregateConfiguration) {
                         init {
-                            on<SomeCmd> {
+                            init<SomeCmd> {
                                 error("something went wrong")
                             }
                         }
@@ -92,22 +103,21 @@ class CommandQueueTest : StringSpec() {
 
             queue.poll()
 
-            verify { queue["incrementAndSetError"](1L, any<UUID>())}
+            verify { queue["incrementAndSetError"](1L, any<UUID>()) }
         }
 
 
         "test that a command fails with retry is designated with a new execution if the retry strategy allows"{
-            data class SomeCmd(override val aggregateId: UUID) : Cmd<Employee>
+            data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
+
+            val repository = mockk<AggregateRepository>().apply {
+                every { read(any(), someAggregateConfiguration) } returns AggregateReadResult.NonExistingAggregate
+            }
 
             val queue = spyk(
-                    objToCopy = TestQueue(object : CmdHandler<Employee>(
-                            mockk<AggregateRepository>().apply {
-                                every { read(any(), any<Employee>()) } returns Employee()
-                            }) {
-                        override fun initAggregate(): Employee = Employee()
-
+                    objToCopy = TestQueue(object : CmdHandler<SomeAggregate>(repository, someAggregateConfiguration) {
                         init {
-                            on<SomeCmd> {
+                            init<SomeCmd> {
                                 Result.RetryOrFail(IllegalStateException("something went wrong"), RetryStrategies.DEFAULT)
                             }
                         }
@@ -117,7 +127,7 @@ class CommandQueueTest : StringSpec() {
 
             queue.poll()
 
-            verify { queue["incrementAndSetNextExecution"](1L, any<Instant>())}
+            verify { queue["incrementAndSetNextExecution"](1L, any<Instant>()) }
         }
     }
 }

@@ -6,81 +6,78 @@ import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import no.ks.kes.lib.testdomain.Employee
-import no.ks.kes.lib.testdomain.Hired
-import no.ks.kes.lib.testdomain.StartDateChanged
 import java.time.Instant
-import java.time.LocalDate
 import java.util.*
 
 internal class AsyncCmdHandlerTest : StringSpec() {
+    data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
+
+    @SerializationId("some-id")
+    data class SomeInitEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+
+    @SerializationId("some-other-id")
+    data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+
+    val aggregateConfig = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
+        init {
+            init<SomeInitEvent> {
+                SomeAggregate(stateInitialized = true)
+            }
+
+            apply<SomeEvent> {
+                copy(stateUpdated = true)
+            }
+        }
+    }
+
+    data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
 
     init {
         "Test that a cmd can initialize an aggregate" {
-            data class HireCmd(override val aggregateId: UUID, val startDate: LocalDate, val recruitedBy: UUID) : Cmd<Employee>
-
-            val hireCmd = HireCmd(
-                    aggregateId = UUID.randomUUID(),
-                    recruitedBy = UUID.randomUUID(),
-                    startDate = LocalDate.now()
-            )
+            val someCmd = SomeCmd(UUID.randomUUID())
 
             val slot = slot<List<Event<*>>>()
 
             val repoMock = mockk<AggregateRepository>().apply {
-                every { read(hireCmd.aggregateId, ofType(Employee::class)) } returns Employee().withCurrentEventNumber(-1)
-                every { write("employee", hireCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, capture(slot)) } returns Unit
+                every { read(someCmd.aggregateId, ofType<AggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
+                every { append("some-aggregate", someCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, capture(slot)) } returns Unit
             }
 
-            class EmployeeCmdHandler() : CmdHandler<Employee>(repoMock) {
-                override fun initAggregate(): Employee = Employee()
-
+            object : CmdHandler<SomeAggregate>(repoMock, aggregateConfig) {
                 init {
-                    initOn<HireCmd> {
-                        Result.Succeed(Hired(it.aggregateId, it.recruitedBy, it.startDate, Instant.now()))
+                    init<SomeCmd> {
+                        Result.Succeed(SomeInitEvent(it.aggregateId, Instant.now()))
                     }
                 }
-            }
+            }.handleAsync(someCmd, 0)
+                    .apply { this.shouldBeInstanceOf<CmdHandler.AsyncResult.Success>() }
 
-            EmployeeCmdHandler().handleAsync(hireCmd, 0).apply { this.shouldBeInstanceOf<CmdHandler.AsyncResult.Success>() }
-            with(slot.captured.single() as Hired) {
-                aggregateId shouldBe hireCmd.aggregateId
-                recruitedBy shouldBe hireCmd.recruitedBy
-                startDate shouldBe hireCmd.startDate
+            with(slot.captured.single() as SomeInitEvent) {
+                aggregateId shouldBe someCmd.aggregateId
             }
         }
 
-        "Test that a cmd can append a new event to an existing aggregate, and that the derived state is returned" {
-            data class ChangeStartDate(override val aggregateId: UUID, val newStartDate: LocalDate) : Cmd<Employee>
-
-            val changeStartDate = ChangeStartDate(
-                    aggregateId = UUID.randomUUID(),
-                    newStartDate = LocalDate.now()
-            )
-
+        "Test that a cmd can append a new event to an existing aggregate" {
+            val someCmd = SomeCmd(UUID.randomUUID())
             val slot = slot<List<Event<*>>>()
 
             val repoMock = mockk<AggregateRepository>().apply {
-                every { read(changeStartDate.aggregateId, ofType(Employee::class)) } returns Employee()
-                        .applyEvent(Hired(changeStartDate.aggregateId, UUID.randomUUID(), LocalDate.now(), Instant.now()), 0)
-                every { write("employee", changeStartDate.aggregateId, ExpectedEventNumber.Exact(0), capture(slot)) } returns
-                        Unit
+                every { read(someCmd.aggregateId, ofType<AggregateConfiguration<*>>()) } returns
+                        AggregateReadResult.ExistingAggregate(SomeAggregate(true), 0)
+                every { append("some-aggregate", someCmd.aggregateId, ExpectedEventNumber.Exact(0), capture(slot)) } returns Unit
             }
 
-            class EmployeeCmdHandler() : CmdHandler<Employee>(repoMock) {
-                override fun initAggregate(): Employee = Employee()
-
+            object : CmdHandler<SomeAggregate>(repoMock, aggregateConfig) {
                 init {
-                    on<ChangeStartDate> {
-                        Result.Succeed(StartDateChanged(it.aggregateId, it.newStartDate, Instant.now()))
+                    apply<SomeCmd> {
+                        Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
                     }
                 }
-            }
+            }.handleAsync(someCmd, 0)
+                    .apply { this.shouldBeInstanceOf<CmdHandler.AsyncResult.Success>() }
 
-            EmployeeCmdHandler().handleAsync(changeStartDate, 0).apply { this.shouldBeInstanceOf<CmdHandler.AsyncResult.Success>() }
-            with(slot.captured.single() as StartDateChanged) {
-                aggregateId shouldBe changeStartDate.aggregateId
-                newStartDate shouldBe changeStartDate.newStartDate
+            with(slot.captured.single() as SomeEvent) {
+                aggregateId shouldBe someCmd.aggregateId
             }
         }
 

@@ -8,41 +8,40 @@ import no.ks.kes.lib.SerializationId
 import java.time.Instant
 import java.util.*
 
-class BasketCmds(repo: AggregateRepository, paymentProcessor: PaymentProcessor) : CmdHandler<Basket>(repo) {
-    override fun initAggregate(): Basket = Basket()
-
-    @SerializationId("BasketCreate")
-    data class Create(override val aggregateId: UUID) : Cmd<Basket>
-
-    @SerializationId("BasketAddItem")
-    data class AddItem(override val aggregateId: UUID, val itemId: UUID) : Cmd<Basket>
-
-    @SerializationId("BasketCheckOut")
-    data class CheckOut(override val aggregateId: UUID) : Cmd<Basket>
+class BasketCmds(repo: AggregateRepository, paymentProcessor: PaymentProcessor) : CmdHandler<BasketAggregate>(repo, Basket) {
 
     init {
-        initOn<Create> { Succeed(Basket.Created(it.aggregateId, Instant.now())) }
+        init<Create> { Succeed(Basket.Created(it.aggregateId, Instant.now())) }
 
-        on<AddItem> {
+        apply<AddItem> {
             if (basketClosed)
                 Fail(IllegalStateException("Can't add items to a closed basket"))
             else
                 Succeed(Basket.ItemAdded(it.aggregateId, Instant.now(), it.itemId))
         }
 
-        on<CheckOut> {
+        apply<CheckOut> {
             when {
                 basketClosed -> Fail(IllegalStateException("Can't check out a closed basket"))
-                basket.isEmpty() -> Fail(IllegalStateException("Can't check out a empty basket, buy something first?"))
+                basketContents.isEmpty() -> Fail(IllegalStateException("Can't check out a empty basket, buy something first?"))
                 else -> try {
-                            paymentProcessor.process(it.aggregateId)
-                            Succeed(Basket.CheckedOut(it.aggregateId, Instant.now(), basket.toMap()))
-                        } catch (e: Exception) {
-                            RetryOrFail<Basket>(e)
-                        }
+                    paymentProcessor.process(it.aggregateId)
+                    Succeed(Basket.CheckedOut(it.aggregateId, Instant.now(), basketContents.toMap()))
+                } catch (e: Exception) {
+                    RetryOrFail<BasketAggregate>(e)
+                }
             }
         }
     }
+
+    @SerializationId("BasketCreate")
+    data class Create(override val aggregateId: UUID) : Cmd<BasketAggregate>
+
+    @SerializationId("BasketAddItem")
+    data class AddItem(override val aggregateId: UUID, val itemId: UUID) : Cmd<BasketAggregate>
+
+    @SerializationId("BasketCheckOut")
+    data class CheckOut(override val aggregateId: UUID) : Cmd<BasketAggregate>
 }
 
 interface PaymentProcessor {

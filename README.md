@@ -1,6 +1,6 @@
 # k-es
 
-Kotlin library for persistance through event-sourced aggregates. Support for projections and sagas included, check out the demo-app to see how it all fits together.
+Kotlin library for persistance through [event-sourced](https://martinfowler.com/eaaDev/EventSourcing.html) aggregates. Support for projections and sagas included, check out the demo-app to see how it all fits together.
 
 Currently supports [ESJC](https://github.com/msemys/esjc) (a netty based client for [eventstore.org](https://eventstore.org/)) as the event store, Microsoft Sql Server as a command and saga repository, and JSON/Jackson as a serialization method, but a modular design should allow other databases and serialization types to be supported in the future. 
 
@@ -27,53 +27,68 @@ As time moves on the system (and the world it describes) changes, and altering o
     }
 ```
 ## Aggregates
-Aggregate classes extend the abstract `Aggregate` superclass. An aggregateType must be specified, and the aggregate state typically consists of variables which are mutated as the aggregates events play out.   
+Aggregates are created by extending the `AggregateConfiguration` class, and using `init` and `apply` handlers to incrementally build a state from the events in the aggregates stream.   
 
 ```kotlin
-class Basket : Aggregate() {
+data class BasketAggregate(
+        val aggregateId: UUID,
+        val basketContents: Map<UUID, Int> = emptyMap(),
+        val basketClosed: Boolean = false
+) : Aggregate
 
-    override val aggregateType = "basket"
-    var aggregateId: UUID? = null
-    var basket: MutableMap<UUID, Int> = mutableMapOf()
-    var basketClosed: Boolean = false
+object Basket : AggregateConfiguration<BasketAggregate>("basket") {
 
     init {
-        on<Created> {
-            aggregateId = it.aggregateId
+        init<Created> {
+            BasketAggregate(
+                    aggregateId = it.aggregateId
+            )
         }
 
-        on<ItemAdded> {
-            basket.compute(it.itemId) { _, count -> count?.inc() ?: 1 }
+        apply<ItemAdded> {
+            copy(
+                    basketContents = basketContents + (it.itemId to basketContents.getOrDefault(it.itemId, 0).inc())
+            )
         }
 
-        on<CheckedOut> {
-            basketClosed = true
+        apply<CheckedOut> {
+            copy(
+                    basketClosed = true
+            )
         }
     }
 }
 ```
 
 ## Commands and Command Handlers
-Aggregates are mutated by submitting commands to an associated command handler. The command handler will retrieve the aggregate from the event-store, play out any pre-existing events, and apply the logic defined in the `initOn` or the `on` functions to the current aggregate state: any derived events are appended to the aggregates event log in the store. The command handler functions will often involve side effects, such as invoking external api's. Clients for these can be injected into the command handler. 
+Aggregates are mutated by submitting commands to an associated command handler. The command handler will retrieve the aggregate from the event-store, play out any pre-existing events, and apply the logic defined in the `init` or `apply` functions to the current aggregate state: any derived events are appended to the aggregates event log in the store. 
+
+The command handler functions will often involve side effects, such as invoking external api's. Clients for these can be injected into the command handler. 
 
 ```kotlin
-class BasketCmds(repo: AggregateRepository) : CmdHandler<Basket>(repo) {
-    override fun initAggregate(): Basket = Basket()
-
-    @SerializationId("BasketCreate")
-    data class Create(override val aggregateId: UUID) : Cmd<Basket>
-
-    @SerializationId("BasketAddItem")
-    data class AddItem(override val aggregateId: UUID, val itemId: UUID) : Cmd<Basket>
+class BasketCmds(repo: AggregateRepository, paymentProcessor: PaymentProcessor) : CmdHandler<BasketAggregate>(repo, Basket) {
 
     init {
-        initOn<Create> { Succeed(Basket.Created(it.aggregateId, Instant.now())) }
+        init<Create> { Succeed(Basket.Created(it.aggregateId, Instant.now())) }
 
-        on<AddItem> {
+        apply<AddItem> {
             if (basketClosed)
                 Fail(IllegalStateException("Can't add items to a closed basket"))
             else
                 Succeed(Basket.ItemAdded(it.aggregateId, Instant.now(), it.itemId))
+        }
+
+        apply<CheckOut> {
+            when {
+                basketClosed -> Fail(IllegalStateException("Can't check out a closed basket"))
+                basketContents.isEmpty() -> Fail(IllegalStateException("Can't check out a empty basket, buy something first?"))
+                else -> try {
+                    paymentProcessor.process(it.aggregateId)
+                    Succeed(Basket.CheckedOut(it.aggregateId, Instant.now(), basketContents.toMap()))
+                } catch (e: Exception) {
+                    RetryOrFail<BasketAggregate>(e)
+                }
+            }
         }
     }
 }
