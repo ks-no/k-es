@@ -28,9 +28,8 @@ class SagaConfigurationTest : StringSpec() {
                         init<SomeEvent>({ it.aggregateId }) { SomeState(it.aggregateId) }
                     }
                 }
-            }.apply {
-                message shouldContain "Duplicate init handler"
-            }
+            }.message shouldContain "Duplicate init handler"
+
         }
 
         "test that creating a saga which inits on deprecated event throws exception" {
@@ -40,9 +39,8 @@ class SagaConfigurationTest : StringSpec() {
                         init<SomeDeprecatedEvent>({ it.aggregateId }) { SomeState(it.aggregateId) }
                     }
                 }
-            }.apply {
-                message shouldContain "handles deprecated event"
-            }
+            }.message shouldContain "handles deprecated event"
+
         }
 
         "test that creating a saga which applies a deprecated event throws exception" {
@@ -52,9 +50,8 @@ class SagaConfigurationTest : StringSpec() {
                         apply<SomeDeprecatedEvent>({ it.aggregateId }) { SomeState(it.aggregateId) }
                     }
                 }
-            }.apply {
-                message shouldContain "handles deprecated event"
-            }
+            }.message shouldContain "handles deprecated event"
+
         }
 
         "test that a saga which constructs a timeout on a deprecated event throws exception" {
@@ -65,9 +62,8 @@ class SagaConfigurationTest : StringSpec() {
                         timeout<SomeDeprecatedEvent>({ it.aggregateId }, { e -> Instant.now() }) { setState(SomeState(UUID.randomUUID())) }
                     }
                 }
-            }.apply {
-                message shouldContain "handles deprecated event"
-            }
+            }.message shouldContain "handles deprecated event"
+
         }
 
         "test that a saga which constructs a timeout and an apply on the same event throws exception" {
@@ -78,9 +74,8 @@ class SagaConfigurationTest : StringSpec() {
                         timeout<SomeEvent>({ it.aggregateId }, { e -> Instant.now() }) { setState(SomeState(UUID.randomUUID())) }
                     }
                 }
-            }.apply {
-                message shouldContain "Duplicate apply/timeout handler for event"
-            }
+            }.message shouldContain "Duplicate apply/timeout handler for event"
+
         }
 
         "test that a saga which constructs multiple applys on the same event throws exception" {
@@ -91,9 +86,7 @@ class SagaConfigurationTest : StringSpec() {
                         apply<SomeEvent> { setState(SomeState(it.aggregateId)) }
                     }
                 }
-            }.apply {
-                message shouldContain "Duplicate apply/timeout handler for event"
-            }
+            }.message shouldContain "Duplicate apply/timeout handler for event"
         }
     }
 }
