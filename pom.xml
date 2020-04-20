@@ -41,7 +41,7 @@
         <maven-versions-plugin.version>2.7</maven-versions-plugin.version>
         <scijava-maven-plugin.version>1.1.1</scijava-maven-plugin.version>
         <maven-enforcer-plugin.version>3.0.0-M3</maven-enforcer-plugin.version>
-        <esjc.version>2.1.0</esjc.version>
+        <esjc.version>2.2.0</esjc.version>
         <logback.version>1.2.3</logback.version>
         <kotlin-logging.version>1.7.9</kotlin-logging.version>
         <mockk.version>1.10.0</mockk.version>
