@@ -43,14 +43,6 @@
 
         <!--test-->
         <dependency>
-            <groupId>no.ks</groupId>
-            <artifactId>k-es-lib</artifactId>
-            <classifier>tests</classifier>
-            <type>test-jar</type>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.kotlintest</groupId>
             <artifactId>kotlintest-runner-junit5</artifactId>
             <version>3.4.2</version>
