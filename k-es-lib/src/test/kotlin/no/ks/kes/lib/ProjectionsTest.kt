@@ -8,17 +8,17 @@ import io.mockk.mockk
 import io.mockk.slot
 import java.time.Instant
 import java.util.*
+import kotlin.reflect.KClass
 
 internal class ProjectionsTest : StringSpec() {
 
     private data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    @SerializationId("some-id")
     data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
 
     init {
         "test that a projection can handle incoming events and mutate its state accordingly" {
-            val startDates = object: Projection() {
+            val startDates = object : Projection() {
                 private val startDates: MutableSet<UUID> = mutableSetOf()
 
                 fun hasBeenProjected(aggregateId: UUID): Boolean {
@@ -34,16 +34,24 @@ internal class ProjectionsTest : StringSpec() {
             val consumerName = "ProjectionManager"
             Projections.initialize(
                     eventSubscriberFactory = mockk<EventSubscriberFactory>()
-                            .apply { every { createSubscriber(
-                                    subscriber = consumerName,
-                                    fromEvent = 0L,
-                                    onEvent = capture(slot),
-                                    onClose = any(),
-                                    onLive = any()
-                            ) } returns Unit},
+                            .apply {
+                                every {
+                                    createSubscriber(
+                                            subscriber = consumerName,
+                                            fromEvent = 0L,
+                                            onEvent = capture(slot),
+                                            onClose = any(),
+                                            onLive = any()
+                                    )
+                                } returns Unit
+                                every { getSerializationId(any()) } answers {
+                                    firstArg<KClass<Event<*>>>().simpleName!!
+                                }
+                            }
+                    ,
                     projections = setOf(startDates),
-                    projectionRepository = object: ProjectionRepository {
-                        override val hwmTracker =  object: HwmTrackerRepository {
+                    projectionRepository = object : ProjectionRepository {
+                        override val hwmTracker = object : HwmTrackerRepository {
                             override fun getOrInit(subscriber: String): Long = 0L
                             override fun update(subscriber: String, hwm: Long) {}
                         }
@@ -62,7 +70,7 @@ internal class ProjectionsTest : StringSpec() {
             )
 
             //when we invoke the captured handler from the manager with the subscribed event
-            slot.invoke(EventWrapper(hiredEvent, 0))
+            slot.invoke(EventWrapper(hiredEvent, 0, hiredEvent::class.simpleName!!))
 
             //the projection should update
             startDates.hasBeenProjected(hiredEvent.aggregateId) shouldBe true

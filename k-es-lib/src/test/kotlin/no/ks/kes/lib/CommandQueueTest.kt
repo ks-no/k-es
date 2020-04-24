@@ -7,6 +7,7 @@ import io.mockk.spyk
 import io.mockk.verify
 import java.time.Instant
 import java.util.*
+import kotlin.reflect.KClass
 
 @ExperimentalStdlibApi
 class CommandQueueTest : StringSpec() {
@@ -22,7 +23,6 @@ class CommandQueueTest : StringSpec() {
 
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    @SerializationId("some-id")
     data class SomeInitEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
 
     val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
@@ -39,7 +39,8 @@ class CommandQueueTest : StringSpec() {
 
             val repository = mockk<AggregateRepository>()
                     .apply {
-                        every { read(any(), someAggregateConfiguration) } returns AggregateReadResult.NonExistingAggregate
+                        every { read(any(), any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
+                        every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>()::class.simpleName!! }
                     }
 
             val queue = spyk(
@@ -63,7 +64,8 @@ class CommandQueueTest : StringSpec() {
             data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
 
             val repository = mockk<AggregateRepository>().apply {
-                every { read(any(), someAggregateConfiguration) } returns AggregateReadResult.NonExistingAggregate
+                every { read(any(), any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
+                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>()::class.simpleName!! }
             }
 
             val queue = spyk(
@@ -87,7 +89,8 @@ class CommandQueueTest : StringSpec() {
             data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
 
             val repository = mockk<AggregateRepository>().apply {
-                every { read(any(), someAggregateConfiguration) } returns AggregateReadResult.NonExistingAggregate
+                every { read(any(), any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
+                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>()::class.simpleName!! }
             }
 
             val queue = spyk(
@@ -111,7 +114,8 @@ class CommandQueueTest : StringSpec() {
             data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
 
             val repository = mockk<AggregateRepository>().apply {
-                every { read(any(), someAggregateConfiguration) } returns AggregateReadResult.NonExistingAggregate
+                every { read(any(), any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
+                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>()::class.simpleName!! }
             }
 
             val queue = spyk(

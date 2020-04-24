@@ -12,11 +12,9 @@ class SagaEventHandlingTest : StringSpec() {
 
     private data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
 
-    @SerializationId("some-id")
     private data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
 
     @Deprecated(message = "dont use this event")
-    @SerializationId("some-deprecated-event")
     private data class SomeDeprecatedEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
 
     init {
@@ -27,14 +25,16 @@ class SagaEventHandlingTest : StringSpec() {
                 init {
                     init<SomeEvent>({ it.aggregateId }) { setState(SomeState(it.aggregateId)) }
                 }
-            }.handleEvent(EventWrapper(event, -1)) { _, _ -> null }.apply {
-                with(this as SagaRepository.Operation.Insert) {
-                    correlationId shouldBe event.aggregateId
-                    serializationId shouldBe sagaSerializationId
-                    newState shouldBe SomeState(event.aggregateId)
-                    commands shouldBe emptyList()
-                }
-            }
+            }.getConfiguration { it.simpleName!! }
+                    .handleEvent(EventWrapper(event, -1, event::class.simpleName!!)) { _, _ -> null }
+                    .run {
+                        with(this as SagaRepository.Operation.Insert) {
+                            correlationId shouldBe event.aggregateId
+                            serializationId shouldBe sagaSerializationId
+                            newState shouldBe SomeState(event.aggregateId)
+                            commands shouldBe emptyList()
+                        }
+                    }
         }
 
         "test that a saga which already exists will not be initialized" {
@@ -44,9 +44,10 @@ class SagaEventHandlingTest : StringSpec() {
                 init {
                     init<SomeEvent>({ it.aggregateId }) { setState(SomeState(it.aggregateId)) }
                 }
-            }.handleEvent(EventWrapper(event, -1)) { id, _ -> SomeState(id) }.apply {
-                this shouldBe null
-            }
+            }.getConfiguration { it.simpleName!! }
+                    .handleEvent(EventWrapper(event, -1, event::class.simpleName!!)) { id, _ -> SomeState(id) }.apply {
+                        this shouldBe null
+                    }
         }
 
         "test that a saga can dispatch commands during initialization" {
@@ -59,14 +60,15 @@ class SagaEventHandlingTest : StringSpec() {
                         dispatch(SomeCmd(it.aggregateId))
                     }
                 }
-            }.handleEvent(EventWrapper(event, -1)) { _, _ -> null }.apply {
-                with(this as SagaRepository.Operation.Insert) {
-                    correlationId shouldBe event.aggregateId
-                    serializationId shouldBe sagaSerializationId
-                    newState shouldBe SomeState(event.aggregateId)
-                    commands.single() shouldBe SomeCmd(event.aggregateId)
-                }
-            }
+            }.getConfiguration { it.simpleName!! }
+                    .handleEvent(EventWrapper(event, -1, event::class.simpleName!!)) { _, _ -> null }.apply {
+                        with(this as SagaRepository.Operation.Insert) {
+                            correlationId shouldBe event.aggregateId
+                            serializationId shouldBe sagaSerializationId
+                            newState shouldBe SomeState(event.aggregateId)
+                            commands.single() shouldBe SomeCmd(event.aggregateId)
+                        }
+                    }
         }
 
         "test that we can mutate state while handling events on existing saga" {
@@ -76,14 +78,15 @@ class SagaEventHandlingTest : StringSpec() {
                 init {
                     apply<SomeEvent>({ it.aggregateId }) { setState(state.copy(updated = true)) }
                 }
-            }.handleEvent(EventWrapper(event, 0)) { id, _ -> SomeState(id) }.apply {
-                with(this as SagaRepository.Operation.SagaUpdate) {
-                    correlationId shouldBe event.aggregateId
-                    serializationId shouldBe sagaSerializationId
-                    newState shouldBe SomeState(event.aggregateId, true)
-                    commands shouldBe emptyList()
-                }
-            }
+            }.getConfiguration { it.simpleName!! }
+                    .handleEvent(EventWrapper(event, 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }.apply {
+                        with(this as SagaRepository.Operation.SagaUpdate) {
+                            correlationId shouldBe event.aggregateId
+                            serializationId shouldBe sagaSerializationId
+                            newState shouldBe SomeState(event.aggregateId, true)
+                            commands shouldBe emptyList()
+                        }
+                    }
         }
 
         "test that we can dispatch commands while handling event on existing saga" {
@@ -93,14 +96,15 @@ class SagaEventHandlingTest : StringSpec() {
                 init {
                     apply<SomeEvent>({ it.aggregateId }) { dispatch(SomeCmd(it.aggregateId)) }
                 }
-            }.handleEvent(EventWrapper(event, 0)) { id, _ -> SomeState(id) }.apply {
-                with(this as SagaRepository.Operation.SagaUpdate) {
-                    correlationId shouldBe event.aggregateId
-                    serializationId shouldBe sagaSerializationId
-                    newState shouldBe null
-                    commands.single() shouldBe SomeCmd(event.aggregateId)
-                }
-            }
+            }.getConfiguration { it.simpleName!! }
+                    .handleEvent(EventWrapper(event, 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }.apply {
+                        with(this as SagaRepository.Operation.SagaUpdate) {
+                            correlationId shouldBe event.aggregateId
+                            serializationId shouldBe sagaSerializationId
+                            newState shouldBe null
+                            commands.single() shouldBe SomeCmd(event.aggregateId)
+                        }
+                    }
         }
 
         "test that we can create timeouts while handling event on existing saga" {
@@ -114,13 +118,14 @@ class SagaEventHandlingTest : StringSpec() {
                         dispatch(SomeCmd(state.id))
                     }
                 }
-            }.handleEvent(EventWrapper(event, 0)) { id, _ -> SomeState(id) }
+            }.getConfiguration { it.simpleName!! }
+                    .handleEvent(EventWrapper(event, 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }
                     .run {
                         with(this as SagaRepository.Operation.SagaUpdate) {
                             correlationId shouldBe event.aggregateId
                             serializationId shouldBe sagaSerializationId
                             newState shouldBe null
-                            timeouts.single() shouldBe Saga.Timeout(timeoutAt, SomeEvent::class.serializationId)
+                            timeouts.single() shouldBe Saga.Timeout(timeoutAt, SomeEvent::class.simpleName!!)
                         }
                     }
         }
@@ -136,11 +141,12 @@ class SagaEventHandlingTest : StringSpec() {
                         dispatch(SomeCmd(state.id))
                     }
                 }
-            }.handleTimeout(SagaRepository.Timeout(
-                    sagaCorrelationId = event.aggregateId,
-                    sagaSerializationId = sagaSerializationId,
-                    timeoutId = SomeEvent::class.serializationId
-            )) { id, _ -> SomeState(id) }
+            }.getConfiguration { it.simpleName!! }
+                    .handleTimeout(SagaRepository.Timeout(
+                            sagaCorrelationId = event.aggregateId,
+                            sagaSerializationId = sagaSerializationId,
+                            timeoutId = SomeEvent::class.simpleName!!
+                    )) { id, _ -> SomeState(id) }
                     .run {
                         with(this as SagaRepository.Operation.SagaUpdate) {
                             correlationId shouldBe event.aggregateId
@@ -159,7 +165,8 @@ class SagaEventHandlingTest : StringSpec() {
                     init<SomeEvent>({ it.aggregateId }) { setState(SomeState(it.aggregateId)) }
                     apply<SomeEvent>({ it.aggregateId }) { setState(state.copy(updated = true)) }
                 }
-            }.handleEvent(EventWrapper(event, 0)) { id, _ -> null }
+            }.getConfiguration { it.simpleName!! }
+                    .handleEvent(EventWrapper(event, 0, event::class.simpleName!!)) { id, _ -> null }
                     .run {
                         with(this as SagaRepository.Operation.Insert) {
                             correlationId shouldBe event.aggregateId
@@ -178,7 +185,8 @@ class SagaEventHandlingTest : StringSpec() {
                     init<SomeEvent>({ it.aggregateId }) { setState(SomeState(it.aggregateId)) }
                     apply<SomeEvent>({ it.aggregateId }) { setState(state.copy(updated = true)) }
                 }
-            }.handleEvent(EventWrapper(event, 0)) { id, _ -> SomeState(id) }
+            }.getConfiguration { it.simpleName!! }
+                    .handleEvent(EventWrapper(event, 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }
                     .run {
                         with(this as SagaRepository.Operation.SagaUpdate) {
                             correlationId shouldBe event.aggregateId

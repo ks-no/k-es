@@ -1,6 +1,9 @@
 package no.ks.kes.lib
 
-interface EventSerdes<FORMAT> {
-    fun deserialize(eventData: FORMAT, eventType: String): Event<*>
-    fun serialize(event: Event<*>): FORMAT
+import kotlin.reflect.KClass
+
+interface EventSerdes {
+    fun deserialize(eventData: ByteArray, eventType: String): Event<*>
+    fun serialize(event: Event<*>): ByteArray
+    fun <T : Event<*>> getSerializationId(eventClass: KClass<T>): String
 }

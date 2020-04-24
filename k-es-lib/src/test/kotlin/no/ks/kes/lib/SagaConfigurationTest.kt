@@ -11,11 +11,9 @@ class SagaConfigurationTest : StringSpec() {
 
     private data class SomeState(val id: UUID)
 
-    @SerializationId("some-id")
     private data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
 
     @Deprecated(message = "dont use this event")
-    @SerializationId("some-deprecated-event")
     private data class SomeDeprecatedEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
 
     init {
@@ -27,8 +25,8 @@ class SagaConfigurationTest : StringSpec() {
                         init<SomeEvent>({ it.aggregateId }) { SomeState(it.aggregateId) }
                         init<SomeEvent>({ it.aggregateId }) { SomeState(it.aggregateId) }
                     }
-                }
-            }.message shouldContain "Duplicate init handler"
+                }.getConfiguration { it.simpleName!! }
+            }.message shouldContain "There are multiple \"init\" configurations for event-type(s)"
 
         }
 
@@ -38,7 +36,7 @@ class SagaConfigurationTest : StringSpec() {
                     init {
                         init<SomeDeprecatedEvent>({ it.aggregateId }) { SomeState(it.aggregateId) }
                     }
-                }
+                }.getConfiguration { it.simpleName!! }
             }.message shouldContain "handles deprecated event"
 
         }
@@ -49,7 +47,7 @@ class SagaConfigurationTest : StringSpec() {
                     init {
                         apply<SomeDeprecatedEvent>({ it.aggregateId }) { SomeState(it.aggregateId) }
                     }
-                }
+                }.getConfiguration { it.simpleName!! }
             }.message shouldContain "handles deprecated event"
 
         }
@@ -61,7 +59,7 @@ class SagaConfigurationTest : StringSpec() {
                         init<SomeEvent> { setState(SomeState(it.aggregateId)) }
                         timeout<SomeDeprecatedEvent>({ it.aggregateId }, { e -> Instant.now() }) { setState(SomeState(UUID.randomUUID())) }
                     }
-                }
+                }.getConfiguration { it.simpleName!! }
             }.message shouldContain "handles deprecated event"
 
         }
@@ -73,8 +71,8 @@ class SagaConfigurationTest : StringSpec() {
                         apply<SomeEvent> { setState(SomeState(it.aggregateId)) }
                         timeout<SomeEvent>({ it.aggregateId }, { e -> Instant.now() }) { setState(SomeState(UUID.randomUUID())) }
                     }
-                }
-            }.message shouldContain "Duplicate apply/timeout handler for event"
+                }.getConfiguration { it.simpleName!! }
+            }.message shouldContain "There are multiple \"apply/timeout\" configurations for event-type(s)"
 
         }
 
@@ -85,8 +83,8 @@ class SagaConfigurationTest : StringSpec() {
                         apply<SomeEvent> { setState(SomeState(it.aggregateId)) }
                         apply<SomeEvent> { setState(SomeState(it.aggregateId)) }
                     }
-                }
-            }.message shouldContain "Duplicate apply/timeout handler for event"
+                }.getConfiguration { it.simpleName!! }
+            }.message shouldContain "There are multiple \"apply/timeout\" configurations for event-type(s)"
         }
     }
 }

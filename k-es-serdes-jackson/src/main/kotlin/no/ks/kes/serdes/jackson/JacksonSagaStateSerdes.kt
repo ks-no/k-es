@@ -10,10 +10,10 @@ import kotlin.reflect.KClass
 class JacksonSagaStateSerdes(private val objectMapper: ObjectMapper = ObjectMapper()
         .registerModule(Jdk8Module())
         .registerModule(JavaTimeModule())
-        .registerModule(KotlinModule())) : SagaStateSerdes<String> {
-    override fun <T : Any> deserialize(sagaData: String, sagaStateClass: KClass<T>): T =
+        .registerModule(KotlinModule())) : SagaStateSerdes {
+    override fun <T : Any> deserialize(sagaData: ByteArray, sagaStateClass: KClass<T>): T =
             objectMapper.readValue(sagaData, sagaStateClass.java)
 
-    override fun serialize(sagaState: Any): String = objectMapper.writeValueAsString(sagaState)
+    override fun serialize(sagaState: Any): ByteArray = objectMapper.writeValueAsBytes(sagaState)
 
 }

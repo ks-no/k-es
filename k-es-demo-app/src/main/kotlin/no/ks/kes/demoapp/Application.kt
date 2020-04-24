@@ -48,7 +48,7 @@ class Application {
             .build()
 
     @Bean
-    fun eventSerdes(): EventSerdes<String> = JacksonEventSerdes(setOf(
+    fun eventSerdes(): EventSerdes = JacksonEventSerdes(setOf(
             Basket.Created::class,
             Basket.ItemAdded::class,
             Basket.CheckedOut::class,
@@ -62,7 +62,7 @@ class Application {
 
     @Bean
     @DependsOn("flyway", "flywayInitializer")
-    fun aggregateRepo(eventStore: EventStore, eventSerdes: EventSerdes<String>): AggregateRepository =
+    fun aggregateRepo(eventStore: EventStore, eventSerdes: EventSerdes): AggregateRepository =
             EsjcAggregateRepository(eventStore, eventSerdes, EsjcEventUtil.defaultStreamName("no.ks.kes.demoapp"))
 
     @Bean
@@ -79,7 +79,7 @@ class Application {
             ShipmentCmds(aggregateRepository, warehouseManager)
 
     @Bean
-    fun subscriber(eventStore: EventStore, eventSerdes: EventSerdes<String>): EventSubscriberFactory =
+    fun subscriber(eventStore: EventStore, eventSerdes: EventSerdes): EventSubscriberFactory =
             EsjcEventSubscriberFactory(eventStore, eventSerdes, "no.ks.kes.demoapp")
 
     @Component

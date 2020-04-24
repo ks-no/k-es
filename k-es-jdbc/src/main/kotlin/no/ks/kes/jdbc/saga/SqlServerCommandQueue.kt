@@ -11,7 +11,7 @@ import java.time.ZoneOffset
 import java.util.*
 import javax.sql.DataSource
 
-class SqlServerCommandQueue(dataSource: DataSource, private val cmdSerdes: CmdSerdes<String>, cmdHandlers: Set<CmdHandler<*>>, private val schema: String? = null) : CommandQueue(cmdHandlers) {
+class SqlServerCommandQueue(dataSource: DataSource, private val cmdSerdes: CmdSerdes, cmdHandlers: Set<CmdHandler<*>>, private val schema: String? = null) : CommandQueue(cmdHandlers) {
     private val template = NamedParameterJdbcTemplate(dataSource)
     private val transactionManager = DataSourceTransactionManager(dataSource)
 
@@ -63,7 +63,7 @@ class SqlServerCommandQueue(dataSource: DataSource, private val cmdSerdes: CmdSe
             ) { rs, _ ->
                 CmdWrapper(
                         id = rs.getLong(CmdTable.id),
-                        cmd = cmdSerdes.deserialize(rs.getString(CmdTable.data), rs.getString(CmdTable.serializationId)),
+                        cmd = cmdSerdes.deserialize(rs.getString(CmdTable.data).toByteArray(), rs.getString(CmdTable.serializationId)),
                         retries = rs.getInt(CmdTable.retries)
                 )
             }.singleOrNull()

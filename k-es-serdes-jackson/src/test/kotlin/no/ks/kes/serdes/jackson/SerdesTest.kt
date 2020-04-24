@@ -5,7 +5,6 @@ import io.kotlintest.specs.StringSpec
 import no.ks.kes.lib.Aggregate
 import no.ks.kes.lib.Cmd
 import no.ks.kes.lib.Event
-import no.ks.kes.lib.SerializationId
 import java.time.Instant
 import java.util.*
 

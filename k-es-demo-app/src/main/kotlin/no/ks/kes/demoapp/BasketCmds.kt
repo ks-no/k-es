@@ -4,7 +4,7 @@ import no.ks.kes.lib.AggregateRepository
 import no.ks.kes.lib.Cmd
 import no.ks.kes.lib.CmdHandler
 import no.ks.kes.lib.CmdHandler.Result.*
-import no.ks.kes.lib.SerializationId
+import no.ks.kes.serdes.jackson.SerializationId
 import java.time.Instant
 import java.util.*
 

@@ -1,6 +1,9 @@
 package no.ks.kes.lib
 
-interface CmdSerdes<FORMAT> {
-    fun deserialize(cmdData: FORMAT, serializationId: String): Cmd<*>
-    fun serialize(cmd: Cmd<*>): FORMAT
+import kotlin.reflect.KClass
+
+interface CmdSerdes {
+    fun deserialize(cmdData: ByteArray, serializationId: String): Cmd<*>
+    fun serialize(cmd: Cmd<*>): ByteArray
+    fun getSerializationId(cmdClass: KClass<Cmd<*>>): String
 }

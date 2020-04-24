@@ -12,7 +12,6 @@ internal class ProjectionTest : StringSpec() {
         "test that a projection can handle incoming events and mutate its state accordingly" {
             data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-            @SerializationId("Hired")
             data class Hired(
                     override val aggregateId: UUID,
                     val recruitedBy: UUID,
@@ -38,7 +37,7 @@ internal class ProjectionTest : StringSpec() {
                     recruitedBy = UUID.randomUUID())
 
             StartDatesProjection().apply {
-                accept(EventWrapper(hiredEvent, 0))
+                getConfiguration { it.simpleName!! }.accept(EventWrapper(hiredEvent, 0, hiredEvent::class.simpleName!!))
 
                 getStartDate(hiredEvent.aggregateId) shouldBe LocalDate.now()
             }

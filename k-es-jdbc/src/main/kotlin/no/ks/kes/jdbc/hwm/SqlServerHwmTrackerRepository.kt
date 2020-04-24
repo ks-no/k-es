@@ -22,24 +22,24 @@ class SqlServerHwmTrackerRepository(private val template: NamedParameterJdbcTemp
 
     override fun update(subscriber: String, hwm: Long) {
         template.update(
-                        """
+                """
                     UPDATE ${HwmTable.qualifiedName(schema)}  SET ${HwmTable.hwm} = :${HwmTable.hwm}
                     WHERE ${HwmTable.subscriber} = :${HwmTable.subscriber}
                  """,
-                        mapOf(
-                                HwmTable.subscriber to subscriber,
-                                HwmTable.hwm to hwm
-                        ))
+                mapOf(
+                        HwmTable.subscriber to subscriber,
+                        HwmTable.hwm to hwm
+                ))
                 .also { if (it != 1) error("Error updating hwm for $subscriber, expected 1 row changed on update, but $it was changed") }
     }
 
     private fun initHwm(subscriber: String): Long {
         template.update(
-                        """ 
+                """ 
                     INSERT INTO ${HwmTable.qualifiedName(schema)}  (${HwmTable.subscriber}, ${HwmTable.hwm})
                     VALUES (:${HwmTable.subscriber}, 0) 
                 """,
-                        mapOf(HwmTable.subscriber to subscriber))
+                mapOf(HwmTable.subscriber to subscriber))
                 .also { if (it != 1) error("Error inserting new hwm for $subscriber, expected 1 row changed on insert, but $it was inserted") }
         return 0L
     }

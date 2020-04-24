@@ -1,7 +1,6 @@
 package no.ks.kes.demoapp
 
 import no.ks.kes.lib.Saga
-import no.ks.kes.lib.SerializationId
 import java.util.*
 
 data class ShipmentSagaState(val orderId: UUID, val basketId: UUID, val delivered: Boolean = false, val failed: Boolean = false)

@@ -5,7 +5,7 @@ import no.ks.kes.jdbc.CmdTable
 import no.ks.kes.jdbc.SagaTable
 import no.ks.kes.jdbc.TimeoutTable
 import no.ks.kes.jdbc.hwm.SqlServerHwmTrackerRepository
-import no.ks.kes.lib.AnnotationUtil
+import no.ks.kes.lib.Cmd
 import no.ks.kes.lib.CmdSerdes
 import no.ks.kes.lib.SagaRepository
 import no.ks.kes.lib.SagaStateSerdes
@@ -22,8 +22,8 @@ private val log = KotlinLogging.logger {}
 
 class SqlServerSagaRepository(
         dataSource: DataSource,
-        private val sagaStateSerdes: SagaStateSerdes<String>,
-        private val cmdSerdes: CmdSerdes<String>,
+        private val sagaStateSerdes: SagaStateSerdes,
+        private val cmdSerdes: CmdSerdes,
         private val schema: String? = null
 ) : SagaRepository {
     private val template = NamedParameterJdbcTemplate(dataSource)
@@ -88,7 +88,7 @@ class SqlServerSagaRepository(
         ) { r, _ -> r.getString(SagaTable.data) }
                 .singleOrNull()
                 ?.let {
-                    sagaStateSerdes.deserialize(it, sagaStateClass)
+                    sagaStateSerdes.deserialize(it.toByteArray(), sagaStateClass)
                 }
     }
 
@@ -102,7 +102,7 @@ class SqlServerSagaRepository(
                             mutableMapOf(
                                     SagaTable.correlationId to it.correlationId,
                                     SagaTable.serializationId to it.serializationId,
-                                    SagaTable.data to sagaStateSerdes.serialize(it.newState))
+                                    SagaTable.data to String(sagaStateSerdes.serialize(it.newState)))
                         }
                         .toTypedArray()
         )
@@ -131,7 +131,7 @@ class SqlServerSagaRepository(
                             mutableMapOf(
                                     SagaTable.correlationId to it.correlationId,
                                     SagaTable.serializationId to it.serializationId,
-                                    SagaTable.data to sagaStateSerdes.serialize(it.newState!!))
+                                    SagaTable.data to String(sagaStateSerdes.serialize(it.newState!!)))
                         }
                         .toTypedArray()
         )
@@ -143,10 +143,10 @@ class SqlServerSagaRepository(
                         """,
                 states.flatMap { it.commands }.map {
                     mutableMapOf(
-                            CmdTable.serializationId to AnnotationUtil.getSerializationId(it::class),
+                            CmdTable.serializationId to cmdSerdes.getSerializationId(it::class as KClass<Cmd<*>>),
                             CmdTable.aggregateId to it.aggregateId,
                             CmdTable.nextExecution to OffsetDateTime.now(ZoneOffset.UTC),
-                            CmdTable.data to cmdSerdes.serialize(it))
+                            CmdTable.data to String(cmdSerdes.serialize(it)))
                 }
                         .toTypedArray())
     }

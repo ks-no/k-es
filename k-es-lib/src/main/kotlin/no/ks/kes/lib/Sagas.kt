@@ -11,6 +11,8 @@ private const val SAGA_SUBSCRIBER = "SagaManager"
 object Sagas {
 
     fun initialize(eventSubscriberFactory: EventSubscriberFactory, sagaRepository: SagaRepository, sagas: Set<Saga<*>>, commandQueue: CommandQueue, pollInterval: Long = 5000) {
+        val validSagaConfigurations = sagas.map { it.getConfiguration { eventSubscriberFactory.getSerializationId(it) } }
+
         eventSubscriberFactory.createSubscriber(
                 subscriber = SAGA_SUBSCRIBER,
                 fromEvent = sagaRepository.hwmTracker.getOrInit(SAGA_SUBSCRIBER),
@@ -18,11 +20,11 @@ object Sagas {
                     sagaRepository.transactionally {
                         try {
                             sagaRepository.update(
-                                    sagas.mapNotNull {
+                                    validSagaConfigurations.mapNotNull {
                                         it.handleEvent(
                                                 wrapper = wrapper,
                                                 stateProvider = { correlationId: UUID, stateClass: KClass<*> ->
-                                                    sagaRepository.getSagaState(correlationId, it.serializationId, stateClass)
+                                                    sagaRepository.getSagaState(correlationId, it.sagaSerializationId, stateClass)
                                                 })
                                     }.toSet()
                             )
@@ -40,7 +42,7 @@ object Sagas {
                 sagaRepository.getReadyTimeouts()
                         ?.let { timeout ->
                             log.debug { "polled for timeouts, found timeout $timeout" }
-                            val matchingSagas = sagas.filter { it.serializationId == timeout.sagaSerializationId }
+                            val matchingSagas = validSagaConfigurations.filter { it.sagaSerializationId == timeout.sagaSerializationId }
                             val saga = when {
                                 matchingSagas.isEmpty() -> error("Timeout $timeout was triggered, but no sagas matching the serializationId \"${timeout.sagaSerializationId}\" was found. Please check your saga configuration")
                                 matchingSagas.size > 1 -> error("Timeout $timeout was triggered, but multiple sagas matching the serializationId \"${timeout.sagaSerializationId}\" was found. Please check your saga configuration")
@@ -51,7 +53,7 @@ object Sagas {
                                     stateProvider = { correlationId: UUID, stateClass: KClass<*> ->
                                         sagaRepository.getSagaState(
                                                 correlationId = correlationId,
-                                                serializationId = saga.serializationId,
+                                                serializationId = saga.sagaSerializationId,
                                                 sagaStateClass = stateClass
                                         )
                                     }
