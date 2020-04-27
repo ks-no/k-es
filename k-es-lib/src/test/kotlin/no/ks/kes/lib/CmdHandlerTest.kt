@@ -5,7 +5,6 @@ import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
-import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
@@ -13,7 +12,7 @@ internal class CmdHandlerTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
     @SerializationId("some-id")
-    data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+    data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
     val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
         init {
@@ -34,11 +33,11 @@ internal class CmdHandlerTest : StringSpec() {
                 object : CmdHandler<SomeAggregate>(mockk(), mockk()) {
                     init {
                         init<HireCmd> {
-                            Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
+                            Result.Succeed(SomeEvent(it.aggregateId))
                         }
 
                         init<HireCmd> {
-                            Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
+                            Result.Succeed(SomeEvent(it.aggregateId))
                         }
                     }
                 }
@@ -53,11 +52,11 @@ internal class CmdHandlerTest : StringSpec() {
                 object : CmdHandler<SomeAggregate>(mockk(), mockk()) {
                     init {
                         apply<HireCmd> {
-                            Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
+                            Result.Succeed(SomeEvent(it.aggregateId))
                         }
 
                         apply<HireCmd> {
-                            Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
+                            Result.Succeed(SomeEvent(it.aggregateId))
                         }
                     }
                 }
@@ -83,7 +82,7 @@ internal class CmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
+                        Result.Succeed(SomeEvent(it.aggregateId))
                     }
                 }
             }.handle(someCmd).apply {

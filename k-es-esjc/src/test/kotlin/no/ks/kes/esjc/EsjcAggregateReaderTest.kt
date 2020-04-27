@@ -20,11 +20,11 @@ class EsjcAggregateReaderTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
     @SerializationId("some-id")
-    data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+    data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
 
     @SerializationId("some-other-id")
-    data class SomeOtherEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+    data class SomeOtherEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
 
     private val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
@@ -40,8 +40,8 @@ class EsjcAggregateReaderTest : StringSpec() {
 
     init {
         "Test that the reader can retrieve and deserialize aggregate events from the event-store" {
-            val someEvent = SomeEvent(UUID.randomUUID(), Instant.now())
-            val someOtherEvent = SomeOtherEvent(UUID.randomUUID(), Instant.now())
+            val someEvent = SomeEvent(UUID.randomUUID())
+            val someOtherEvent = SomeOtherEvent(UUID.randomUUID())
             val eventStoreMock = mockk<EventStore>()
                     .apply {
                         every { streamEventsForward(any(), any(), any(), any()) } returns

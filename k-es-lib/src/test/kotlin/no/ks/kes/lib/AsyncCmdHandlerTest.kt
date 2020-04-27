@@ -6,17 +6,16 @@ import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import java.time.Instant
 import java.util.*
 
 internal class AsyncCmdHandlerTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
     @SerializationId("some-id")
-    data class SomeInitEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+    data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
     @SerializationId("some-other-id")
-    data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+    data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
     val aggregateConfig = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
         init {
@@ -46,7 +45,7 @@ internal class AsyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, aggregateConfig) {
                 init {
                     init<SomeCmd> {
-                        Result.Succeed(SomeInitEvent(it.aggregateId, Instant.now()))
+                        Result.Succeed(SomeInitEvent(it.aggregateId))
                     }
                 }
             }.handleAsync(someCmd, 0)
@@ -70,7 +69,7 @@ internal class AsyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, aggregateConfig) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
+                        Result.Succeed(SomeEvent(it.aggregateId))
                     }
                 }
             }.handleAsync(someCmd, 0)

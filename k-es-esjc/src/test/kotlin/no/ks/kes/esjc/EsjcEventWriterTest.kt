@@ -22,11 +22,11 @@ internal class EsjcEventWriterTest : StringSpec() {
             data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
             @SerializationId("some-id")
-            data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+            data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
             val eventAggregateType = UUID.randomUUID().toString()
 
-            val event = SomeEvent(UUID.randomUUID(), Instant.now())
+            val event = SomeEvent(UUID.randomUUID())
 
             val capturedEventData = slot<List<EventData>>()
             val eventStoreMock = mockk<EventStore>().apply {

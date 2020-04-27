@@ -6,7 +6,6 @@ import io.mockk.every
 import io.mockk.invoke
 import io.mockk.mockk
 import io.mockk.slot
-import java.time.Instant
 import java.util.*
 
 internal class ProjectionsTest : StringSpec() {
@@ -14,7 +13,7 @@ internal class ProjectionsTest : StringSpec() {
     private data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
     @SerializationId("some-id")
-    data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+    data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
     init {
         "test that a projection can handle incoming events and mutate its state accordingly" {
@@ -57,8 +56,7 @@ internal class ProjectionsTest : StringSpec() {
             )
 
             val hiredEvent = SomeEvent(
-                    aggregateId = UUID.randomUUID(),
-                    timestamp = Instant.now()
+                    aggregateId = UUID.randomUUID()
             )
 
             //when we invoke the captured handler from the manager with the subscribed event
