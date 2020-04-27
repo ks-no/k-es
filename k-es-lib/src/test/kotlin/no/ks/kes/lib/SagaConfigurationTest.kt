@@ -12,11 +12,11 @@ class SagaConfigurationTest : StringSpec() {
     private data class SomeState(val id: UUID)
 
     @SerializationId("some-id")
-    private data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+    private data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
     @Deprecated(message = "dont use this event")
     @SerializationId("some-deprecated-event")
-    private data class SomeDeprecatedEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+    private data class SomeDeprecatedEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
     init {
 

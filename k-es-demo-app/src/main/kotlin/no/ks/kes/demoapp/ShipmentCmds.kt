@@ -14,17 +14,17 @@ class ShipmentCmds(repo: AggregateRepository, warehouseManager: WarehouseManager
         init<Request> {
             try {
                 warehouseManager.shipOrder(it.aggregateId)
-                Succeed(Shipment.Prepared(it.aggregateId, Instant.now(), it.basketId, it.items))
+                Succeed(Shipment.Prepared(it.aggregateId, it.basketId, it.items))
             } catch (e: ItemNoLongerCarried) {
-                Fail(Shipment.Failed(it.aggregateId, Instant.now(), "Item no longer carried!", it.basketId), e)
+                Fail(Shipment.Failed(it.aggregateId, "Item no longer carried!", it.basketId), e)
             } catch (e: WarehouseSystemFailure) {
-                RetryOrFail(Shipment.Failed(it.aggregateId, Instant.now(), "System problem!", it.basketId), e) { Instant.now() }
+                RetryOrFail(Shipment.Failed(it.aggregateId,  "System problem!", it.basketId), e) { Instant.now() }
             }
         }
 
         apply<SendMissingShipmentAlert> {
             warehouseManager.investigateMissingShipment(it.aggregateId)
-            Succeed(Shipment.WarehouseNotifiedOfMissingShipment(it.aggregateId, Instant.now(), it.basketId))
+            Succeed(Shipment.WarehouseNotifiedOfMissingShipment(it.aggregateId, it.basketId))
         }
     }
 

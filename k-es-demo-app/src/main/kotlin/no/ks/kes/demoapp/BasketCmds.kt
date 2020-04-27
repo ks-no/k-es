@@ -5,19 +5,18 @@ import no.ks.kes.lib.Cmd
 import no.ks.kes.lib.CmdHandler
 import no.ks.kes.lib.CmdHandler.Result.*
 import no.ks.kes.lib.SerializationId
-import java.time.Instant
 import java.util.*
 
 class BasketCmds(repo: AggregateRepository, paymentProcessor: PaymentProcessor) : CmdHandler<BasketAggregate>(repo, Basket) {
 
     init {
-        init<Create> { Succeed(Basket.Created(it.aggregateId, Instant.now())) }
+        init<Create> { Succeed(Basket.Created(it.aggregateId)) }
 
         apply<AddItem> {
             if (basketClosed)
                 Fail(IllegalStateException("Can't add items to a closed basket"))
             else
-                Succeed(Basket.ItemAdded(it.aggregateId, Instant.now(), it.itemId))
+                Succeed(Basket.ItemAdded(it.aggregateId, it.itemId))
         }
 
         apply<CheckOut> {
@@ -26,7 +25,7 @@ class BasketCmds(repo: AggregateRepository, paymentProcessor: PaymentProcessor) 
                 basketContents.isEmpty() -> Fail(IllegalStateException("Can't check out a empty basket, buy something first?"))
                 else -> try {
                     paymentProcessor.process(it.aggregateId)
-                    Succeed(Basket.CheckedOut(it.aggregateId, Instant.now(), basketContents.toMap()))
+                    Succeed(Basket.CheckedOut(it.aggregateId, basketContents.toMap()))
                 } catch (e: Exception) {
                     RetryOrFail<BasketAggregate>(e)
                 }

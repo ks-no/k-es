@@ -2,7 +2,6 @@ package no.ks.kes.lib
 
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
-import java.time.Instant
 import java.util.*
 import kotlin.random.Random
 
@@ -13,7 +12,7 @@ internal class AggregateConfigurationTest : StringSpec() {
             data class SomeState(val stateInitialized: Boolean) : Aggregate
 
             @SerializationId("some-id")
-            data class SomeInitEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeState>
+            data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
                 init {
@@ -23,7 +22,7 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val initializedState = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID(), Instant.now()), -1), null)
+            val initializedState = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1), null)
 
             initializedState!!.stateInitialized shouldBe true
         }
@@ -32,10 +31,10 @@ internal class AggregateConfigurationTest : StringSpec() {
             data class SomeState(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
             @SerializationId("some-id")
-            data class SomeInitEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeState>
+            data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
             @SerializationId("some-other-id")
-            data class SomeLaterEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeState>
+            data class SomeLaterEvent(override val aggregateId: UUID) : Event<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
                 init {
@@ -53,8 +52,8 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val initializedState = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID(), Instant.now()), -1), null)
-            val updatedState = aggregateConfig.applyEvent(EventWrapper(SomeLaterEvent(UUID.randomUUID(), Instant.now()), -1), initializedState)
+            val initializedState = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1), null)
+            val updatedState = aggregateConfig.applyEvent(EventWrapper(SomeLaterEvent(UUID.randomUUID()), -1), initializedState)
 
             updatedState!!.stateUpdated shouldBe true
         }
@@ -63,10 +62,10 @@ internal class AggregateConfigurationTest : StringSpec() {
             data class SomeState(val initializedWith: String) : Aggregate
 
             @SerializationId("some-id")
-            data class SomeInitEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeState>
+            data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
             @SerializationId("some-other-id")
-            data class SomeOtherInitEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeState>
+            data class SomeOtherInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
                 init {
@@ -84,10 +83,10 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val initializedState0 = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID(), Instant.now()), -1), null)
+            val initializedState0 = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1), null)
             initializedState0!!.initializedWith shouldBe "SomeInitEvent"
 
-            val initializedState1 = aggregateConfig.applyEvent(EventWrapper(SomeOtherInitEvent(UUID.randomUUID(), Instant.now()), -1), null)
+            val initializedState1 = aggregateConfig.applyEvent(EventWrapper(SomeOtherInitEvent(UUID.randomUUID()), -1), null)
             initializedState1!!.initializedWith shouldBe "SomeOtherInitEvent"
 
         }
@@ -96,7 +95,7 @@ internal class AggregateConfigurationTest : StringSpec() {
             data class SomeState(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
             @SerializationId("some-id")
-            data class SomeInitEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeState>
+            data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
                 init {
@@ -114,9 +113,9 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val initializedState = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID(), Instant.now()), -1), null)
+            val initializedState = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1), null)
             initializedState!!.stateInitialized shouldBe true
-            val updatedState = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID(), Instant.now()), -1), initializedState)
+            val updatedState = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1), initializedState)
             updatedState!!.stateUpdated shouldBe true
         }
 
@@ -126,7 +125,7 @@ internal class AggregateConfigurationTest : StringSpec() {
             data class SomeState(val stateUpdated: Boolean = false) : Aggregate
 
             @SerializationId("some-id")
-            data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeState>
+            data class SomeEvent(override val aggregateId: UUID) : Event<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
                 init {
@@ -138,7 +137,7 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val derivedState = aggregateConfig.applyEvent(EventWrapper(SomeEvent(UUID.randomUUID(), Instant.now()), Random.nextLong()), null)
+            val derivedState = aggregateConfig.applyEvent(EventWrapper(SomeEvent(UUID.randomUUID()), Random.nextLong()), null)
             derivedState shouldBe null
         }
 
@@ -146,10 +145,10 @@ internal class AggregateConfigurationTest : StringSpec() {
             data class SomeState(val initializedWith: String) : Aggregate
 
             @SerializationId("some-id")
-            data class SomeInitEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeState>
+            data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
             @SerializationId("some-other-id")
-            data class SomeOtherInitEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeState>
+            data class SomeOtherInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
                 init {
@@ -167,10 +166,10 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val derivedState0 = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID(), Instant.now()), -1), null)
+            val derivedState0 = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1), null)
             derivedState0!!.initializedWith shouldBe "SomeInitEvent"
 
-            val derivedState1 = aggregateConfig.applyEvent(EventWrapper(SomeOtherInitEvent(UUID.randomUUID(), Instant.now()), -1), derivedState0)
+            val derivedState1 = aggregateConfig.applyEvent(EventWrapper(SomeOtherInitEvent(UUID.randomUUID()), -1), derivedState0)
             derivedState1!!.initializedWith shouldBe "SomeInitEvent"
 
         }
