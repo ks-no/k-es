@@ -18,7 +18,8 @@ class SqlServerHwmTrackerRepositoryTest : StringSpec() {
                         every { queryForList(any(), ofType<Map<String, *>>(), Long::class.java) } returns emptyList<Long>()
                         every { update(any(), ofType<Map<String, *>>()) } returns 1
                     }
-            SqlServerHwmTrackerRepository(template).getOrInit("some-subscriber")
+            val initialHwm = Random.nextLong(-1, 1)
+            SqlServerHwmTrackerRepository(template = template, initialHwm = initialHwm).getOrInit("some-subscriber") shouldBe initialHwm
             verify { template.update(any(), ofType<Map<String, *>>()) }
         }
 
@@ -28,7 +29,7 @@ class SqlServerHwmTrackerRepositoryTest : StringSpec() {
                     .apply {
                         every { queryForList(any(), ofType<Map<String, *>>(), Long::class.java) } returns listOf(hwm)
                     }
-            SqlServerHwmTrackerRepository(template).getOrInit("some-subscriber") shouldBe hwm
+            SqlServerHwmTrackerRepository(template = template, initialHwm = Random.nextLong(-1, 1)).getOrInit("some-subscriber") shouldBe hwm
         }
 
         "Test that an exception is thrown if a hwm-update operation does not change any rows" {
@@ -37,7 +38,7 @@ class SqlServerHwmTrackerRepositoryTest : StringSpec() {
                     .apply {
                         every { update(any(), ofType<Map<String, *>>()) } returns 0
                     }
-            shouldThrow<IllegalStateException> { SqlServerHwmTrackerRepository(template).update("some-subscriber", Random.nextLong()) }
+            shouldThrow<IllegalStateException> { SqlServerHwmTrackerRepository(template = template, initialHwm = Random.nextLong(-1, 1)).update("some-subscriber", Random.nextLong()) }
         }
 
         "Test that no exception is thrown if a hwm-update operation changes exactly one row" {
@@ -46,7 +47,7 @@ class SqlServerHwmTrackerRepositoryTest : StringSpec() {
                     .apply {
                         every { update(any(), ofType<Map<String, *>>()) } returns 1
                     }
-            SqlServerHwmTrackerRepository(template).update("some-subscriber", Random.nextLong())
+            SqlServerHwmTrackerRepository(template = template, initialHwm = Random.nextLong(-1, 1)).update("some-subscriber", Random.nextLong())
             verify { template.update(any(), ofType<Map<String, *>>()) }
         }
 
