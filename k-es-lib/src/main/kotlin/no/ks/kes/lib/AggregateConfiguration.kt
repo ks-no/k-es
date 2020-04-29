@@ -10,11 +10,11 @@ abstract class AggregateConfiguration<STATE : Aggregate>(val aggregateType: Stri
     protected val initializers: MutableMap<KClass<Event<*>>, (EventWrapper<*>) -> STATE> = mutableMapOf()
 
     protected inline fun <reified E : Event<*>> apply(crossinline applicator: STATE.(E) -> STATE) {
-        applicators[E::class as KClass<Event<*>>] = { s, e -> applicator(s, EventUpgrader.upgradeTo(e.event, E::class)) }
+        applicators[E::class as KClass<Event<*>>] = { s, e -> applicator(s, e.event as E) }
     }
 
     protected inline fun <reified E : Event<*>> init(crossinline initializer: (E) -> STATE) {
-        initializers[E::class as KClass<Event<*>>] = { initializer(EventUpgrader.upgradeTo(it.event, E::class)) }
+        initializers[E::class as KClass<Event<*>>] = { initializer(it.event as E) }
     }
 
     internal fun getConfiguration(serializationIdFunction: (KClass<Event<*>>) -> String): ValidatedAggregateConfiguration<STATE> =

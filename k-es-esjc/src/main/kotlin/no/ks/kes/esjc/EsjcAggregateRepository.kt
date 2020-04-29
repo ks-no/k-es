@@ -45,20 +45,24 @@ class EsjcAggregateRepository(
 
     override fun <A : Aggregate> read(aggregateId: UUID, aggregateType: String, applicator: (state: A?, event: EventWrapper<*>) -> A?): AggregateReadResult =
             try {
+                val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
                 eventStore.streamEventsForward(
-                        streamIdGenerator.invoke(aggregateType, aggregateId),
+                        streamId,
                         FIRST_EVENT,
                         BATCH_SIZE,
                         false
                 )
                         .asSequence()
-                        .filter { !EsjcEventUtil.isIgnorableEvent(it) }
                         .fold(null as A? to null as Long?, { a, e ->
-                            val deserialized = serdes.deserialize(e.event.data, e.event.eventType)
-                            applicator.invoke(
-                                    a.first,
-                                    EventWrapper(deserialized as Event<A>, e.event.eventNumber, serdes.getSerializationId(deserialized::class))
-                            ) to e.event.eventNumber
+                            if (EsjcEventUtil.isIgnorableEvent(e)) {
+                                a.first to e.event.eventNumber
+                            } else {
+                                val deserialized = EventUpgrader.upgrade(serdes.deserialize(e.event.data, e.event.eventType))
+                                applicator.invoke(
+                                        a.first,
+                                        EventWrapper(deserialized as Event<A>, e.event.eventNumber, serdes.getSerializationId(deserialized::class))
+                                ) to e.event.eventNumber
+                            }
                         })
                         .let {
                             when {
@@ -68,8 +72,7 @@ class EsjcAggregateRepository(
                                 //when the aggregate has non-ignorable events, and applying these has lead to a initialized state
                                 it.first != null && it.second != null -> AggregateReadResult.InitializedAggregate(it.first!!, it.second!!)
 
-                                //when all events on the aggregate are ignorable
-                                else -> AggregateReadResult.NonExistingAggregate
+                                else -> error("Error reading $streamId, the stream exists but does not contain any events")
                             }
                         }
             } catch (e: StreamNotFoundException) {
