@@ -8,6 +8,7 @@ import io.mockk.mockk
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
+import kotlin.random.Random
 import kotlin.reflect.KClass
 
 internal class SyncCmdHandlerTest : StringSpec() {
@@ -28,7 +29,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
     }
 
     init {
-        "Test that a cmd can initialize an aggregate, and that the derived state is returned" {
+        "Test that a cmd can initialize a non-existing aggregate, and that the derived state is returned" {
             data class HireCmd(override val aggregateId: UUID, val startDate: LocalDate) : Cmd<SomeAggregate>
 
             val hireCmd = HireCmd(
@@ -40,6 +41,31 @@ internal class SyncCmdHandlerTest : StringSpec() {
                 every { read(hireCmd.aggregateId, any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
                 every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
                 every { append("some-aggregate", hireCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, any()) } returns
+                        Unit
+            }
+
+            object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
+                init {
+                    init<HireCmd> {
+                        Result.Succeed(SomeEvent(it.aggregateId))
+                    }
+                }
+            }.handle(hireCmd).apply { stateInitialized shouldBe true }
+        }
+
+        "Test that a cmd can initialize a uninitialized aggregate, and that the derived state is returned" {
+            data class HireCmd(override val aggregateId: UUID, val startDate: LocalDate) : Cmd<SomeAggregate>
+
+            val hireCmd = HireCmd(
+                    aggregateId = UUID.randomUUID(),
+                    startDate = LocalDate.now()
+            )
+
+            val eventNumber = Random.nextLong(0L, 10000000L)
+            val repoMock = mockk<AggregateRepository>().apply {
+                every { read(hireCmd.aggregateId, any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.UninitializedAggregate(eventNumber)
+                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                every { append("some-aggregate", hireCmd.aggregateId, ExpectedEventNumber.Exact(eventNumber), any()) } returns
                         Unit
             }
 
