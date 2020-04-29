@@ -2,6 +2,7 @@ package no.ks.kes.lib
 
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
+import java.time.Instant
 import java.util.*
 import kotlin.random.Random
 
@@ -11,7 +12,6 @@ internal class AggregateConfigurationTest : StringSpec() {
         "Test that an applied event can initialize an aggregate" {
             data class SomeState(val stateInitialized: Boolean) : Aggregate
 
-            @SerializationId("some-id")
             data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
@@ -22,7 +22,16 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val initializedState = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1), null)
+            val initializedState = aggregateConfig
+                    .getConfiguration { it.simpleName!! }
+                    .applyEvent(
+                            wrapper = EventWrapper(
+                                    event = SomeInitEvent(UUID.randomUUID()),
+                                    eventNumber = -1,
+                                    serializationId = SomeInitEvent::class.simpleName!!
+                            ),
+                            currentState = null
+                    )
 
             initializedState!!.stateInitialized shouldBe true
         }
@@ -30,10 +39,8 @@ internal class AggregateConfigurationTest : StringSpec() {
         "Test that an applied event can alter aggregate state"{
             data class SomeState(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-            @SerializationId("some-id")
             data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
-            @SerializationId("some-other-id")
             data class SomeLaterEvent(override val aggregateId: UUID) : Event<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
@@ -52,8 +59,26 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val initializedState = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1), null)
-            val updatedState = aggregateConfig.applyEvent(EventWrapper(SomeLaterEvent(UUID.randomUUID()), -1), initializedState)
+            val initializedState = aggregateConfig
+                    .getConfiguration { it.simpleName!! }
+                    .applyEvent(
+                            wrapper = EventWrapper(
+                                    event = SomeInitEvent(UUID.randomUUID()),
+                                    eventNumber = -1,
+                                    serializationId = SomeInitEvent::class.simpleName!!
+                            ),
+                            currentState = null)
+
+            val updatedState = aggregateConfig
+                    .getConfiguration { it.simpleName!! }
+                    .applyEvent(
+                            EventWrapper(
+                                    event = SomeLaterEvent(UUID.randomUUID()),
+                                    eventNumber = -1,
+                                    serializationId = SomeLaterEvent::class.simpleName!!
+                            ),
+                            initializedState
+                    )
 
             updatedState!!.stateUpdated shouldBe true
         }
@@ -61,10 +86,8 @@ internal class AggregateConfigurationTest : StringSpec() {
         "Test that an aggregate can have multiple initializers"{
             data class SomeState(val initializedWith: String) : Aggregate
 
-            @SerializationId("some-id")
             data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
-            @SerializationId("some-other-id")
             data class SomeOtherInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
@@ -83,10 +106,12 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val initializedState0 = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1), null)
+            val initializedState0 = aggregateConfig
+                    .getConfiguration { it.simpleName!! }
+                    .applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1, SomeInitEvent::class.simpleName!!), null)
             initializedState0!!.initializedWith shouldBe "SomeInitEvent"
 
-            val initializedState1 = aggregateConfig.applyEvent(EventWrapper(SomeOtherInitEvent(UUID.randomUUID()), -1), null)
+            val initializedState1 = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(SomeOtherInitEvent(UUID.randomUUID()), -1, SomeOtherInitEvent::class.simpleName!!), null)
             initializedState1!!.initializedWith shouldBe "SomeOtherInitEvent"
 
         }
@@ -94,7 +119,6 @@ internal class AggregateConfigurationTest : StringSpec() {
         "Test that an aggregate can have the same event as an initializer and applicator, and that the correct one is invoked depending on if the aggregate exists or not"{
             data class SomeState(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-            @SerializationId("some-id")
             data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
@@ -113,9 +137,9 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val initializedState = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1), null)
+            val initializedState = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1, SomeInitEvent::class.simpleName!!), null)
             initializedState!!.stateInitialized shouldBe true
-            val updatedState = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1), initializedState)
+            val updatedState = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1, SomeInitEvent::class.simpleName!!), initializedState)
             updatedState!!.stateUpdated shouldBe true
         }
 
@@ -124,7 +148,6 @@ internal class AggregateConfigurationTest : StringSpec() {
         "Test that a null state is returned if an \"apply\" event is received by an uninitialized aggregate" {
             data class SomeState(val stateUpdated: Boolean = false) : Aggregate
 
-            @SerializationId("some-id")
             data class SomeEvent(override val aggregateId: UUID) : Event<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
@@ -137,17 +160,15 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val derivedState = aggregateConfig.applyEvent(EventWrapper(SomeEvent(UUID.randomUUID()), Random.nextLong()), null)
+            val derivedState = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(SomeEvent(UUID.randomUUID()), Random.nextLong(), SomeEvent::class.simpleName!!), null)
             derivedState shouldBe null
         }
 
         "Test that subsequent initializers are ignored if the aggregate is already initialized"{
             data class SomeState(val initializedWith: String) : Aggregate
 
-            @SerializationId("some-id")
             data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
-            @SerializationId("some-other-id")
             data class SomeOtherInitEvent(override val aggregateId: UUID) : Event<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
@@ -166,10 +187,10 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val derivedState0 = aggregateConfig.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1), null)
+            val derivedState0 = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(SomeInitEvent(UUID.randomUUID()), -1, SomeInitEvent::class.simpleName!!), null)
             derivedState0!!.initializedWith shouldBe "SomeInitEvent"
 
-            val derivedState1 = aggregateConfig.applyEvent(EventWrapper(SomeOtherInitEvent(UUID.randomUUID()), -1), derivedState0)
+            val derivedState1 = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(SomeOtherInitEvent(UUID.randomUUID()), -1, SomeOtherInitEvent::class.simpleName!!), derivedState0)
             derivedState1!!.initializedWith shouldBe "SomeInitEvent"
 
         }

@@ -7,14 +7,14 @@ CREATE TABLE cmd
     serializationId nvarchar(255)  NOT NULL,
     error           BIT            NOT NULL,
     errorId         nvarchar(255),
-    data            nvarchar(4000) NOT NULL
+    data            nvarchar(max) NOT NULL
 )
 
 CREATE TABLE saga
 (
     correlationId   nvarchar(255)  NOT NULL,
     serializationId nvarchar(255)  NOT NULL,
-    data            nvarchar(4000) NOT NULL,
+    data            nvarchar(max) NOT NULL,
     CONSTRAINT PK_saga PRIMARY KEY (correlationId, serializationId),
 )
 

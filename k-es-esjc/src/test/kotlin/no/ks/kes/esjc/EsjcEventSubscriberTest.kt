@@ -11,7 +11,7 @@ import java.util.concurrent.ThreadLocalRandom
 internal class EsjcEventSubscriberTest : StringSpec() {
     init {
         "Test that we correctly generate event subscriptions" {
-            val hwm = ThreadLocalRandom.current().nextLong()
+            val hwm = ThreadLocalRandom.current().nextLong(-1, 10000)
             val category = UUID.randomUUID().toString()
 
             val eventStoreMock = mockk<EventStore>(relaxed = true)

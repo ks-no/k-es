@@ -7,6 +7,7 @@ import com.github.msemys.esjc.operation.StreamNotFoundException
 import mu.KotlinLogging
 import no.ks.kes.lib.*
 import java.util.*
+import kotlin.reflect.KClass
 import kotlin.streams.asSequence
 
 private const val FIRST_EVENT = 0L
@@ -16,7 +17,7 @@ private val log = KotlinLogging.logger {}
 
 class EsjcAggregateRepository(
         private val eventStore: EventStore,
-        private val deserializer: EventSerdes<String>,
+        private val serdes: EventSerdes,
         private val streamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String
 ) : AggregateRepository() {
 
@@ -28,8 +29,8 @@ class EsjcAggregateRepository(
                     resolveExpectedEventNumber(expectedEventNumber),
                     events.map {
                         EventData.newBuilder()
-                                .jsonData(deserializer.serialize(it))
-                                .type(AnnotationUtil.getSerializationId(it::class))
+                                .jsonData(serdes.serialize(it))
+                                .type(serdes.getSerializationId(it::class))
                                 .build()
                     })
                     .get().also {
@@ -39,6 +40,8 @@ class EsjcAggregateRepository(
             throw RuntimeException("Error while appending events to stream $streamId", e)
         }
     }
+
+    override fun getSerializationId(eventClass: KClass<Event<*>>): String = serdes.getSerializationId(eventClass)
 
     override fun <A : Aggregate> read(aggregateId: UUID, aggregateType: String, applicator: (state: A?, event: EventWrapper<*>) -> A?): AggregateReadResult =
             try {
@@ -51,9 +54,10 @@ class EsjcAggregateRepository(
                         .asSequence()
                         .filter { !EsjcEventUtil.isIgnorableEvent(it) }
                         .fold(null as Pair<A, Long>?, { a, e ->
+                            val deserialized = serdes.deserialize(e.event.data, e.event.eventType)
                             applicator.invoke(
                                     a?.first,
-                                    EventWrapper(deserializer.deserialize(String(e.event.data), e.event.eventType) as Event<A>, e.event.eventNumber)
+                                    EventWrapper(deserialized as Event<A>, e.event.eventNumber, serdes.getSerializationId(deserialized::class))
                             )
                                     ?.let { it to e.event.eventNumber }
                         })

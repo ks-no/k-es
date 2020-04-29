@@ -5,13 +5,14 @@ import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
+import java.time.Instant
 import java.time.LocalDate
 import java.util.*
+import kotlin.reflect.KClass
 
 internal class CmdHandlerTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    @SerializationId("some-id")
     data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
     val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
@@ -29,8 +30,14 @@ internal class CmdHandlerTest : StringSpec() {
     init {
         "Test that multiple \"init\" handlers results in an exception being thrown" {
             data class HireCmd(override val aggregateId: UUID, val startDate: LocalDate) : Cmd<SomeAggregate>
+
+            val aggregateConfiguration = mockk<AggregateConfiguration<SomeAggregate>>()
+                    .apply {
+                        every { getConfiguration(any()) } returns mockk()
+                    }
+
             shouldThrow<IllegalStateException> {
-                object : CmdHandler<SomeAggregate>(mockk(), mockk()) {
+                object : CmdHandler<SomeAggregate>(mockk(), aggregateConfiguration) {
                     init {
                         init<HireCmd> {
                             Result.Succeed(SomeEvent(it.aggregateId))
@@ -48,8 +55,14 @@ internal class CmdHandlerTest : StringSpec() {
 
         "Test that multiple \"apply\" handlers results in an exception being thrown" {
             data class HireCmd(override val aggregateId: UUID, val startDate: LocalDate) : Cmd<SomeAggregate>
+
+            val aggregateConfiguration = mockk<AggregateConfiguration<SomeAggregate>>()
+                    .apply {
+                        every { getConfiguration(any()) } returns mockk()
+                    }
+
             shouldThrow<IllegalStateException> {
-                object : CmdHandler<SomeAggregate>(mockk(), mockk()) {
+                object : CmdHandler<SomeAggregate>(mockk(), aggregateConfiguration) {
                     init {
                         apply<HireCmd> {
                             Result.Succeed(SomeEvent(it.aggregateId))
@@ -73,10 +86,11 @@ internal class CmdHandlerTest : StringSpec() {
             )
 
             val repoMock = mockk<AggregateRepository>().apply {
-                every { read(someCmd.aggregateId, someAggregateConfiguration) } returns
+                every { read(someCmd.aggregateId, any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns
                         AggregateReadResult.ExistingAggregate(SomeAggregate(true), 0)
                 every { append("some-aggregate", someCmd.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
                         Unit
+                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
             }
 
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
@@ -98,9 +112,10 @@ internal class CmdHandlerTest : StringSpec() {
             )
 
             val repoMock = mockk<AggregateRepository>().apply {
-                every { read(someCmd.aggregateId, someAggregateConfiguration) } returns AggregateReadResult.NonExistingAggregate
+                every { read(someCmd.aggregateId, any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
                 every { append("some-aggregate", someCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, any()) } returns
                         Unit
+                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
             }
 
             class EmployeeCmdHandler : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
@@ -124,7 +139,8 @@ internal class CmdHandlerTest : StringSpec() {
             )
 
             val repoMock = mockk<AggregateRepository>().apply {
-                every { read(changeStartDate.aggregateId, someAggregateConfiguration) } returns AggregateReadResult.NonExistingAggregate
+                every { read(changeStartDate.aggregateId, any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
+                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
             }
 
             class EmployeeCmdHandler : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {

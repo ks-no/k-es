@@ -9,17 +9,14 @@ object Projections {
             subscriber: String,
             onClose: (Exception) -> Unit = {}
     ) {
+        val validatedProjectionConfigurations = projections.map { projection -> projection.getConfiguration { eventSubscriberFactory.getSerializationId(it) } }
+
         eventSubscriberFactory.createSubscriber(
                 subscriber = subscriber,
                 onEvent = { wrapper ->
                     projectionRepository.transactionally {
-                        projections.forEach {
-                            it.accept(
-                                    EventWrapper(
-                                            event = wrapper.event,
-                                            eventNumber = wrapper.eventNumber
-                                    )
-                            )
+                        validatedProjectionConfigurations.forEach {
+                            it.accept(wrapper)
                             projectionRepository.hwmTracker.update(subscriber, wrapper.eventNumber)
                         }
                     }

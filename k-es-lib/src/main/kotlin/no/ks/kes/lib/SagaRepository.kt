@@ -4,7 +4,7 @@ import java.util.*
 import kotlin.reflect.KClass
 
 
-interface SagaRepository: TransactionalRepository, HighWaterMarkedRepository {
+interface SagaRepository : TransactionalRepository, HighWaterMarkedRepository {
     fun <T : Any> getSagaState(correlationId: UUID, serializationId: String, sagaStateClass: KClass<T>): T?
     fun update(states: Set<Operation>)
     fun getReadyTimeouts(): Timeout?

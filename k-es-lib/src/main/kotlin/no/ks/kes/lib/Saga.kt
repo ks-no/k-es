@@ -7,78 +7,19 @@ import kotlin.reflect.KClass
 
 abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val serializationId: String) {
 
-    protected var onEventInit = mutableMapOf<String, EventHandler.Initializer<Event<*>, STATE>>()
-    protected val onEventApply = mutableMapOf<String, EventHandler.Applicator<Event<*>, STATE>>()
-    protected val onTimeoutApply = mutableMapOf<String, (s: ApplyContext<STATE>) -> ApplyContext<STATE>>()
+    protected var eventInitializers = mutableListOf<Pair<KClass<Event<*>>, EventHandler.Initializer<Event<*>, STATE>>>()
+    protected val eventApplicators = mutableListOf<Pair<KClass<Event<*>>, EventHandler.Applicator<Event<*>, STATE>>>()
+    protected val timeoutApplicators = mutableListOf<Pair<KClass<Event<*>>, (s: ApplyContext<STATE>) -> ApplyContext<STATE>>>()
 
-    @Suppress("UNCHECKED_CAST")
-    fun handleEvent(wrapper: EventWrapper<Event<*>>, stateProvider: (correlationId: UUID, stateClass: KClass<*>) -> Any?): SagaRepository.Operation? {
-        val correlationIds = (onEventInit + onEventApply)
-                .filter { it.key == AnnotationUtil.getSerializationId(wrapper.event::class) }
-                .map { it.value }
-                .map { it.correlationId.invoke(wrapper) }
-                .distinct()
-
-        val sagaState = when {
-            //this saga does not handle this event
-            correlationIds.isEmpty() -> return null
-            //each handler in a saga must produce the same correlation id
-            correlationIds.size > 1 -> error("applying the event ${AnnotationUtil.getSerializationId(wrapper.event::class)} to the event-handlers in ${this::class.simpleName} produced non-identical correlation-ids, please verify the saga configuration")
-            //let's see if there's a state for this saga
-            else -> stateProvider.invoke(correlationIds.single(), stateClass)
-        } as STATE?
-
-        return if (sagaState == null) {
-            //non existing saga state, attempting initialization
-            onEventInit[wrapper.event::class.serializationId]
-                    ?.let {
-                        val context = it.handler.invoke(wrapper, InitContext())
-                        SagaRepository.Operation.Insert(
-                                correlationId = it.correlationId.invoke(wrapper),
-                                serializationId = serializationId,
-                                newState = context.newState!!,
-                                commands = context.commands
-                        )
-                    }
-        } else {
-            //pre-existing state, applying
-            onEventApply[wrapper.event::class.serializationId]
-                    ?.let {
-                        val context = it.handler.invoke(wrapper, ApplyContext(sagaState))
-                        if (context.newState == null && context.commands.isEmpty() && context.timeouts.isEmpty())
-                            null
-                        else
-                            SagaRepository.Operation.SagaUpdate(
-                                    correlationId = it.correlationId.invoke(wrapper),
-                                    serializationId = serializationId,
-                                    newState = context.newState,
-                                    commands = context.commands,
-                                    timeouts = context.timeouts.toSet()
-                            )
-                    }
-        }
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    internal fun handleTimeout(
-            timeout: SagaRepository.Timeout,
-            stateProvider: (correlationId: UUID, stateClass: KClass<*>) -> Any?
-    ): SagaRepository.Operation.SagaUpdate? =
-            if (timeout.sagaSerializationId != serializationId)
-                null
-            else
-                onTimeoutApply[timeout.timeoutId]
-                        ?.invoke(ApplyContext((stateProvider.invoke(timeout.sagaCorrelationId, stateClass)
-                                ?: error("A timeout was triggered, but the saga-repository does not contain the saga state: $timeout")) as STATE))
-                        ?.let {
-                            SagaRepository.Operation.SagaUpdate(
-                                    correlationId = timeout.sagaCorrelationId,
-                                    serializationId = timeout.sagaSerializationId,
-                                    newState = it.newState,
-                                    commands = it.commands,
-                                    timeouts = it.timeouts.toSet()
-                            )
-                        }
+    internal fun getConfiguration(serializationIdFunction: (KClass<Event<*>>) -> String): ValidatedSagaConfiguration<STATE> =
+            ValidatedSagaConfiguration(
+                    stateClass = stateClass,
+                    sagaSerializationId = serializationId,
+                    eventInitializers = eventInitializers,
+                    eventApplicators = eventApplicators,
+                    timeoutApplicators = timeoutApplicators,
+                    serializationIdFunction = serializationIdFunction
+            )
 
     protected inline fun <reified E : Event<*>> init(crossinline correlationId: (E) -> UUID = { it.aggregateId }, crossinline initializer: InitContext<STATE>.(E) -> Unit) =
             initWrapped({ correlationId.invoke(it.event) }, { w: EventWrapper<E> -> initializer.invoke(this, w.event) })
@@ -96,13 +37,12 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val seri
             crossinline timeoutAt: (EventWrapper<E>) -> Instant,
             crossinline handler: ApplyContext<STATE>.() -> Unit
     ) {
-        checkConfig(E::class, HandlerType.APPLY_TIMEOUT)
-        onEventApply[E::class.serializationId] = EventHandler.Applicator(
+        eventApplicators.add(E::class as KClass<Event<*>> to EventHandler.Applicator(
                 correlationId = { correlationId.invoke(it as EventWrapper<E>) },
-                handler = { e, p -> p.apply { timeouts.add(Timeout(timeoutAt.invoke(e as EventWrapper<E>), AnnotationUtil.getSerializationId(E::class))) } }
-        )
+                handler = { e, p -> p.apply { timeouts.add(Timeout(timeoutAt.invoke(e as EventWrapper<E>), e.serializationId)) } }
+        ))
 
-        onTimeoutApply[AnnotationUtil.getSerializationId(E::class)] = { context -> handler.invoke(context); context }
+        timeoutApplicators.add(E::class as KClass<Event<*>> to { context -> handler.invoke(context); context })
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -110,33 +50,116 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val seri
             crossinline correlationId: (EventWrapper<E>) -> UUID = { it.event.aggregateId },
             noinline handler: InitContext<STATE>.(EventWrapper<E>) -> Unit
     ) {
-        checkConfig(E::class, HandlerType.INIT)
-        onEventInit[E::class.serializationId] = EventHandler.Initializer(
+        eventInitializers.add(E::class as KClass<Event<*>> to EventHandler.Initializer(
                 correlationId = { correlationId.invoke(it as EventWrapper<E>) },
                 handler = { e, context -> handler.invoke(context, e as EventWrapper<E>); context }
-        )
+        ))
     }
-
-    protected fun <E: Event<*>> checkConfig(eventClass: KClass<E>, type: HandlerType) {
-        check(!eventClass.deprecated) { "${type.readable} handler in saga ${this::class.simpleName} handles deprecated event with serialization-id ${eventClass.serializationId}, please update the saga configuraton" }
-        check(!when(type){
-            HandlerType.INIT -> onEventInit
-            HandlerType.APPLY_TIMEOUT -> onEventApply
-        }.containsKey(eventClass.serializationId)) { "Duplicate ${type.readable} handler for event with serialization-id ${eventClass.serializationId} in saga ${this::class.simpleName}, each event-type can only have one ${type.readable}-handler in a saga configuration" }
-    }
-
-    protected enum class HandlerType(val readable: String){INIT("init"), APPLY_TIMEOUT("apply/timeout")}
 
     @Suppress("UNCHECKED_CAST")
     protected inline fun <reified E : Event<*>> applyWrapped(
             crossinline correlationId: (EventWrapper<E>) -> UUID = { it.event.aggregateId },
             crossinline handler: ApplyContext<STATE>.(EventWrapper<E>) -> Unit
     ) {
-        checkConfig(E::class, HandlerType.APPLY_TIMEOUT)
-        onEventApply[E::class.serializationId] = EventHandler.Applicator(
+        eventApplicators.add(E::class as KClass<Event<*>> to EventHandler.Applicator(
                 correlationId = { correlationId.invoke(it as EventWrapper<E>) },
                 handler = { e, context -> handler.invoke(context, e as EventWrapper<E>); context }
-        )
+        ))
+    }
+
+    class ValidatedSagaConfiguration<STATE : Any>(
+            private val stateClass: KClass<STATE>,
+            val sagaSerializationId: String,
+            serializationIdFunction: (KClass<Event<*>>) -> String,
+            eventInitializers: List<Pair<KClass<Event<*>>, EventHandler.Initializer<Event<*>, STATE>>>,
+            eventApplicators: List<Pair<KClass<Event<*>>, EventHandler.Applicator<Event<*>, STATE>>>,
+            timeoutApplicators: List<Pair<KClass<Event<*>>, (s: ApplyContext<STATE>) -> ApplyContext<STATE>>>
+    ) {
+        private val eventInitializers: Map<String, EventHandler.Initializer<Event<*>, STATE>>
+        private val eventApplicators: Map<String, EventHandler.Applicator<Event<*>, STATE>>
+        private val timeoutApplicators: Map<String, (s: ApplyContext<STATE>) -> ApplyContext<STATE>> = timeoutApplicators.map { serializationIdFunction.invoke(it.first) to it.second }.toMap()
+
+        init {
+            val deprecatedEvents = (eventApplicators.map { it.first } + eventInitializers.map { it.first }).filter { it.deprecated }.map { it::class.simpleName!! }
+            check(deprecatedEvents.isEmpty()) { "Saga $sagaSerializationId handles deprecated event(s) ${deprecatedEvents}, please update the saga configuraton" }
+
+            val duplicateEventApplicators = eventApplicators.map { serializationIdFunction.invoke(it.first) }.groupBy { it }.filter { it.value.size > 1 }.map { it.key }
+            check(duplicateEventApplicators.isEmpty()) { "There are multiple \"apply/timeout\" configurations for event-type(s) $duplicateEventApplicators in the configuration of $sagaSerializationId, only a single \"apply/timeout\" handler is allowed for each event type" }
+            this.eventApplicators = eventApplicators.map { serializationIdFunction.invoke(it.first) to it.second }.toMap()
+
+            val duplicateEventInitializers = eventInitializers.map { serializationIdFunction.invoke(it.first) }.groupBy { it }.filter { it.value.size > 1 }.map { it.key }.distinct()
+            check(duplicateEventInitializers.isEmpty()) { "There are multiple \"init\" configurations for event-type(s) $duplicateEventInitializers in the configuration of $sagaSerializationId, only a single \"init\" handler is allowed for each event type" }
+            this.eventInitializers = eventInitializers.map { serializationIdFunction.invoke(it.first) to it.second }.toMap()
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        fun handleEvent(wrapper: EventWrapper<Event<*>>, stateProvider: (correlationId: UUID, stateClass: KClass<*>) -> Any?): SagaRepository.Operation? {
+            val correlationIds = (eventInitializers + eventApplicators)
+                    .filter { it.key == wrapper.serializationId }
+                    .map { it.value }
+                    .map { it.correlationId.invoke(wrapper) }
+                    .distinct()
+
+            val sagaState = when {
+                //this saga does not handle this event
+                correlationIds.isEmpty() -> return null
+                //each handler in a saga must produce the same correlation id
+                correlationIds.size > 1 -> error("applying the event ${wrapper.serializationId} to the event-handlers in $sagaSerializationId produced non-identical correlation-ids, please verify the saga configuration")
+                //let's see if there's a state for this saga
+                else -> stateProvider.invoke(correlationIds.single(), stateClass)
+            } as STATE?
+
+            return if (sagaState == null) {
+                //non existing saga state, attempting initialization
+                eventInitializers[wrapper.serializationId]
+                        ?.let {
+                            val context = it.handler.invoke(wrapper, InitContext())
+                            SagaRepository.Operation.Insert(
+                                    correlationId = it.correlationId.invoke(wrapper),
+                                    serializationId = sagaSerializationId,
+                                    newState = context.newState!!,
+                                    commands = context.commands
+                            )
+                        }
+            } else {
+                //pre-existing state, applying
+                eventApplicators[wrapper.serializationId]
+                        ?.let {
+                            val context = it.handler.invoke(wrapper, ApplyContext(sagaState))
+                            if (context.newState == null && context.commands.isEmpty() && context.timeouts.isEmpty())
+                                null
+                            else
+                                SagaRepository.Operation.SagaUpdate(
+                                        correlationId = it.correlationId.invoke(wrapper),
+                                        serializationId = sagaSerializationId,
+                                        newState = context.newState,
+                                        commands = context.commands,
+                                        timeouts = context.timeouts.toSet()
+                                )
+                        }
+            }
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        internal fun handleTimeout(
+                timeout: SagaRepository.Timeout,
+                stateProvider: (correlationId: UUID, stateClass: KClass<*>) -> Any?
+        ): SagaRepository.Operation.SagaUpdate? =
+                if (timeout.sagaSerializationId != sagaSerializationId)
+                    null
+                else
+                    timeoutApplicators[timeout.timeoutId]
+                            ?.invoke(ApplyContext((stateProvider.invoke(timeout.sagaCorrelationId, stateClass)
+                                    ?: error("A timeout was triggered, but the saga-repository does not contain the saga state: $timeout")) as STATE))
+                            ?.let {
+                                SagaRepository.Operation.SagaUpdate(
+                                        correlationId = timeout.sagaCorrelationId,
+                                        serializationId = timeout.sagaSerializationId,
+                                        newState = it.newState,
+                                        commands = it.commands,
+                                        timeouts = it.timeouts.toSet()
+                                )
+                            }
     }
 
     sealed class EventHandler<E : Event<*>> {

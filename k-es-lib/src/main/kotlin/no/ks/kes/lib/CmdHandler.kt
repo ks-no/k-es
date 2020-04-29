@@ -7,26 +7,28 @@ import kotlin.reflect.KClass
 private val log = KotlinLogging.logger {}
 
 @Suppress("UNCHECKED_CAST")
-abstract class CmdHandler<A : Aggregate>(private val repository: AggregateRepository, private val aggregateConfiguration: AggregateConfiguration<A>) {
+abstract class CmdHandler<A : Aggregate>(private val repository: AggregateRepository, aggregateConfiguration: AggregateConfiguration<A>) {
 
     protected val applicators = mutableMapOf<KClass<Cmd<A>>, (a: A, c: Cmd<A>) -> Result<A>>()
     protected val initializers = mutableMapOf<KClass<Cmd<A>>, (c: Cmd<A>) -> Result<A>>()
+    private val validatedAggregateConfiguration = aggregateConfiguration.getConfiguration { repository.getSerializationId(it) }
+
 
     protected inline fun <reified C : Cmd<A>> apply(crossinline handler: A.(C) -> Result<A>) {
-        check(!applicators.containsKey(C::class as KClass<Cmd<A>>)) {"There are multiple \"apply\" configurations for the command ${C::class.simpleName} in the command handler ${this::class.simpleName}, only a single \"apply\" handler is allowed for each command"}
+        check(!applicators.containsKey(C::class as KClass<Cmd<A>>)) { "There are multiple \"apply\" configurations for the command ${C::class.simpleName} in the command handler ${this::class.simpleName}, only a single \"apply\" handler is allowed for each command" }
         applicators[C::class as KClass<Cmd<A>>] = { a, c -> handler.invoke(a, c as C) }
     }
 
     protected inline fun <reified C : Cmd<A>> init(crossinline handler: (C) -> Result<A>) {
-        check(!initializers.containsKey(C::class as KClass<Cmd<A>>)) {"There are multiple \"init\" configurations for the command ${C::class.simpleName} in the command handler ${this::class.simpleName}, only a single \"init\" handler is allowed for each command"}
-        initializers[C::class as KClass<Cmd<A>>] = {c -> handler.invoke(c as C) }
+        check(!initializers.containsKey(C::class as KClass<Cmd<A>>)) { "There are multiple \"init\" configurations for the command ${C::class.simpleName} in the command handler ${this::class.simpleName}, only a single \"init\" handler is allowed for each command" }
+        initializers[C::class as KClass<Cmd<A>>] = { c -> handler.invoke(c as C) }
     }
 
     fun handledCmds(): Set<KClass<Cmd<A>>> = applicators.keys.toSet() + initializers.keys.toSet()
 
     @Synchronized
     fun handle(cmd: Cmd<A>): A {
-        val readResult = readAggregate(cmd, aggregateConfiguration)
+        val readResult = readAggregate(cmd)
 
         return when (val result = invokeHandler(cmd, readResult)) {
             is Result.Fail,
@@ -34,13 +36,19 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
             is Result.Error ->
                 throw result.exception!!
             is Result.Succeed<A> -> {
-                appendDerivedEvents(aggregateConfiguration.aggregateType, readResult, cmd, result.derivedEvents)
+                appendDerivedEvents(validatedAggregateConfiguration.aggregateType, readResult, cmd, result.derivedEvents)
                 result.derivedEvents.fold(
                         when (readResult) {
                             is AggregateReadResult.ExistingAggregate<*> -> readResult.aggregateState as A
                             is AggregateReadResult.NonExistingAggregate -> null
                         },
-                        { a, e -> aggregateConfiguration.applyEvent(EventWrapper(e, -1), a) })
+                        { a, e ->
+                            validatedAggregateConfiguration.applyEvent(EventWrapper(
+                                    event = e,
+                                    eventNumber = -1,
+                                    serializationId = repository.getSerializationId(e::class as KClass<Event<*>>)
+                            ), a)
+                        })
                         ?: error("applying derived events to the aggregate resulted in a null-state!")
             }
         }
@@ -48,11 +56,11 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
 
     @Synchronized
     fun handleAsync(cmd: Cmd<*>, retryNumber: Int): AsyncResult {
-        val readResult = readAggregate(cmd as Cmd<A>, aggregateConfiguration)
+        val readResult = readAggregate(cmd as Cmd<A>)
 
         return when (val result = invokeHandler(cmd, readResult)) {
             is Result.Fail<A> -> {
-                appendDerivedEvents(aggregateConfiguration.aggregateType, readResult, cmd, result.events)
+                appendDerivedEvents(validatedAggregateConfiguration.aggregateType, readResult, cmd, result.events)
                 log.error("execution of ${cmd::class.simpleName} failed permanently: $cmd", result.exception!!); AsyncResult.Fail
             }
             is Result.RetryOrFail<A> -> {
@@ -60,14 +68,14 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
                 log.error("execution of ${cmd::class.simpleName} failed with retry, ${nextExecution?.let { "next retry at $it" }
                         ?: " but all retries are exhausted"}", result.exception!!)
                 if (nextExecution == null) {
-                    appendDerivedEvents(aggregateConfiguration.aggregateType, readResult, cmd, result.events)
+                    appendDerivedEvents(validatedAggregateConfiguration.aggregateType, readResult, cmd, result.events)
                     AsyncResult.Fail
                 } else {
                     AsyncResult.Retry(nextExecution)
                 }
             }
             is Result.Succeed<A> -> {
-                appendDerivedEvents(aggregateConfiguration.aggregateType, readResult, cmd, result.derivedEvents)
+                appendDerivedEvents(validatedAggregateConfiguration.aggregateType, readResult, cmd, result.derivedEvents)
                 AsyncResult.Success
             }
             is Result.Error<A> -> {
@@ -87,13 +95,13 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
                 is AggregateReadResult.ExistingAggregate<*> -> if (useOptimisticLocking) ExpectedEventNumber.Exact(readResult.eventNumber) else ExpectedEventNumber.AggregateExists
             }
 
-    private fun readAggregate(cmd: Cmd<A>, aggregateConfiguration: AggregateConfiguration<A>): AggregateReadResult =
-            repository.read(cmd.aggregateId, aggregateConfiguration)
+    private fun readAggregate(cmd: Cmd<A>): AggregateReadResult =
+            repository.read(cmd.aggregateId, validatedAggregateConfiguration)
 
     private fun invokeHandler(cmd: Cmd<A>, readResult: AggregateReadResult): Result<A> =
             when (readResult) {
                 is AggregateReadResult.NonExistingAggregate -> {
-                    initializers[ cmd::class ]
+                    initializers[cmd::class]
                             ?.run {
                                 try {
                                     invoke(cmd)
@@ -104,7 +112,7 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
                             ?: error("Aggregate ${cmd.aggregateId} does not exist, and cmd ${cmd::class.simpleName} is not configured as an initializer. Consider adding an \"init\" configuration for this command.")
                 }
                 is AggregateReadResult.ExistingAggregate<*> -> {
-                    applicators[cmd::class ]
+                    applicators[cmd::class]
                             ?.run {
                                 try {
                                     invoke(readResult.aggregateState as A, cmd)

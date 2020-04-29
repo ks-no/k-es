@@ -3,7 +3,7 @@ package no.ks.kes.demoapp
 import no.ks.kes.lib.Aggregate
 import no.ks.kes.lib.AggregateConfiguration
 import no.ks.kes.lib.Event
-import no.ks.kes.lib.SerializationId
+import no.ks.kes.serdes.jackson.SerializationId
 import java.util.*
 
 

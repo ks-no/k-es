@@ -1,3 +1,3 @@
 package no.ks.kes.lib
 
-interface ProjectionRepository: TransactionalRepository, HighWaterMarkedRepository
+interface ProjectionRepository : TransactionalRepository, HighWaterMarkedRepository

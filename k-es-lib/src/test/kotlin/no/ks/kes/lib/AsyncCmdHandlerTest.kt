@@ -6,15 +6,15 @@ import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import java.time.Instant
 import java.util.*
+import kotlin.reflect.KClass
 
 internal class AsyncCmdHandlerTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    @SerializationId("some-id")
     data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
-    @SerializationId("some-other-id")
     data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
     val aggregateConfig = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
@@ -38,7 +38,8 @@ internal class AsyncCmdHandlerTest : StringSpec() {
             val slot = slot<List<Event<*>>>()
 
             val repoMock = mockk<AggregateRepository>().apply {
-                every { read(someCmd.aggregateId, ofType<AggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
+                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                every { read(someCmd.aggregateId, ofType<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
                 every { append("some-aggregate", someCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, capture(slot)) } returns Unit
             }
 
@@ -61,7 +62,8 @@ internal class AsyncCmdHandlerTest : StringSpec() {
             val slot = slot<List<Event<*>>>()
 
             val repoMock = mockk<AggregateRepository>().apply {
-                every { read(someCmd.aggregateId, ofType<AggregateConfiguration<*>>()) } returns
+                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                every { read(someCmd.aggregateId, ofType<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns
                         AggregateReadResult.ExistingAggregate(SomeAggregate(true), 0)
                 every { append("some-aggregate", someCmd.aggregateId, ExpectedEventNumber.Exact(0), capture(slot)) } returns Unit
             }

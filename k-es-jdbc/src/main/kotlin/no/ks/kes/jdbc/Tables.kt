@@ -1,13 +1,13 @@
 package no.ks.kes.jdbc
 
-object SagaTable : Table(){
+object SagaTable : Table() {
     override val tableName = "saga"
     const val correlationId = "correlationId"
     const val serializationId = "serializationId"
     const val data = "data"
 }
 
-object TimeoutTable : Table(){
+object TimeoutTable : Table() {
     override val tableName = "timeout"
     const val sagaCorrelationId = "sagaCorrelationId"
     const val sagaSerializationId = "sagaSerializationId"
@@ -17,7 +17,7 @@ object TimeoutTable : Table(){
     const val errorId = "errorId"
 }
 
-object CmdTable : Table(){
+object CmdTable : Table() {
     override val tableName = "cmd"
     const val id = "id"
     const val aggregateId = "aggregateId"
@@ -29,13 +29,13 @@ object CmdTable : Table(){
     const val data = "data"
 }
 
-object HwmTable : Table(){
+object HwmTable : Table() {
     override val tableName = "hwm"
     const val subscriber = "subscriber"
     const val hwm = "hwm"
 }
 
-abstract class Table{
+abstract class Table {
     protected abstract val tableName: String
     fun qualifiedName(schema: String?): String =
             if (schema != null) "$schema.$tableName" else tableName
