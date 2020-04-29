@@ -10,11 +10,11 @@ abstract class AggregateConfiguration<STATE : Aggregate>(val aggregateType: Stri
     protected val initializers: MutableMap<KClass<Event<*>>, (EventWrapper<*>) -> STATE> = mutableMapOf()
 
     protected inline fun <reified E : Event<*>> apply(crossinline applicator: STATE.(E) -> STATE) {
-        applicators[E::class as KClass<Event<*>>] = { s, e -> applicator(s, EventUpgrader.upgradeTo(e.event, E::class)) }
+        applicators[E::class as KClass<Event<*>>] = { s, e -> applicator(s, e.event as E) }
     }
 
     protected inline fun <reified E : Event<*>> init(crossinline initializer: (E) -> STATE) {
-        initializers[E::class as KClass<Event<*>>] = { initializer(EventUpgrader.upgradeTo(it.event, E::class)) }
+        initializers[E::class as KClass<Event<*>>] = { initializer(it.event as E) }
     }
 
     internal fun getConfiguration(serializationIdFunction: (KClass<Event<*>>) -> String): ValidatedAggregateConfiguration<STATE> =
@@ -44,14 +44,19 @@ abstract class AggregateConfiguration<STATE : Aggregate>(val aggregateType: Stri
             this.initializers = initializers.map { serializationIdFunction.invoke(it.key) to it.value }.toMap()
         }
 
-        internal fun <E : Event<*>> applyEvent(wrapper: EventWrapper<E>, currentState: STATE?): STATE? =
-                if (currentState != null) {
-                    applicators[wrapper.serializationId]
-                            ?.invoke(currentState, wrapper)
-                            ?: currentState
-                } else {
-                    initializers[wrapper.serializationId]
-                            ?.invoke(wrapper)
-                }
+        internal fun <E : Event<*>> applyEvent(wrapper: EventWrapper<E>, currentState: STATE?): STATE? {
+            return if (currentState == null) {
+                val initializer = initializers[wrapper.serializationId]
+
+                if(initializer == null && applicators.containsKey(wrapper.serializationId))
+                        error("Error reading ${aggregateType}(${wrapper.event.aggregateId}): event #${wrapper.eventNumber}(${wrapper.serializationId}) is configured as an applicator in the $aggregateType configuration, but the aggregate state has not yet been initialized. Please verify that an init event precedes this event in the event stream, or update your configuration")
+
+                initializer?.invoke(wrapper)
+            } else {
+                applicators[wrapper.serializationId]
+                        ?.invoke(currentState, wrapper)
+                        ?: currentState
+            }
+        }
     }
 }

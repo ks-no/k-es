@@ -45,24 +45,36 @@ class EsjcAggregateRepository(
 
     override fun <A : Aggregate> read(aggregateId: UUID, aggregateType: String, applicator: (state: A?, event: EventWrapper<*>) -> A?): AggregateReadResult =
             try {
+                val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
                 eventStore.streamEventsForward(
-                        streamIdGenerator.invoke(aggregateType, aggregateId),
+                        streamId,
                         FIRST_EVENT,
                         BATCH_SIZE,
-                        true
+                        false
                 )
                         .asSequence()
-                        .filter { !EsjcEventUtil.isIgnorableEvent(it) }
-                        .fold(null as Pair<A, Long>?, { a, e ->
-                            val deserialized = serdes.deserialize(e.event.data, e.event.eventType)
-                            applicator.invoke(
-                                    a?.first,
-                                    EventWrapper(deserialized as Event<A>, e.event.eventNumber, serdes.getSerializationId(deserialized::class))
-                            )
-                                    ?.let { it to e.event.eventNumber }
+                        .fold(null as A? to null as Long?, { a, e ->
+                            if (EsjcEventUtil.isIgnorableEvent(e)) {
+                                a.first to e.event.eventNumber
+                            } else {
+                                val deserialized = EventUpgrader.upgrade(serdes.deserialize(e.event.data, e.event.eventType))
+                                applicator.invoke(
+                                        a.first,
+                                        EventWrapper(deserialized as Event<A>, e.event.eventNumber, serdes.getSerializationId(deserialized::class))
+                                ) to e.event.eventNumber
+                            }
                         })
-                        ?.let { AggregateReadResult.ExistingAggregate(it.first, it.second) }
-                        ?: error("Aggregate $aggregateId has events, but applying event handlers did not produce an aggregate state!")
+                        .let {
+                            when {
+                                //when the aggregate has non-ignorable events, but applying these did not lead to a initialized state
+                                it.first == null && it.second != null -> AggregateReadResult.UninitializedAggregate(it.second!!)
+
+                                //when the aggregate has non-ignorable events, and applying these has lead to a initialized state
+                                it.first != null && it.second != null -> AggregateReadResult.InitializedAggregate(it.first!!, it.second!!)
+
+                                else -> error("Error reading $streamId, the stream exists but does not contain any events")
+                            }
+                        }
             } catch (e: StreamNotFoundException) {
                 AggregateReadResult.NonExistingAggregate
             }

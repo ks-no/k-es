@@ -1,3 +1,6 @@
+//TODO: figure out a way of testing the aggregate repo, preferably without altering the visibility of internal or protected functions
+
+/*
 package no.ks.kes.esjc
 
 import com.github.msemys.esjc.EventStore
@@ -36,9 +39,9 @@ class EsjcAggregateReaderTest : StringSpec() {
     }
 
     init {
-/*        "Test that the reader can retrieve and deserialize aggregate events from the event-store" {
-            val someEvent = SomeEvent(UUID.randomUUID(), Instant.now())
-            val someOtherEvent = SomeOtherEvent(UUID.randomUUID(), Instant.now())
+        "Test that the reader can retrieve and deserialize aggregate events from the event-store" {
+            val someEvent = SomeEvent(UUID.randomUUID())
+            val someOtherEvent = SomeOtherEvent(UUID.randomUUID())
             val eventStoreMock = mockk<EventStore>()
                     .apply {
                         every { streamEventsForward(any(), any(), any(), any()) } returns
@@ -71,7 +74,10 @@ class EsjcAggregateReaderTest : StringSpec() {
                 every { deserialize("some-other-id".toByteArray(), any()) } returns someOtherEvent
             }
 
-            val validatedConfiguration: ValidatedAggregateConfiguration<*> = someAggregateConfiguration::class.members.single{it.name == "getConfiguration"}.call({ it: KClass<Event<*>> -> it.simpleName!! })
+
+
+
+
 
             EsjcAggregateRepository(
                     eventStore = eventStoreMock,
@@ -85,9 +91,9 @@ class EsjcAggregateReaderTest : StringSpec() {
                             aggregateState.stateUpdated shouldBe true
                         }
                     }
-        }*/
+        }
 
-       /* "Test that the reader returns an empty aggregate if no stream is found" {
+        "Test that the reader returns an empty aggregate if no stream is found" {
             EsjcAggregateRepository(
                     eventStore = mockk<EventStore>()
                             .apply {
@@ -101,6 +107,5 @@ class EsjcAggregateReaderTest : StringSpec() {
                     .apply {
                         this should beInstanceOf<AggregateReadResult.NonExistingAggregate>()
                     }
-*/
     }
-}
+}*/

@@ -1,7 +1,10 @@
 package no.ks.kes.lib
 
+import io.kotlintest.matchers.string.shouldContain
 import io.kotlintest.shouldBe
+import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
+import java.lang.IllegalStateException
 import java.time.Instant
 import java.util.*
 import kotlin.random.Random
@@ -143,9 +146,7 @@ internal class AggregateConfigurationTest : StringSpec() {
             updatedState!!.stateUpdated shouldBe true
         }
 
-
-        //TODO: Discuss
-        "Test that a null state is returned if an \"apply\" event is received by an uninitialized aggregate" {
+        "Test that an exception is thrown if an \"apply\" event is received by an uninitialized aggregate" {
             data class SomeState(val stateUpdated: Boolean = false) : Aggregate
 
             data class SomeEvent(override val aggregateId: UUID) : Event<SomeState>
@@ -160,8 +161,9 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val derivedState = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(SomeEvent(UUID.randomUUID()), Random.nextLong(), SomeEvent::class.simpleName!!), null)
-            derivedState shouldBe null
+            shouldThrow<IllegalStateException> { aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(SomeEvent(UUID.randomUUID()), Random.nextLong(), SomeEvent::class.simpleName!!), null)}
+                    .message shouldContain "aggregate state has not yet been initialized"
+
         }
 
         "Test that subsequent initializers are ignored if the aggregate is already initialized"{
