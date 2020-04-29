@@ -29,16 +29,16 @@ class SerdesTest : StringSpec() {
         }
 
         @SerializationId("foo")
-        data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+        data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
         @SerializationId("bar")
-        data class SomeOtherEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+        data class SomeOtherEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
         "test that we can serialize and deserialize events"{
             val serdes = JacksonEventSerdes(setOf(SomeEvent::class, SomeOtherEvent::class))
 
-            val someEvent = SomeEvent(UUID.randomUUID(), Instant.now())
-            val someOtherEvent = SomeOtherEvent(UUID.randomUUID(), Instant.now())
+            val someEvent = SomeEvent(UUID.randomUUID())
+            val someOtherEvent = SomeOtherEvent(UUID.randomUUID())
 
             serdes.serialize(someEvent).run { serdes.deserialize(this, "foo") } shouldBe someEvent
             serdes.serialize(someOtherEvent).run { serdes.deserialize(this, "bar") } shouldBe someOtherEvent

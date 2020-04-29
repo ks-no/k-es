@@ -24,12 +24,17 @@ class SqlServerSagaRepository(
         dataSource: DataSource,
         private val sagaStateSerdes: SagaStateSerdes,
         private val cmdSerdes: CmdSerdes,
+        initialHwm: Long = -1,
         private val schema: String? = null
 ) : SagaRepository {
     private val template = NamedParameterJdbcTemplate(dataSource)
     private val transactionManager = DataSourceTransactionManager(dataSource)
 
-    override val hwmTracker = SqlServerHwmTrackerRepository(template)
+    override val hwmTracker = SqlServerHwmTrackerRepository(
+            template = template,
+            schema = schema,
+            initialHwm = initialHwm
+    )
 
     override fun transactionally(runnable: () -> Unit) {
         TransactionTemplate(transactionManager).execute {

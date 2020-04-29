@@ -2,7 +2,6 @@ package no.ks.kes.lib
 
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
-import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
@@ -15,8 +14,7 @@ internal class ProjectionTest : StringSpec() {
             data class Hired(
                     override val aggregateId: UUID,
                     val recruitedBy: UUID,
-                    val startDate: LocalDate,
-                    override val timestamp: Instant) : Event<SomeAggregate>
+                    val startDate: LocalDate) : Event<SomeAggregate>
 
             class StartDatesProjection : Projection() {
                 private val startDates: MutableMap<UUID, LocalDate> = HashMap()
@@ -33,7 +31,6 @@ internal class ProjectionTest : StringSpec() {
             val hiredEvent = Hired(
                     aggregateId = UUID.randomUUID(),
                     startDate = LocalDate.now(),
-                    timestamp = Instant.now(),
                     recruitedBy = UUID.randomUUID())
 
             StartDatesProjection().apply {

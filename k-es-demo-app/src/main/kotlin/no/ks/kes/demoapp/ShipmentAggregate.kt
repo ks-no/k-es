@@ -14,16 +14,16 @@ data class ShipmentAggregate(
 object Shipment : AggregateConfiguration<ShipmentAggregate>("shipment") {
 
     @SerializationId("ShipmentPrepared")
-    data class Prepared(override val aggregateId: UUID, override val timestamp: Instant, val basketId: UUID, val items: Map<UUID, Int>) : Event<ShipmentAggregate>
+    data class Prepared(override val aggregateId: UUID, val basketId: UUID, val items: Map<UUID, Int>) : Event<ShipmentAggregate>
 
     @SerializationId("ShipmentDelivered")
-    data class Delivered(override val aggregateId: UUID, override val timestamp: Instant, val basketId: UUID) : Event<ShipmentAggregate>
+    data class Delivered(override val aggregateId: UUID, val basketId: UUID) : Event<ShipmentAggregate>
 
     @SerializationId("ShipmentFailed")
-    data class Failed(override val aggregateId: UUID, override val timestamp: Instant, val reason: String, val basketId: UUID) : Event<ShipmentAggregate>
+    data class Failed(override val aggregateId: UUID, val reason: String, val basketId: UUID) : Event<ShipmentAggregate>
 
     @SerializationId("WarehouseNotifiedOfMissingShipment")
-    data class WarehouseNotifiedOfMissingShipment(override val aggregateId: UUID, override val timestamp: Instant, val basketId: UUID) : Event<ShipmentAggregate>
+    data class WarehouseNotifiedOfMissingShipment(override val aggregateId: UUID, val basketId: UUID) : Event<ShipmentAggregate>
 
     init {
         init<Prepared> {

@@ -7,7 +7,7 @@
     <parent>
         <groupId>no.ks</groupId>
         <artifactId>k-es</artifactId>
-        <version>1.0.4-SNAPSHOT</version>
+        <version>1.2.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>k-es-esjc</artifactId>
@@ -42,14 +42,6 @@
         </dependency>
 
         <!--test-->
-        <dependency>
-            <groupId>no.ks</groupId>
-            <artifactId>k-es-lib</artifactId>
-            <classifier>tests</classifier>
-            <type>test-jar</type>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>io.kotlintest</groupId>
             <artifactId>kotlintest-runner-junit5</artifactId>

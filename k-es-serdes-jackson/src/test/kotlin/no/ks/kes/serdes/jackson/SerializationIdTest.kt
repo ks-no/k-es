@@ -14,7 +14,7 @@ internal class SerializationIdTest : StringSpec() {
     init {
         "Test that the event type is correctly retrieved from the event annotation" {
             @SerializationId("some-id")
-            data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+            data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
             getSerializationIdAnnotationValue(SomeEvent::class) shouldBe "some-id"
         }

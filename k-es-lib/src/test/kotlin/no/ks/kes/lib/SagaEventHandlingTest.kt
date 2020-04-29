@@ -12,14 +12,14 @@ class SagaEventHandlingTest : StringSpec() {
 
     private data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
 
-    private data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+    private data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
     @Deprecated(message = "dont use this event")
-    private data class SomeDeprecatedEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+    private data class SomeDeprecatedEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
     init {
         "test that a saga with no pre-existing state can be initialized" {
-            val event = SomeEvent(UUID.randomUUID(), Instant.now())
+            val event = SomeEvent(UUID.randomUUID())
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {
@@ -38,7 +38,7 @@ class SagaEventHandlingTest : StringSpec() {
         }
 
         "test that a saga which already exists will not be initialized" {
-            val event = SomeEvent(UUID.randomUUID(), Instant.now())
+            val event = SomeEvent(UUID.randomUUID())
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {
@@ -51,7 +51,7 @@ class SagaEventHandlingTest : StringSpec() {
         }
 
         "test that a saga can dispatch commands during initialization" {
-            val event = SomeEvent(UUID.randomUUID(), Instant.now())
+            val event = SomeEvent(UUID.randomUUID())
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {
@@ -72,7 +72,7 @@ class SagaEventHandlingTest : StringSpec() {
         }
 
         "test that we can mutate state while handling events on existing saga" {
-            val event = SomeEvent(UUID.randomUUID(), Instant.now())
+            val event = SomeEvent(UUID.randomUUID())
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {
@@ -90,7 +90,7 @@ class SagaEventHandlingTest : StringSpec() {
         }
 
         "test that we can dispatch commands while handling event on existing saga" {
-            val event = SomeEvent(UUID.randomUUID(), Instant.now())
+            val event = SomeEvent(UUID.randomUUID())
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {
@@ -108,7 +108,7 @@ class SagaEventHandlingTest : StringSpec() {
         }
 
         "test that we can create timeouts while handling event on existing saga" {
-            val event = SomeEvent(UUID.randomUUID(), Instant.now())
+            val event = SomeEvent(UUID.randomUUID())
             val sagaSerializationId = "SomeSaga"
             val timeoutAt = Instant.now()
 
@@ -131,7 +131,7 @@ class SagaEventHandlingTest : StringSpec() {
         }
 
         "test that timeout can trigger command dispatch" {
-            val event = SomeEvent(UUID.randomUUID(), Instant.now())
+            val event = SomeEvent(UUID.randomUUID())
             val sagaSerializationId = "SomeSaga"
             val timeoutAt = Instant.now()
 
@@ -158,7 +158,7 @@ class SagaEventHandlingTest : StringSpec() {
         }
 
         "test that the same event can be used as an init and apply, and that the init is executed if the saga does not exist" {
-            val event = SomeEvent(UUID.randomUUID(), Instant.now())
+            val event = SomeEvent(UUID.randomUUID())
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {
@@ -178,7 +178,7 @@ class SagaEventHandlingTest : StringSpec() {
         }
 
         "test that the same event can be used as an init and apply, and that the apply is executed if the saga exists" {
-            val event = SomeEvent(UUID.randomUUID(), Instant.now())
+            val event = SomeEvent(UUID.randomUUID())
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {

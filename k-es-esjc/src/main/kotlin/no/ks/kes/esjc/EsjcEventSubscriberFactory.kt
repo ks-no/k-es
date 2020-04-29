@@ -18,7 +18,11 @@ class EsjcEventSubscriberFactory(
     override fun createSubscriber(subscriber: String, fromEvent: Long, onEvent: (EventWrapper<Event<*>>) -> Unit, onClose: (Exception) -> Unit, onLive: () -> Unit) {
         eventStore.subscribeToStreamFrom(
                 "\$ce-$category",
-                fromEvent,
+                when {
+                    fromEvent == -1L -> null
+                    fromEvent > 0 -> fromEvent
+                    else -> error("the from-event $fromEvent is invalid, must be a number larger than -1")
+                },
                 CatchUpSubscriptionSettings.newBuilder().resolveLinkTos(true).build(),
                 object : CatchUpSubscriptionListener {
                     override fun onClose(subscription: CatchUpSubscription, reason: SubscriptionDropReason, exception: java.lang.Exception) {

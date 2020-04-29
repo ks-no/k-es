@@ -13,7 +13,7 @@ import kotlin.reflect.KClass
 internal class SyncCmdHandlerTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    data class SomeEvent(override val aggregateId: UUID, override val timestamp: Instant) : Event<SomeAggregate>
+    data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
     val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
         init {
@@ -46,7 +46,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     init<HireCmd> {
-                        Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
+                        Result.Succeed(SomeEvent(it.aggregateId))
                     }
                 }
             }.handle(hireCmd).apply { stateInitialized shouldBe true }
@@ -70,7 +70,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(SomeEvent(it.aggregateId, Instant.now()))
+                        Result.Succeed(SomeEvent(it.aggregateId))
                     }
                 }
             }.handle(someCmd).apply {
