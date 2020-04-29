@@ -87,7 +87,7 @@ internal class CmdHandlerTest : StringSpec() {
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { read(someCmd.aggregateId, any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns
-                        AggregateReadResult.ExistingAggregate(SomeAggregate(true), 0)
+                        AggregateReadResult.InitializedAggregate(SomeAggregate(true), 0)
                 every { append("some-aggregate", someCmd.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
                         Unit
                 every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }

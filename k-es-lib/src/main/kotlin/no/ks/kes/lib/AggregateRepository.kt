@@ -18,12 +18,13 @@ abstract class AggregateRepository() {
     protected abstract fun <A : Aggregate> read(aggregateId: UUID, aggregateType: String, applicator: (state: A?, event: EventWrapper<*>) -> A?): AggregateReadResult
 }
 
-sealed class AggregateReadResult {
-    data class ExistingAggregate<A : Aggregate>(val aggregateState: A, val eventNumber: Long) : AggregateReadResult()
-    object NonExistingAggregate : AggregateReadResult()
+sealed class AggregateReadResult{
+    data class InitializedAggregate<A: Aggregate>(val aggregateState: A, val eventNumber: Long): AggregateReadResult()
+    data class UninitializedAggregate(val eventNumber: Long): AggregateReadResult()
+    object NonExistingAggregate: AggregateReadResult()
 }
 
-sealed class ExpectedEventNumber() {
+sealed class ExpectedEventNumber {
     object Any : ExpectedEventNumber()
     object AggregateDoesNotExist : ExpectedEventNumber()
     object AggregateExists : ExpectedEventNumber()

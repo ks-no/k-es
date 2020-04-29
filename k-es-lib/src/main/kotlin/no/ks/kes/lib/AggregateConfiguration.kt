@@ -44,14 +44,19 @@ abstract class AggregateConfiguration<STATE : Aggregate>(val aggregateType: Stri
             this.initializers = initializers.map { serializationIdFunction.invoke(it.key) to it.value }.toMap()
         }
 
-        internal fun <E : Event<*>> applyEvent(wrapper: EventWrapper<E>, currentState: STATE?): STATE? =
-                if (currentState != null) {
-                    applicators[wrapper.serializationId]
-                            ?.invoke(currentState, wrapper)
-                            ?: currentState
-                } else {
-                    initializers[wrapper.serializationId]
-                            ?.invoke(wrapper)
-                }
+        internal fun <E : Event<*>> applyEvent(wrapper: EventWrapper<E>, currentState: STATE?): STATE? {
+            return if (currentState == null) {
+                val initializer = initializers[wrapper.serializationId]
+
+                if(initializer == null && applicators.containsKey(wrapper.serializationId))
+                        error("Error reading ${aggregateType}(${wrapper.event.aggregateId}): event #${wrapper.eventNumber}(${wrapper.serializationId}) is configured as an applicator in the $aggregateType configuration, but the aggregate state has not yet been initialized. Please verify that an init event precedes this event in the event stream, or update your configuration")
+
+                initializer?.invoke(wrapper)
+            } else {
+                applicators[wrapper.serializationId]
+                        ?.invoke(currentState, wrapper)
+                        ?: currentState
+            }
+        }
     }
 }

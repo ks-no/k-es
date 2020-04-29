@@ -49,20 +49,29 @@ class EsjcAggregateRepository(
                         streamIdGenerator.invoke(aggregateType, aggregateId),
                         FIRST_EVENT,
                         BATCH_SIZE,
-                        true
+                        false
                 )
                         .asSequence()
                         .filter { !EsjcEventUtil.isIgnorableEvent(it) }
-                        .fold(null as Pair<A, Long>?, { a, e ->
+                        .fold(null as A? to null as Long?, { a, e ->
                             val deserialized = serdes.deserialize(e.event.data, e.event.eventType)
                             applicator.invoke(
-                                    a?.first,
+                                    a.first,
                                     EventWrapper(deserialized as Event<A>, e.event.eventNumber, serdes.getSerializationId(deserialized::class))
-                            )
-                                    ?.let { it to e.event.eventNumber }
+                            ) to e.event.eventNumber
                         })
-                        ?.let { AggregateReadResult.ExistingAggregate(it.first, it.second) }
-                        ?: error("Aggregate $aggregateId has events, but applying event handlers did not produce an aggregate state!")
+                        .let {
+                            when {
+                                //when the aggregate has non-ignorable events, but applying these did not lead to a initialized state
+                                it.first == null && it.second != null -> AggregateReadResult.UninitializedAggregate(it.second!!)
+
+                                //when the aggregate has non-ignorable events, and applying these has lead to a initialized state
+                                it.first != null && it.second != null -> AggregateReadResult.InitializedAggregate(it.first!!, it.second!!)
+
+                                //when all events on the aggregate are ignorable
+                                else -> AggregateReadResult.NonExistingAggregate
+                            }
+                        }
             } catch (e: StreamNotFoundException) {
                 AggregateReadResult.NonExistingAggregate
             }

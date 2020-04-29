@@ -39,8 +39,8 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
                 appendDerivedEvents(validatedAggregateConfiguration.aggregateType, readResult, cmd, result.derivedEvents)
                 result.derivedEvents.fold(
                         when (readResult) {
-                            is AggregateReadResult.ExistingAggregate<*> -> readResult.aggregateState as A
-                            is AggregateReadResult.NonExistingAggregate -> null
+                            is AggregateReadResult.InitializedAggregate<*> -> readResult.aggregateState as A
+                            is AggregateReadResult.NonExistingAggregate, is AggregateReadResult.UninitializedAggregate -> null
                         },
                         { a, e ->
                             validatedAggregateConfiguration.applyEvent(EventWrapper(
@@ -92,7 +92,8 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
     private fun resolveExpectedEventNumber(readResult: AggregateReadResult, useOptimisticLocking: Boolean): ExpectedEventNumber =
             when (readResult) {
                 is AggregateReadResult.NonExistingAggregate -> ExpectedEventNumber.AggregateDoesNotExist
-                is AggregateReadResult.ExistingAggregate<*> -> if (useOptimisticLocking) ExpectedEventNumber.Exact(readResult.eventNumber) else ExpectedEventNumber.AggregateExists
+                is AggregateReadResult.InitializedAggregate<*> -> if (useOptimisticLocking) ExpectedEventNumber.Exact(readResult.eventNumber) else ExpectedEventNumber.AggregateExists
+                is AggregateReadResult.UninitializedAggregate -> if (useOptimisticLocking) ExpectedEventNumber.Exact(readResult.eventNumber) else ExpectedEventNumber.AggregateExists
             }
 
     private fun readAggregate(cmd: Cmd<A>): AggregateReadResult =
@@ -100,7 +101,7 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
 
     private fun invokeHandler(cmd: Cmd<A>, readResult: AggregateReadResult): Result<A> =
             when (readResult) {
-                is AggregateReadResult.NonExistingAggregate -> {
+                is AggregateReadResult.NonExistingAggregate, is AggregateReadResult.UninitializedAggregate -> {
                     initializers[cmd::class]
                             ?.run {
                                 try {
@@ -111,8 +112,8 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
                             }
                             ?: error("Aggregate ${cmd.aggregateId} does not exist, and cmd ${cmd::class.simpleName} is not configured as an initializer. Consider adding an \"init\" configuration for this command.")
                 }
-                is AggregateReadResult.ExistingAggregate<*> -> {
-                    applicators[cmd::class]
+                is AggregateReadResult.InitializedAggregate<*> -> {
+                    applicators[cmd::class ]
                             ?.run {
                                 try {
                                     invoke(readResult.aggregateState as A, cmd)
