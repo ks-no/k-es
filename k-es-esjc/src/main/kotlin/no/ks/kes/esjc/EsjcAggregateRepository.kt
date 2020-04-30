@@ -66,12 +66,13 @@ class EsjcAggregateRepository(
                         })
                         .let {
                             when {
-                                //when the aggregate has non-ignorable events, but applying these did not lead to a initialized state
+                                //when the aggregate stream has events, but applying these did not lead to a initialized state
                                 it.first == null && it.second != null -> AggregateReadResult.UninitializedAggregate(it.second!!)
 
-                                //when the aggregate has non-ignorable events, and applying these has lead to a initialized state
+                                //when the aggregate stream has events, and applying these has lead to a initialized state
                                 it.first != null && it.second != null -> AggregateReadResult.InitializedAggregate(it.first!!, it.second!!)
 
+                                //when the aggregate stream has no events
                                 else -> error("Error reading $streamId, the stream exists but does not contain any events")
                             }
                         }

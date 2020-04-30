@@ -1,6 +1,4 @@
-//TODO: figure out a way of testing the aggregate repo, preferably without altering the visibility of internal or protected functions
 
-/*
 package no.ks.kes.esjc
 
 import com.github.msemys.esjc.EventStore
@@ -9,13 +7,14 @@ import com.github.msemys.esjc.operation.StreamNotFoundException
 import com.github.msemys.esjc.proto.EventStoreClientMessages
 import com.google.protobuf.ByteString
 import io.kotlintest.matchers.beInstanceOf
+import io.kotlintest.matchers.string.shouldContain
 import io.kotlintest.should
 import io.kotlintest.shouldBe
+import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
 import io.mockk.every
 import io.mockk.mockk
 import no.ks.kes.lib.*
-import java.time.Instant
 import java.util.*
 import java.util.stream.Stream
 import kotlin.reflect.KClass
@@ -36,64 +35,122 @@ class EsjcAggregateReaderTest : StringSpec() {
                 copy(stateUpdated = true)
             }
         }
-    }
+    }.getConfiguration { it.simpleName!! }
 
     init {
-        "Test that the reader can retrieve and deserialize aggregate events from the event-store" {
+        "Test that the reader returns InitializedAggregate if a configured init-event is found in the stream" {
             val someEvent = SomeEvent(UUID.randomUUID())
             val someOtherEvent = SomeOtherEvent(UUID.randomUUID())
             val eventStoreMock = mockk<EventStore>()
                     .apply {
                         every { streamEventsForward(any(), any(), any(), any()) } returns
-                                Stream.of(ResolvedEvent(EventStoreClientMessages.ResolvedIndexedEvent.newBuilder()
-                                        .setEvent(EventStoreClientMessages.EventRecord.newBuilder()
-                                                .setData(ByteString.copyFrom("some-id".toByteArray()))
-                                                .setDataContentType(1)
-                                                .setEventStreamId(UUID.randomUUID().toString())
-                                                .setEventNumber(0)
-                                                .setEventId(ByteString.copyFrom(UUID.randomUUID().toString(), "UTF-8"))
-                                                .setEventType("some-id")
-                                                .setMetadataContentType(1)
-                                                .build())
-                                        .build()),
+                                Stream.of(
+                                        ResolvedEvent(EventStoreClientMessages.ResolvedIndexedEvent.newBuilder()
+                                                .setEvent(EventStoreClientMessages.EventRecord.newBuilder()
+                                                        .setData(ByteString.copyFrom("some-id".toByteArray()))
+                                                        .setDataContentType(0)
+                                                        .setEventStreamId(UUID.randomUUID().toString())
+                                                        .setEventNumber(0)
+                                                        .setEventId(ByteString.copyFrom(UUID.randomUUID().toString(), "UTF-8"))
+                                                        .setEventType("some-id")
+                                                        .setMetadataContentType(1)
+                                                        .build())
+                                                .build()),
                                         ResolvedEvent(EventStoreClientMessages.ResolvedIndexedEvent.newBuilder()
                                                 .setEvent(EventStoreClientMessages.EventRecord.newBuilder()
                                                         .setData(ByteString.copyFrom("some-other-id".toByteArray()))
                                                         .setDataContentType(1)
                                                         .setEventStreamId(UUID.randomUUID().toString())
-                                                        .setEventNumber(0)
+                                                        .setEventNumber(1)
                                                         .setEventId(ByteString.copyFrom(UUID.randomUUID().toString(), "UTF-8"))
                                                         .setEventType("some-other-id")
                                                         .setMetadataContentType(1)
                                                         .build())
-                                                .build()))
+                                                .build())
+                                )
                     }
 
             val deserializer = mockk<EventSerdes>().apply {
                 every { deserialize("some-id".toByteArray(), any()) } returns someEvent
+                every { getSerializationId(any<KClass<Event<*>>>()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
                 every { deserialize("some-other-id".toByteArray(), any()) } returns someOtherEvent
             }
-
-
-
-
-
 
             EsjcAggregateRepository(
                     eventStore = eventStoreMock,
                     serdes = deserializer,
                     streamIdGenerator = { t, id -> "$t.$id" }
             )
-                    .read(UUID.randomUUID(), someAggregateConfiguration.getConfiguration { it.simpleName!! })
+                    .read(UUID.randomUUID(), someAggregateConfiguration)
                     .apply {
-                        with(this as AggregateReadResult.ExistingAggregate<SomeAggregate>) {
+                        with(this as AggregateReadResult.InitializedAggregate<SomeAggregate>) {
                             aggregateState.stateInitialized shouldBe true
                             aggregateState.stateUpdated shouldBe true
+                            eventNumber shouldBe 1L
                         }
                     }
         }
 
-        "Test that the reader returns an empty aggregate if no stream is found" {
+        "Test that the reader returns UninitializedAggregate if the stream consists solely of ignorable events" {
+            val eventStoreMock = mockk<EventStore>()
+                    .apply {
+                        every { streamEventsForward(any(), any(), any(), any()) } returns
+                                Stream.of(
+                                        ResolvedEvent(EventStoreClientMessages.ResolvedIndexedEvent.newBuilder()
+                                                .setEvent(EventStoreClientMessages.EventRecord.newBuilder()
+                                                        .setData(ByteString.copyFrom("some-id".toByteArray()))
+                                                        .setDataContentType(1)
+                                                        .setEventStreamId(UUID.randomUUID().toString())
+                                                        .setEventNumber(0)
+                                                        .setEventId(ByteString.copyFrom(UUID.randomUUID().toString(), "UTF-8"))
+                                                        .setEventType("\$some-id")
+                                                        .setMetadataContentType(1)
+                                                        .build())
+                                                .build()),
+                                        ResolvedEvent(EventStoreClientMessages.ResolvedIndexedEvent.newBuilder()
+                                                .setEvent(EventStoreClientMessages.EventRecord.newBuilder()
+                                                        .setData(ByteString.copyFrom("some-id".toByteArray()))
+                                                        .setDataContentType(1)
+                                                        .setEventStreamId(UUID.randomUUID().toString())
+                                                        .setEventNumber(1)
+                                                        .setEventId(ByteString.copyFrom(UUID.randomUUID().toString(), "UTF-8"))
+                                                        .setEventType("\$some-other-id")
+                                                        .setMetadataContentType(1)
+                                                        .build())
+                                                .build())
+                                )
+                    }
+
+            EsjcAggregateRepository(
+                    eventStore = eventStoreMock,
+                    serdes = mockk(),
+                    streamIdGenerator = { t, id -> "$t.$id" }
+            )
+                    .read(UUID.randomUUID(), someAggregateConfiguration)
+                    .apply {
+                        with(this as AggregateReadResult.UninitializedAggregate) {
+                            this.eventNumber shouldBe 1L
+                        }
+                    }
+        }
+
+        "Test that the reader throws exception if the stream is empty" {
+            val eventStoreMock = mockk<EventStore>()
+                    .apply {
+                        every { streamEventsForward(any(), any(), any(), any()) } returns Stream.of()
+                    }
+
+            shouldThrow<IllegalStateException> {
+                EsjcAggregateRepository(
+                        eventStore = eventStoreMock,
+                        serdes = mockk(),
+                        streamIdGenerator = { t, id -> "$t.$id" }
+                )
+                        .read(UUID.randomUUID(), someAggregateConfiguration)
+            }.message.shouldContain("the stream exists but does not contain any events")
+        }
+
+        "Test that the reader returns a NonExistingAggregate if no stream is found" {
             EsjcAggregateRepository(
                     eventStore = mockk<EventStore>()
                             .apply {
@@ -107,5 +164,6 @@ class EsjcAggregateReaderTest : StringSpec() {
                     .apply {
                         this should beInstanceOf<AggregateReadResult.NonExistingAggregate>()
                     }
+        }
     }
-}*/
+}
