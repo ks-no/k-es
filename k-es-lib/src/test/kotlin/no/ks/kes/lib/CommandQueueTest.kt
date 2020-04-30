@@ -39,7 +39,7 @@ class CommandQueueTest : StringSpec() {
 
             val repository = mockk<AggregateRepository>()
                     .apply {
-                        every { read(any(), any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
+                        every { read(any(), any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
                         every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>()::class.simpleName!! }
                     }
 
@@ -64,7 +64,7 @@ class CommandQueueTest : StringSpec() {
             data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
 
             val repository = mockk<AggregateRepository>().apply {
-                every { read(any(), any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
+                every { read(any(), any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
                 every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>()::class.simpleName!! }
             }
 
@@ -89,7 +89,7 @@ class CommandQueueTest : StringSpec() {
             data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
 
             val repository = mockk<AggregateRepository>().apply {
-                every { read(any(), any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
+                every { read(any(), any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
                 every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>()::class.simpleName!! }
             }
 
@@ -114,7 +114,7 @@ class CommandQueueTest : StringSpec() {
             data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
 
             val repository = mockk<AggregateRepository>().apply {
-                every { read(any(), any<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
+                every { read(any(), any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
                 every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>()::class.simpleName!! }
             }
 

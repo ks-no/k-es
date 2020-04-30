@@ -8,7 +8,7 @@ abstract class AggregateRepository() {
     abstract fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<Event<*>>)
     abstract fun getSerializationId(eventClass: KClass<Event<*>>): String
 
-    internal fun <A : Aggregate> read(aggregateId: UUID, aggregateConfiguration: AggregateConfiguration.ValidatedAggregateConfiguration<A>): AggregateReadResult =
+    fun <A : Aggregate> read(aggregateId: UUID, aggregateConfiguration: ValidatedAggregateConfiguration<A>): AggregateReadResult =
             read(
                     aggregateId = aggregateId,
                     aggregateType = aggregateConfiguration.aggregateType,

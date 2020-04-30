@@ -39,7 +39,7 @@ internal class AsyncCmdHandlerTest : StringSpec() {
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
-                every { read(someCmd.aggregateId, ofType<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
+                every { read(someCmd.aggregateId, ofType<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
                 every { append("some-aggregate", someCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, capture(slot)) } returns Unit
             }
 
@@ -63,7 +63,7 @@ internal class AsyncCmdHandlerTest : StringSpec() {
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
-                every { read(someCmd.aggregateId, ofType<AggregateConfiguration.ValidatedAggregateConfiguration<*>>()) } returns
+                every { read(someCmd.aggregateId, ofType<ValidatedAggregateConfiguration<*>>()) } returns
                         AggregateReadResult.InitializedAggregate(SomeAggregate(true), 0)
                 every { append("some-aggregate", someCmd.aggregateId, ExpectedEventNumber.Exact(0), capture(slot)) } returns Unit
             }
