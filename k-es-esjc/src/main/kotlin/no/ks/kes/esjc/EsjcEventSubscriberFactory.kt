@@ -26,7 +26,7 @@ class EsjcEventSubscriberFactory(
                 CatchUpSubscriptionSettings.newBuilder().resolveLinkTos(true).build(),
                 object : CatchUpSubscriptionListener {
                     override fun onClose(subscription: CatchUpSubscription, reason: SubscriptionDropReason, exception: java.lang.Exception) {
-                        log.info(exception) { "$subscriber: subscription closed: $reason" }
+                        log.error(exception) { "$subscriber: subscription closed: $reason" }
                         onClose.invoke(exception)
                     }
 
