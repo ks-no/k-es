@@ -1,11 +1,9 @@
 package no.ks.kes.lib
 
-import io.kotlintest.matchers.string.shouldContain
-import io.kotlintest.shouldBe
-import io.kotlintest.shouldThrow
-import io.kotlintest.specs.StringSpec
-import java.lang.IllegalStateException
-import java.time.Instant
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import java.util.*
 import kotlin.random.Random
 

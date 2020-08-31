@@ -1,7 +1,7 @@
 package no.ks.kes.lib
 
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
 import java.time.Instant
 import java.util.*
 
@@ -166,7 +166,7 @@ class SagaEventHandlingTest : StringSpec() {
                     apply<SomeEvent>({ it.aggregateId }) { setState(state.copy(updated = true)) }
                 }
             }.getConfiguration { it.simpleName!! }
-                    .handleEvent(EventWrapper(event, 0, event::class.simpleName!!)) { id, _ -> null }
+                    .handleEvent(EventWrapper(event, 0, event::class.simpleName!!)) { _, _ -> null }
                     .run {
                         with(this as SagaRepository.Operation.Insert) {
                             correlationId shouldBe event.aggregateId

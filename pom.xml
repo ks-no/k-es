@@ -45,7 +45,7 @@
         <logback.version>1.2.3</logback.version>
         <kotlin-logging.version>1.7.10</kotlin-logging.version>
         <mockk.version>1.10.0</mockk.version>
-        <kotlintest-runner-junit.version>3.4.2</kotlintest-runner-junit.version>
+        <kotest.version>4.2.2</kotest.version>
         <jacoco-maven-plugin.version>0.8.5</jacoco-maven-plugin.version>
         <junit.jupiter.version>5.6.2</junit.jupiter.version>
         <java.version>11</java.version>
@@ -115,6 +115,38 @@
                 <type>pom</type>
             </dependency>
 
+            <!-- kotest -->
+            <dependency>
+                <groupId>io.kotest</groupId>
+                <artifactId>kotest-core-jvm</artifactId>
+                <version>${kotest.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kotest</groupId>
+                <artifactId>kotest-runner-junit5-jvm</artifactId>
+                <version>${kotest.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.kotest</groupId>
+                <artifactId>kotest-property-jvm</artifactId>
+                <version>${kotest.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.kotest</groupId>
+                <artifactId>kotest-assertions-core-jvm</artifactId>
+                <version>${kotest.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.kotest</groupId>
+                <artifactId>kotest-assertions-json-jvm</artifactId>
+                <version>${kotest.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <!-- /kotest -->
 
             <dependency>
                 <groupId>io.mockk</groupId>
@@ -122,12 +154,7 @@
                 <version>${mockk.version}</version>
                 <scope>test</scope>
             </dependency>
-            <dependency>
-                <groupId>io.kotlintest</groupId>
-                <artifactId>kotlintest-runner-junit5</artifactId>
-                <version>${kotlintest-runner-junit.version}</version>
-                <scope>test</scope>
-            </dependency>
+
 
         </dependencies>
     </dependencyManagement>

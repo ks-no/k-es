@@ -1,7 +1,7 @@
 package no.ks.kes.serdes.jackson
 
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
 import no.ks.kes.lib.Aggregate
 import no.ks.kes.lib.Cmd
 import no.ks.kes.lib.Event

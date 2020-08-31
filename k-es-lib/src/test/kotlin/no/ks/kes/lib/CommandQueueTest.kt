@@ -1,6 +1,6 @@
 package no.ks.kes.lib
 
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
