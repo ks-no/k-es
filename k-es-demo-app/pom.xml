@@ -3,9 +3,6 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <properties>
-        <spring-boot-version>2.2.5.RELEASE</spring-boot-version>
-    </properties>
 
     <parent>
         <groupId>no.ks</groupId>
@@ -14,6 +11,12 @@
     </parent>
 
     <artifactId>k-es-demo-app</artifactId>
+    <properties>
+        <spring-boot-version>2.2.5.RELEASE</spring-boot-version>
+        <flyway.version>6.1.4</flyway.version>
+        <mssql-jdbc.version>7.4.1.jre11</mssql-jdbc.version>
+        <awaitility.version>4.0.2</awaitility.version>
+    </properties>
 
     <dependencies>
         <!--internal-->
@@ -34,7 +37,7 @@
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
-            <version>7.4.1.jre11</version>
+            <version>${mssql-jdbc.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -52,7 +55,7 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
-            <version>6.1.4</version>
+            <version>${flyway.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -77,7 +80,7 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility-kotlin</artifactId>
-            <version>4.0.2</version>
+            <version>${awaitility.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
