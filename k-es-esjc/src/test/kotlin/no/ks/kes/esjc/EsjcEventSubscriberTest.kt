@@ -41,7 +41,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
                         category = category,
                         serdes = mockk()
                 ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
-            }.message shouldBe "the from-event $hwm is invalid, must be a number equal top larger than -1"
+            }.message shouldBe "the from-event $hwm is invalid, must be a number equal to or larger than -1"
         }
 
         "Create event subscriptions using different borderline highwater marks" {
