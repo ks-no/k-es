@@ -29,7 +29,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
         }
 
         "Create event subscriptions using different borderline highwater marks" {
-            forAll(row(-1L, null), row(0L, 0L), row(1L, 1L), row(37999L, 37999L)) { hwm, eventnumber ->
+            forAll(row(-1L, null), row(0L, 0L), row(1L, 1L), row(37999L, 37999L), row(Long.MAX_VALUE, Long.MAX_VALUE)) { hwm, eventnumber ->
                 val category = UUID.randomUUID().toString()
                 val streamName = "\$ce-$category"
 
