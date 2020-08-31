@@ -21,7 +21,7 @@ class EsjcEventSubscriberFactory(
                 when {
                     fromEvent == -1L -> null
                     fromEvent > -1L -> fromEvent
-                    else -> error("the from-event $fromEvent is invalid, must be a number equal top larger than -1")
+                    else -> error("the from-event $fromEvent is invalid, must be a number equal to or larger than -1")
                 },
                 CatchUpSubscriptionSettings.newBuilder().resolveLinkTos(true).build(),
                 object : CatchUpSubscriptionListener {
