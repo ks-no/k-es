@@ -1,8 +1,8 @@
 package no.ks.kes.lib
 
-import io.kotlintest.matchers.string.shouldContain
-import io.kotlintest.shouldThrow
-import io.kotlintest.specs.StringSpec
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.string.shouldContain
 import java.time.Instant
 import java.util.*
 
@@ -57,7 +57,7 @@ class SagaConfigurationTest : StringSpec() {
                 object : Saga<SomeState>(SomeState::class, "someSaga") {
                     init {
                         init<SomeEvent> { setState(SomeState(it.aggregateId)) }
-                        timeout<SomeDeprecatedEvent>({ it.aggregateId }, { e -> Instant.now() }) { setState(SomeState(UUID.randomUUID())) }
+                        timeout<SomeDeprecatedEvent>({ it.aggregateId }, { Instant.now() }) { setState(SomeState(UUID.randomUUID())) }
                     }
                 }.getConfiguration { it.simpleName!! }
             }.message shouldContain "handles deprecated event"
@@ -69,7 +69,7 @@ class SagaConfigurationTest : StringSpec() {
                 object : Saga<SomeState>(SomeState::class, "someSaga") {
                     init {
                         apply<SomeEvent> { setState(SomeState(it.aggregateId)) }
-                        timeout<SomeEvent>({ it.aggregateId }, { e -> Instant.now() }) { setState(SomeState(UUID.randomUUID())) }
+                        timeout<SomeEvent>({ it.aggregateId }, { Instant.now() }) { setState(SomeState(UUID.randomUUID())) }
                     }
                 }.getConfiguration { it.simpleName!! }
             }.message shouldContain "There are multiple \"apply/timeout\" configurations for event-type(s)"

@@ -1,11 +1,10 @@
 package no.ks.kes.lib
 
-import io.kotlintest.shouldBe
-import io.kotlintest.shouldThrow
-import io.kotlintest.specs.StringSpec
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
-import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 import kotlin.random.Random

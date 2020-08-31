@@ -1,12 +1,11 @@
 package no.ks.kes.lib
 
-import io.kotlintest.matchers.types.shouldBeInstanceOf
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import java.time.Instant
 import java.util.*
 import kotlin.reflect.KClass
 

@@ -40,7 +40,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
-            <version>5.2.7.RELEASE</version>
+            <version>5.2.8.RELEASE</version>
         </dependency>
 
         <!--test-->
@@ -65,11 +65,23 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- Kotest -->
         <dependency>
-            <groupId>io.kotlintest</groupId>
-            <artifactId>kotlintest-runner-junit5</artifactId>
+            <groupId>io.kotest</groupId>
+            <artifactId>kotest-runner-junit5-jvm</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.kotest</groupId>
+            <artifactId>kotest-property-jvm</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kotest</groupId>
+            <artifactId>kotest-assertions-core-jvm</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- /Kotest -->
     </dependencies>
 
     <build>

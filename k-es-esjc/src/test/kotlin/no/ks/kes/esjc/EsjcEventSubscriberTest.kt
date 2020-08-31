@@ -2,7 +2,7 @@ package no.ks.kes.esjc
 
 import com.github.msemys.esjc.CatchUpSubscriptionListener
 import com.github.msemys.esjc.EventStore
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
 import io.mockk.mockk
 import io.mockk.verify
 import java.util.*
