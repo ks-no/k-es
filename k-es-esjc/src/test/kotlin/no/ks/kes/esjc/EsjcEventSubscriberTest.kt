@@ -2,9 +2,11 @@ package no.ks.kes.esjc
 
 import com.github.msemys.esjc.CatchUpSubscriptionListener
 import com.github.msemys.esjc.EventStore
+import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.data.forAll
 import io.kotest.data.row
+import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -26,6 +28,20 @@ internal class EsjcEventSubscriberTest : StringSpec() {
                 verify(exactly = 1) { eventStoreMock.subscribeToStreamFrom("\$ce-$category", eq(eventnumber), any(), ofType<CatchUpSubscriptionListener>()) }
             }
 
+        }
+
+        "Create event subsription starting on MIN_VALUE" {
+            val hwm = Long.MIN_VALUE
+            val category = UUID.randomUUID().toString()
+            val eventStoreMock = mockk<EventStore>(relaxed = true)
+
+            shouldThrowExactly<IllegalStateException> {
+                EsjcEventSubscriberFactory(
+                        eventStore = eventStoreMock,
+                        category = category,
+                        serdes = mockk()
+                ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
+            }.message shouldBe "the from-event $hwm is invalid, must be a number equal top larger than -1"
         }
 
         "Create event subscriptions using different borderline highwater marks" {
