@@ -53,6 +53,15 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Kotlin bom -->
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-bom</artifactId>
+                <version>${kotlin.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- /Kotlin bom -->
             <dependency>
                 <groupId>no.ks</groupId>
                 <artifactId>k-es-lib</artifactId>
@@ -80,16 +89,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <dependency>
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-stdlib-jdk8</artifactId>
-                <version>${kotlin.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-reflect</artifactId>
-                <version>${kotlin.version}</version>
-            </dependency>
+
 
             <dependency>
                 <groupId>com.github.msemys</groupId>
