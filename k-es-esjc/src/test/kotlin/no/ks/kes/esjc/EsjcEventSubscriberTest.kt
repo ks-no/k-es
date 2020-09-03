@@ -8,10 +8,7 @@ import io.kotest.data.row
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.beInstanceOf
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.slot
-import io.mockk.verify
+import io.mockk.*
 import java.util.*
 
 internal class EsjcEventSubscriberTest : StringSpec() {
@@ -56,6 +53,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
                 cause should beInstanceOf<ConnectionClosedException>()
             }
             verify(exactly = 1) { eventStoreMock.subscribeToStreamFrom("\$ce-$category", eq(eventnumber), any(), ofType<CatchUpSubscriptionListener>()) }
+            confirmVerified(subscription)
 
         }
 
