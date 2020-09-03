@@ -4,6 +4,7 @@ import com.github.msemys.esjc.*
 import mu.KotlinLogging
 import no.ks.kes.lib.*
 import kotlin.reflect.KClass
+import java.lang.Exception as JavaException
 
 private val log = KotlinLogging.logger {}
 
@@ -15,7 +16,7 @@ class EsjcEventSubscriberFactory(
     override fun getSerializationId(eventClass: KClass<Event<*>>): String =
             serdes.getSerializationId(eventClass)
 
-    override fun createSubscriber(subscriber: String, fromEvent: Long, onEvent: (EventWrapper<Event<*>>) -> Unit, onClose: (Exception) -> Unit, onLive: () -> Unit) {
+    override fun createSubscriber(subscriber: String, fromEvent: Long, onEvent: (EventWrapper<Event<*>>) -> Unit, onClose: (JavaException) -> Unit, onLive: () -> Unit) {
         eventStore.subscribeToStreamFrom(
                 "\$ce-$category",
                 when {
@@ -25,9 +26,9 @@ class EsjcEventSubscriberFactory(
                 },
                 CatchUpSubscriptionSettings.newBuilder().resolveLinkTos(true).build(),
                 object : CatchUpSubscriptionListener {
-                    override fun onClose(subscription: CatchUpSubscription, reason: SubscriptionDropReason, exception: java.lang.Exception) {
+                    override fun onClose(subscription: CatchUpSubscription, reason: SubscriptionDropReason, exception: JavaException) {
                         log.error(exception) { "$subscriber: subscription closed: $reason" }
-                        onClose.invoke(exception)
+                        onClose.invoke(EsjcSubscriptionDroppedException(reason, exception))
                     }
 
                     override fun onLiveProcessingStarted(subscription: CatchUpSubscription?) {

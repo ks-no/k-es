@@ -1,14 +1,16 @@
 package no.ks.kes.esjc
 
-import com.github.msemys.esjc.CatchUpSubscriptionListener
-import com.github.msemys.esjc.EventStore
+import com.github.msemys.esjc.*
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.data.forAll
 import io.kotest.data.row
+import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.beInstanceOf
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import java.util.*
 
@@ -27,6 +29,33 @@ internal class EsjcEventSubscriberTest : StringSpec() {
                 ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
                 verify(exactly = 1) { eventStoreMock.subscribeToStreamFrom("\$ce-$category", eq(eventnumber), any(), ofType<CatchUpSubscriptionListener>()) }
             }
+
+        }
+
+        "On close propagetes reason" {
+            val category = UUID.randomUUID().toString()
+            val eventnumber: Long = 1
+            val catchUpSubscriptionListener = slot<CatchUpSubscriptionListener>()
+            val subscription: CatchUpSubscription = mockk()
+            val eventStoreMock = mockk<EventStore> {
+                every { subscribeToStreamFrom("\$ce-$category", eventnumber, any(), capture(catchUpSubscriptionListener)) } returns subscription
+            }
+            var catchedException: Exception? = null
+            EsjcEventSubscriberFactory(
+                    eventStore = eventStoreMock,
+                    category = category,
+                    serdes = mockk()
+            ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = 1, onClose = {
+                catchedException = it
+            })
+            val subscriptionDropReason = SubscriptionDropReason.ConnectionClosed
+            catchUpSubscriptionListener.captured.onClose(subscription, subscriptionDropReason, ConnectionClosedException("Connection was closed"))
+            (catchedException!! as EsjcSubscriptionDroppedException).run {
+                reason shouldBe subscriptionDropReason
+                message shouldBe "Subscription was dropped. Reason: $subscriptionDropReason"
+                cause should beInstanceOf<ConnectionClosedException>()
+            }
+            verify(exactly = 1) { eventStoreMock.subscribeToStreamFrom("\$ce-$category", eq(eventnumber), any(), ofType<CatchUpSubscriptionListener>()) }
 
         }
 
