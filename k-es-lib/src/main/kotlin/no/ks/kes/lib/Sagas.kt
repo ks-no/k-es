@@ -73,7 +73,7 @@ object Sagas {
     }
 
     private val defaultOnCloseHandler = { exception: Exception ->
-        log.error(exception) { "Event subscription was closed. Shutting down." }
+        log.error(exception) { "Event subscription for Sagas was closed. Shutting down." }
         exitProcess(1)
     }
 }
