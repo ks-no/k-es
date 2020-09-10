@@ -4,13 +4,14 @@ import mu.KotlinLogging
 import java.util.*
 import kotlin.concurrent.schedule
 import kotlin.reflect.KClass
+import kotlin.system.exitProcess
 
 private val log = KotlinLogging.logger {}
 private const val SAGA_SUBSCRIBER = "SagaManager"
 
 object Sagas {
 
-    fun initialize(eventSubscriberFactory: EventSubscriberFactory, sagaRepository: SagaRepository, sagas: Set<Saga<*>>, commandQueue: CommandQueue, pollInterval: Long = 5000) {
+    fun initialize(eventSubscriberFactory: EventSubscriberFactory, sagaRepository: SagaRepository, sagas: Set<Saga<*>>, commandQueue: CommandQueue, pollInterval: Long = 5000, onClose: (Exception) -> Unit = defaultOnCloseHandler) {
         val validSagaConfigurations = sagas.map { it.getConfiguration { eventSubscriberFactory.getSerializationId(it) } }
 
         eventSubscriberFactory.createSubscriber(
@@ -34,7 +35,8 @@ object Sagas {
                             throw e
                         }
                     }
-                }
+                },
+                onClose = onClose
         )
 
         Timer("PollingTimeouts", false).schedule(0, pollInterval) {
@@ -68,6 +70,11 @@ object Sagas {
         Timer("PollingCommandQueue", false).schedule(0, pollInterval) {
             commandQueue.poll()
         }
+    }
+
+    private val defaultOnCloseHandler = { exception: Exception ->
+        log.error(exception) { "Event subscription was closed. Shutting down." }
+        exitProcess(1)
     }
 }
 
