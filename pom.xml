@@ -44,7 +44,7 @@
         <esjc.version>2.2.0</esjc.version>
         <logback.version>1.2.3</logback.version>
         <kotlin-logging.version>1.8.3</kotlin-logging.version>
-        <mockk.version>1.10.0</mockk.version>
+        <mockk.version>1.10.2</mockk.version>
         <kotest.version>4.2.2</kotest.version>
         <jacoco-maven-plugin.version>0.8.5</jacoco-maven-plugin.version>
         <junit.jupiter.version>5.6.2</junit.jupiter.version>
