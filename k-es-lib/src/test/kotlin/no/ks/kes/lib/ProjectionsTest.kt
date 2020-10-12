@@ -32,22 +32,16 @@ internal class ProjectionsTest : StringSpec() {
             val slot = slot<(EventWrapper<*>) -> Unit>()
             val consumerName = "ProjectionManager"
             Projections.initialize(
-                    eventSubscriberFactory = mockk<EventSubscriberFactory>()
-                            .apply {
-                                every {
-                                    createSubscriber(
-                                            subscriber = consumerName,
-                                            fromEvent = 0L,
-                                            onEvent = capture(slot),
-                                            onClose = any(),
-                                            onLive = any()
-                                    )
-                                } returns Unit
-                                every { getSerializationId(any()) } answers {
-                                    firstArg<KClass<Event<*>>>().simpleName!!
-                                }
-                            }
-                    ,
+                    eventSubscriberFactory = mockk<EventSubscriberFactory<SimpleEventSubscription>> {
+                        every { createSubscriber(
+                                subscriber = consumerName,
+                                fromEvent = 0L,
+                                onEvent = capture(slot),
+                                onClose = any(),
+                                onLive = any()
+                        ) } returns SimpleEventSubscription(-1)
+                        every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                    },
                     projections = setOf(startDates),
                     projectionRepository = object : ProjectionRepository {
                         override val hwmTracker = object : HwmTrackerRepository {
@@ -74,4 +68,8 @@ internal class ProjectionsTest : StringSpec() {
             startDates.hasBeenProjected(hiredEvent.aggregateId) shouldBe true
         }
     }
+}
+
+internal class SimpleEventSubscription(val lastProcessed: Long): EventSubscription {
+    override fun lastProcessedEvent(): Long = lastProcessed
 }

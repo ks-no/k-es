@@ -11,10 +11,17 @@ private const val SAGA_SUBSCRIBER = "SagaManager"
 
 object Sagas {
 
-    fun initialize(eventSubscriberFactory: EventSubscriberFactory, sagaRepository: SagaRepository, sagas: Set<Saga<*>>, commandQueue: CommandQueue, pollInterval: Long = 5000, onClose: (Exception) -> Unit = defaultOnCloseHandler) {
+    fun <S : EventSubscription> initialize(
+            eventSubscriberFactory: EventSubscriberFactory<S>,
+            sagaRepository: SagaRepository,
+            sagas: Set<Saga<*>>,
+            commandQueue: CommandQueue,
+            pollInterval: Long = 5000,
+            onClose: (Exception) -> Unit = defaultOnCloseHandler
+    ): S {
         val validSagaConfigurations = sagas.map { it.getConfiguration { eventSubscriberFactory.getSerializationId(it) } }
 
-        eventSubscriberFactory.createSubscriber(
+        val subscription = eventSubscriberFactory.createSubscriber(
                 subscriber = SAGA_SUBSCRIBER,
                 fromEvent = sagaRepository.hwmTracker.getOrInit(SAGA_SUBSCRIBER),
                 onEvent = { wrapper ->
@@ -70,6 +77,7 @@ object Sagas {
         Timer("PollingCommandQueue", false).schedule(0, pollInterval) {
             commandQueue.poll()
         }
+        return subscription
     }
 
     private val defaultOnCloseHandler = { exception: Exception ->

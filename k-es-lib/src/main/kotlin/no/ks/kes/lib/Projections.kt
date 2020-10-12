@@ -6,16 +6,16 @@ import kotlin.system.exitProcess
 private val log = KotlinLogging.logger {}
 
 object Projections {
-    fun initialize(
-            eventSubscriberFactory: EventSubscriberFactory,
+    fun <S: EventSubscription> initialize(
+            eventSubscriberFactory: EventSubscriberFactory<S>,
             projections: Set<Projection>,
             projectionRepository: ProjectionRepository,
             subscriber: String,
             onClose: (Exception) -> Unit = defaultOnCloseHandler
-    ) {
+    ): S {
         val validatedProjectionConfigurations = projections.map { projection -> projection.getConfiguration { eventSubscriberFactory.getSerializationId(it) } }
 
-        eventSubscriberFactory.createSubscriber(
+        return eventSubscriberFactory.createSubscriber(
                 subscriber = subscriber,
                 onEvent = { wrapper ->
                     projectionRepository.transactionally {
