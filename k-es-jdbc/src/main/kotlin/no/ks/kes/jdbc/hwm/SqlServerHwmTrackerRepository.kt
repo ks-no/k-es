@@ -9,15 +9,18 @@ private val log = KotlinLogging.logger {}
 
 class SqlServerHwmTrackerRepository(private val template: NamedParameterJdbcTemplate, private val schema: String? = null, private val initialHwm: Long) : HwmTrackerRepository {
 
-    override fun getOrInit(subscriber: String): Long =
+    override fun current(subscriber: String): Long? =
             template.queryForList(
-                    """
+            """
                         SELECT ${HwmTable.hwm} FROM ${HwmTable.qualifiedName(schema)} 
                         WHERE ${HwmTable.subscriber} = :${HwmTable.subscriber}  
                         """,
-                    mapOf(HwmTable.subscriber to subscriber),
-                    Long::class.java
-            ).singleOrNull() ?: initHwm(subscriber)
+            mapOf(HwmTable.subscriber to subscriber),
+            Long::class.java)
+                    .singleOrNull()
+
+    override fun getOrInit(subscriber: String): Long =
+            current(subscriber) ?: initHwm(subscriber)
                     .also { log.info { "no hwm found for subscriber $subscriber, initializing subscriber at $initialHwm" } }
 
     override fun update(subscriber: String, hwm: Long) {

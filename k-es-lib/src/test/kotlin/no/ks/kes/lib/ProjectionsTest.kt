@@ -45,6 +45,7 @@ internal class ProjectionsTest : StringSpec() {
                     projections = setOf(startDates),
                     projectionRepository = object : ProjectionRepository {
                         override val hwmTracker = object : HwmTrackerRepository {
+                            override fun current(subscriber: String): Long? = 0L
                             override fun getOrInit(subscriber: String): Long = 0L
                             override fun update(subscriber: String, hwm: Long) {}
                         }
