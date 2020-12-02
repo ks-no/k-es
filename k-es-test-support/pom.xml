@@ -2,45 +2,27 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>k-es</artifactId>
+        <groupId>no.ks</groupId>
+        <version>1.2.9-SNAPSHOT</version>
+    </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>no.ks</groupId>
-        <artifactId>k-es</artifactId>
-        <version>1.2.10-SNAPSHOT</version>
-    </parent>
-
-    <artifactId>k-es-lib</artifactId>
+    <artifactId>k-es-test-support</artifactId>
 
     <dependencies>
-        <!--external-->
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib-jdk8</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib-common</artifactId>
+            <groupId>no.ks</groupId>
+            <artifactId>k-es-lib</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-reflect</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.microutils</groupId>
-            <artifactId>kotlin-logging</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-
-        <!--test-->
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <scope>test</scope>
+            <groupId>no.ks</groupId>
+            <artifactId>k-es-serdes-jackson</artifactId>
         </dependency>
         <!-- Kotest -->
         <dependency>
@@ -59,13 +41,7 @@
             <scope>test</scope>
         </dependency>
         <!-- /Kotest -->
-        <dependency>
-            <groupId>io.mockk</groupId>
-            <artifactId>mockk</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-
     <build>
         <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
         <testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
@@ -80,4 +56,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>
