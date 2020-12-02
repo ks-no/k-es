@@ -24,10 +24,6 @@
             <groupId>no.ks</groupId>
             <artifactId>k-es-serdes-jackson</artifactId>
         </dependency>
-        <dependency>
-            <groupId>no.ks</groupId>
-            <artifactId>k-es-jdbc</artifactId>
-        </dependency>
         <!-- Kotest -->
         <dependency>
             <groupId>io.kotest</groupId>
