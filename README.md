@@ -150,6 +150,10 @@ data class ShipmentSagaState(
 )
 ```
 
+## Bringing it all together
+
+![Overview](https://www.lucidchart.com/publicSegments/view/895679bf-a290-46cd-b77e-c32b7f37ce52/image.png)
+
 ## Test support
 To facilitate testing of business logic implemented using K-ES we have created a test support library (artifactId: k-es-test-support). 
 Test support includes an event store implementation as well as repository support for Sagas without needing a backend. 
@@ -238,8 +242,4 @@ class EngineTest : StringSpec({
 ```
 The test support library is agnostic when it comes to test framework and should in theory be compatible with any framework. 
 Internally we tested it using the Kotest framework.  
-
-## Bringing it all together
-
-![Overview](https://www.lucidchart.com/publicSegments/view/895679bf-a290-46cd-b77e-c32b7f37ce52/image.png)
 
