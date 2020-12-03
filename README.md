@@ -209,36 +209,30 @@ class EngineTest : StringSpec({
 
     "Test saga with timeout" {
         withKes(events = Events.all, cmds = Cmds.all) { kes ->
-            val engineCmdHandler = EngineCmdHandler(kes.aggregateRepository)
-            val commandQueue = kes.createCommandQueue(setOf(engineCmdHandler))
-            Sagas.initialize(
-                    eventSubscriberFactory = kes.subscriberFactory,
-                    sagaRepository = kes.createSagaRepository(commandQueue),
+            val cmdHandler = EngineCmdHandler(repository = kes.aggregateRepository)
+            val commandQueue = kes.createCommandQueue(setOf(cmdHandler))
+            val sagaRepository = kes.createSagaRepository(commandQueue)
+            Sagas.initialize(eventSubscriberFactory = kes.subscriberFactory,
+                    sagaRepository = sagaRepository,
                     sagas = setOf(EngineSaga),
                     commandQueue = commandQueue,
-                    pollInterval = 1.seconds.toLongMilliseconds()
+                    pollInterval = 10
             ) {
-                e -> failure("Failed to handle saga event", e)
+                e -> failure("Failed to process event for saga", e)
             }
             val aggregateId = UUID.randomUUID()
-            engineCmdHandler.handle(Cmds.Create(aggregateId)).asClue {
+            cmdHandler.handle(Cmds.Create(aggregateId)).asClue {
                 it.id shouldBe aggregateId
-                it.running shouldBe false
-                it.startCount shouldBe 0
             }
             eventually(10.seconds) {
-                kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
-                    events.filterIsInstance<Events.Created>() shouldHaveSize 1
-                    events.filterIsInstance<Events.Started>() shouldHaveSize 1
-                    events.filterIsInstance<Events.Stopped>() shouldHaveSize 1
-                } ?: fail("No events was found for aggregate")
-                engineCmdHandler.handle(Cmds.Check(aggregateId)).asClue {
-                    it.running shouldBe false
-                    it.startCount shouldBe 1
-                }
+                sagaRepository.getSagaState(aggregateId, SAGA_SERILIZATION_ID, EngineSagaState::class)?.asClue {
+                    it.stoppedBySaga shouldBe true
+                } ?: fail("EngineSaga did not change state of aggregate to be stopped")
             }
+
         }
     }
+
 
 })
 ```
