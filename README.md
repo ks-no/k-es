@@ -241,5 +241,5 @@ class EngineTest : StringSpec({
 })
 ```
 The test support library is agnostic when it comes to test framework and should in theory be compatible with any framework. 
-Internally we tested it using the Kotest framework.  
+Internally we have tested it using the [Kotest framework](https://kotest.io/).  
 
