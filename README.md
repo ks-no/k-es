@@ -117,6 +117,127 @@ class Shipments : Projection() {
 ```
 
 ## Sagas
+Sagas subscribe to events from the event store and may issue new commands based on these. Sagas also has their own state 
+```kotlin
+object ShipmentSaga : Saga<ShipmentSagaState>(ShipmentSagaState::class, "CreateShipmentSaga") {
+
+    init {
+        init<Basket.CheckedOut> {
+            val shipmentId = UUID.randomUUID()
+            dispatch(ShipmentCmds.Request(shipmentId, it.items, it.aggregateId))
+            setState(ShipmentSagaState(shipmentId, it.aggregateId))
+        }
+
+        apply<Shipment.Delivered>({ it.basketId }) {
+            setState(state.copy(delivered = true))
+        }
+
+        apply<Shipment.Failed>({ it.basketId }) {
+            setState(state.copy(failed = true))
+        }
+
+        timeout<Shipment.Prepared>({ it.basketId }, { Instant.now().plusSeconds(5) }) {
+            if (!state.delivered && !state.failed)
+                dispatch(ShipmentCmds.SendMissingShipmentAlert(state.orderId, state.basketId))
+        }
+    }
+}
+data class ShipmentSagaState(
+        val orderId: UUID,
+        val basketId: UUID,
+        val delivered: Boolean = false,
+        val failed: Boolean = false
+)
+```
+
+## Test support
+To facilitate testing of business logic implemented using K-ES we have created a test support library (artifactId: k-es-test-support). 
+Test support includes an event store implementation as well as repository support for Sagas without needing a backend. 
+As a result you should be able to easily test the business logic contained in your sagas and command handlers in your unit tests.
+```kotlin
+class EngineTest : StringSpec({
+      "Test command handler" {
+           /** Wrap your test in withKes {}. Provide the commands and events types needed to run your test
+           This will create a Jackson - based serializer/deserializer that will be used to serialize and deserialize state  
+           The current state of the eventstream will be provided to context through a KesTestSetup instance that gives you access to
+            the complete eventstream as well as test implementation of a SubscriberFactory and a ProjectionRepository   
+           **/
+           withKes(events = setOf(Created::class, Started::class, Stopped::class), 
+                    cmds = setOf(Create::class, Start::class, Stop::class, Check::class)) { kes ->
+                  // This is our business domain specific command handler
+                  val engineCmdHandler = EngineCmdHandler(kes.aggregateRepository)
+                  val aggregateId = UUID.randomUUID()
+                  engineCmdHandler.handle(Cmds.Create(aggregateId)).asClue {
+                      it.id shouldBe aggregateId
+                      it.running shouldBe false
+                      it.startCount shouldBe 0
+                  }
+                  eventually(3.seconds) {
+                      kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
+                          events shouldHaveSize 1
+                          events.filterIsInstance<Events.Created>() shouldHaveSize 1
+                      } ?: fail("No events was found for aggregate")
+                  }
+          }
+      } 
+
+    "Test projection" {
+        withKes(events = Events.all, cmds = Cmds.all) { kes ->
+            val engineCmdHandler = EngineCmdHandler(kes.aggregateRepository)
+            val engineProjection = EnginesProjection()
+            Projections.initialize(
+                    eventSubscriberFactory = kes.subscriberFactory,
+                    projections = setOf(engineProjection),
+                    projectionRepository = kes.projectionRepository,
+                    subscriber = testCase.displayName
+            ) { e ->
+                failure("Failed during projection event handling", e)
+            }
+            val aggregateId = UUID.randomUUID()
+            engineCmdHandler.handle(Cmds.Create(aggregateId)).asClue {
+                it.id shouldBe aggregateId
+                it.running shouldBe false
+                it.startCount shouldBe 0
+            }
+            eventually(3.seconds) {
+                engineProjection.all shouldContain aggregateId
+            }
+
+        }
+
+    } 
+
+    "Test saga with timeout" {
+        withKes(events = Events.all, cmds = Cmds.all) { kes ->
+            val cmdHandler = EngineCmdHandler(repository = kes.aggregateRepository)
+            val commandQueue = kes.createCommandQueue(setOf(cmdHandler))
+            val sagaRepository = kes.createSagaRepository(commandQueue)
+            Sagas.initialize(eventSubscriberFactory = kes.subscriberFactory,
+                    sagaRepository = sagaRepository,
+                    sagas = setOf(EngineSaga),
+                    commandQueue = commandQueue,
+                    pollInterval = 10
+            ) {
+                e -> failure("Failed to process event for saga", e)
+            }
+            val aggregateId = UUID.randomUUID()
+            cmdHandler.handle(Cmds.Create(aggregateId)).asClue {
+                it.id shouldBe aggregateId
+            }
+            eventually(10.seconds) {
+                sagaRepository.getSagaState(aggregateId, SAGA_SERILIZATION_ID, EngineSagaState::class)?.asClue {
+                    it.stoppedBySaga shouldBe true
+                } ?: fail("EngineSaga did not change state of aggregate to be stopped")
+            }
+
+        }
+    }
+
+
+})
+```
+The test support library is agnostic when it comes to test framework and should in theory be compatible with any framework. 
+Internally we tested it using the Kotest framework.  
 
 ## Bringing it all together
 
