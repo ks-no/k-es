@@ -4,7 +4,12 @@ import no.ks.kes.lib.Saga
 import java.time.Instant
 import java.util.*
 
-data class ShipmentSagaState(val orderId: UUID, val basketId: UUID, val delivered: Boolean = false, val failed: Boolean = false)
+data class ShipmentSagaState(
+        val orderId: UUID,
+        val basketId: UUID,
+        val delivered: Boolean = false,
+        val failed: Boolean = false
+)
 
 object ShipmentSaga : Saga<ShipmentSagaState>(ShipmentSagaState::class, "CreateShipmentSaga") {
 

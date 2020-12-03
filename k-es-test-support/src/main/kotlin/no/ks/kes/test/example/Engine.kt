@@ -1,11 +1,16 @@
 package no.ks.kes.test.example
 
 import no.ks.kes.lib.*
+import no.ks.kes.serdes.jackson.JacksonCmdSerdes
+import no.ks.kes.serdes.jackson.JacksonEventSerdes
 import no.ks.kes.serdes.jackson.SerializationId
 import java.time.Duration
 import java.time.Instant
 import java.util.*
 
+/**
+ * All example code are considered to be part of the documentation and may be changed at any time without past notice
+ */
 private val LOG = mu.KotlinLogging.logger {  }
 
 data class EngineProperties(val id: UUID, val running: Boolean, val startCount: Int = 0) : Aggregate
@@ -86,6 +91,9 @@ abstract class EngineCommand(override val aggregateId: UUID) : Cmd<EnginePropert
 
 object Cmds {
 
+    val all = setOf(Create::class, Start::class, Stop::class, Check::class)
+    val serdes = JacksonCmdSerdes(all)
+
     @SerializationId("Created")
     data class Create(override val aggregateId: UUID) : EngineCommand(aggregateId)
 
@@ -105,6 +113,9 @@ abstract class EngineEvent(val description: String) : Event<EngineProperties> {
 
 object Events {
 
+    val all = setOf(Created::class, Started::class, Stopped::class)
+    val serdes = JacksonEventSerdes(all)
+
     @SerializationId("Created")
     data class Created(override val aggregateId: UUID) : EngineEvent("Created engine with id $aggregateId")
 
@@ -113,4 +124,15 @@ object Events {
 
     @SerializationId("Stopped")
     data class Stopped(override val aggregateId: UUID) : EngineEvent("Engine $aggregateId stopped")
+}
+
+class EnginesProjection: Projection() {
+    private val enginesDefined = mutableSetOf<UUID>()
+    val all: Set<UUID>
+        get() = enginesDefined.toSet()
+    init {
+        on<Events.Created> {
+            enginesDefined.plusAssign(it.aggregateId)
+        }
+    }
 }

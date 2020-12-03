@@ -13,11 +13,9 @@ import no.ks.kes.jdbc.projection.SqlServerProjectionRepository
 import no.ks.kes.jdbc.saga.SqlServerCommandQueue
 import no.ks.kes.jdbc.saga.SqlServerSagaRepository
 import no.ks.kes.lib.Sagas
-import no.ks.kes.serdes.jackson.JacksonCmdSerdes
-import no.ks.kes.serdes.jackson.JacksonEventSerdes
 import no.ks.kes.serdes.jackson.JacksonSagaStateSerdes
-import no.ks.kes.test.KesTestSetup
 import no.ks.kes.test.example.*
+import no.ks.kes.test.withKes
 import org.junit.jupiter.api.fail
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
@@ -84,11 +82,10 @@ class MSSQLContainerTest : StringSpec() {
                         maximumPoolSize = 5
                     }
             ).use { dataSource ->
-                KesTestSetup(
-                        eventSerdes = JacksonEventSerdes(setOf(Events.Created::class, Events.Started::class, Events.Stopped::class)),
-                        cmdSerdes = JacksonCmdSerdes(setOf(Cmds.Create::class, Cmds.Start::class, Cmds.Stop::class))
-                )
-                        .use { kesTest ->
+                withKes(
+                        eventSerdes = Events.serdes,
+                        cmdSerdes = Cmds.serdes
+                ) { kesTest ->
                             val sagaRepository = SqlServerSagaRepository(
                                     dataSource = dataSource,
                                     sagaStateSerdes = JacksonSagaStateSerdes(),
