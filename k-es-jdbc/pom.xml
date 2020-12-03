@@ -7,7 +7,7 @@
     <parent>
         <groupId>no.ks</groupId>
         <artifactId>k-es</artifactId>
-        <version>1.2.10-SNAPSHOT</version>
+        <version>1.2.10</version>
     </parent>
 
     <artifactId>k-es-jdbc</artifactId>
