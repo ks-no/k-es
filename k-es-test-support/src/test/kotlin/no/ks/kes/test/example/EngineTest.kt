@@ -6,8 +6,10 @@ import io.kotest.assertions.failure
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.assertions.timing.eventually
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.beEmpty
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.throwable.shouldHaveMessage
 import io.kotest.property.Arb
@@ -89,6 +91,44 @@ class EngineTest : StringSpec({
                     it.running shouldBe false
                     it.startCount shouldBe 1
                 }
+            }
+        }
+    }
+
+    "Test using both projection and saga" {
+        withKes(Events.serdes, Cmds.serdes) { kes ->
+            val engineCmdHandler = EngineCmdHandler(kes.aggregateRepository)
+            val commandQueue = kes.createCommandQueue(setOf(engineCmdHandler))
+            val engineProjection = EnginesProjection()
+            Sagas.initialize(
+                    eventSubscriberFactory = kes.subscriberFactory,
+                    sagaRepository = kes.createSagaRepository(commandQueue),
+                    sagas = setOf(EngineSaga),
+                    commandQueue = commandQueue,
+                    pollInterval = 1.seconds.toLongMilliseconds()
+            ) {
+                e -> failure("Failed to handle saga event", e)
+            }
+            Projections.initialize(eventSubscriberFactory = kes.subscriberFactory,
+                    projections = setOf(engineProjection),
+                    projectionRepository = kes.projectionRepository,
+                    subscriber = testCase.displayName
+            ) { e ->
+                failure("Failed during eventhandling in projection", e)
+            }
+            val aggregatesCreated = 10
+            checkAll(iterations = aggregatesCreated, Arb.uuid()) { aggregateId ->
+                engineCmdHandler.handle(Cmds.Create(aggregateId)).asClue {
+                    it.id shouldBe aggregateId
+                    it.running shouldBe false
+                    it.startCount shouldBe 0
+                }
+            }
+
+            eventually(30.seconds) {
+                engineProjection.all shouldHaveSize aggregatesCreated
+                engineProjection.allRunning should beEmpty()
+                engineProjection.allStopped shouldHaveSize aggregatesCreated
             }
         }
     }

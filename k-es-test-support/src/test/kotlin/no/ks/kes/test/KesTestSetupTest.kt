@@ -6,9 +6,13 @@ import io.kotest.assertions.failure
 import io.kotest.assertions.timing.eventually
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.types.shouldBeSameInstanceAs
+import io.kotest.property.Arb
+import io.kotest.property.arbitrary.uuid
+import io.kotest.property.checkAll
 import no.ks.kes.lib.Projections
 import no.ks.kes.lib.Sagas
 import no.ks.kes.serdes.jackson.JacksonCmdSerdes
@@ -61,6 +65,27 @@ class KesTestSetupTest : FunSpec({
             cmdHandler.handle(Cmds.Create(aggregateId))
             eventually(5.seconds) {
                 enginesProjection.all shouldContain aggregateId
+            }
+        }
+    }
+
+    test("Project a lot of events") {
+        val enginesProjection = EnginesProjection()
+        withKes(eventSerdes = Events.serdes, cmdSerdes = Cmds.serdes) { kes ->
+            Projections.initialize(
+                    eventSubscriberFactory = kes.subscriberFactory,
+                    subscriber = testCase.displayName,
+                    projectionRepository = kes.projectionRepository,
+                    projections = setOf(enginesProjection)
+            )
+            val cmdHandler = EngineCmdHandler(repository = kes.aggregateRepository)
+            val aggregatesToCreate = 10_000
+            checkAll(iterations = aggregatesToCreate, Arb.uuid()) { aggregationId ->
+                cmdHandler.handle(Cmds.Create(aggregationId))
+            }
+            eventually(5.seconds) {
+                enginesProjection.all shouldHaveSize aggregatesToCreate
+                kes.eventStream.eventCount() shouldBe aggregatesToCreate
             }
         }
     }

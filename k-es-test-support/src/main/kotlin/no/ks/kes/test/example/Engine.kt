@@ -128,11 +128,28 @@ object Events {
 
 class EnginesProjection: Projection() {
     private val enginesDefined = mutableSetOf<UUID>()
+    private val runningEngines = mutableSetOf<UUID>()
+    private val stoppedEngines = mutableSetOf<UUID>()
     val all: Set<UUID>
         get() = enginesDefined.toSet()
+
+    val allRunning: Set<UUID>
+        get() = runningEngines.toSet()
+
+    val allStopped: Set<UUID>
+        get() = stoppedEngines.toSet()
+
     init {
         on<Events.Created> {
             enginesDefined.plusAssign(it.aggregateId)
+        }
+        on<Events.Started> {
+            runningEngines.plusAssign(it.aggregateId)
+            stoppedEngines.minusAssign(it.aggregateId)
+        }
+        on<Events.Stopped> {
+            stoppedEngines.plusAssign(it.aggregateId)
+            runningEngines.minusAssign(it.aggregateId)
         }
     }
 }
