@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>k-es</artifactId>
+        <groupId>no.ks</groupId>
+        <version>1.2.11-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>k-es-bom</artifactId>
+    <packaging>pom</packaging>
+    <description>k-es Bill of Materials (BOM)</description>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>no.ks</groupId>
+                <artifactId>k-es-lib</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>no.ks.fiks</groupId>
+                <artifactId>k-es-commons</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>no.ks.fiks</groupId>
+                <artifactId>k-es-esjc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>no.ks.fiks</groupId>
+                <artifactId>k-es-jdbc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>no.ks.fiks</groupId>
+                <artifactId>k-es-serdes-jackson</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>no.ks.fiks</groupId>
+                <artifactId>k-es-test-support</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+
+    </dependencyManagement>
+
+</project>
