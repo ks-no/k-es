@@ -10,6 +10,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>k-es-bom</module>
         <module>k-es-esjc</module>
         <module>k-es-lib</module>
         <module>k-es-jdbc</module>
