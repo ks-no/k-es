@@ -26,8 +26,16 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
 
     fun handledCmds(): Set<KClass<Cmd<A>>> = applicators.keys.toSet() + initializers.keys.toSet()
 
+    /**
+     * Handler that is synchronized meaning only one thread may issue a command at the time
+     */
     @Synchronized
-    fun handle(cmd: Cmd<A>): A {
+    fun handle(cmd: Cmd<A>): A = handleUnsynchronized(cmd)
+
+    /**
+     * Handler that is not synchronized
+     */
+    fun handleUnsynchronized(cmd: Cmd<A>): A {
         val readResult = readAggregate(cmd)
 
         return when (val result = invokeHandler(cmd, readResult)) {
@@ -54,6 +62,7 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
         }
     }
 
+
     @Synchronized
     fun handleAsync(cmd: Cmd<*>, retryNumber: Int): AsyncResult {
         val readResult = readAggregate(cmd as Cmd<A>)
@@ -65,8 +74,10 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
             }
             is Result.RetryOrFail<A> -> {
                 val nextExecution = result.retryStrategy.invoke(retryNumber)
-                log.error("execution of ${cmd::class.simpleName} failed with retry, ${nextExecution?.let { "next retry at $it" }
-                        ?: " but all retries are exhausted"}", result.exception!!)
+                log.error("execution of ${cmd::class.simpleName} failed with retry, ${
+                    nextExecution?.let { "next retry at $it" }
+                            ?: " but all retries are exhausted"
+                }", result.exception!!)
                 if (nextExecution == null) {
                     appendDerivedEvents(validatedAggregateConfiguration.aggregateType, readResult, cmd, result.events)
                     AsyncResult.Fail
@@ -113,7 +124,7 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
                             ?: error("Aggregate ${cmd.aggregateId} does not exist, and cmd ${cmd::class.simpleName} is not configured as an initializer. Consider adding an \"init\" configuration for this command.")
                 }
                 is AggregateReadResult.InitializedAggregate<*> -> {
-                    applicators[cmd::class ]
+                    applicators[cmd::class]
                             ?.run {
                                 try {
                                     invoke(readResult.aggregateState as A, cmd)

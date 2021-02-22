@@ -5,16 +5,23 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import java.time.LocalDate
 import java.util.*
+import java.util.concurrent.Executors
 import kotlin.reflect.KClass
+
+private const val AGGREGATE_TYPE = "some-aggregate"
 
 internal class CmdHandlerTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
     data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
 
-    val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
+    val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>(AGGREGATE_TYPE) {
         init {
             init<SomeEvent> {
                 SomeAggregate(stateInitialized = true)
@@ -87,7 +94,7 @@ internal class CmdHandlerTest : StringSpec() {
             val repoMock = mockk<AggregateRepository>().apply {
                 every { read(someCmd.aggregateId, any<ValidatedAggregateConfiguration<*>>()) } returns
                         AggregateReadResult.InitializedAggregate(SomeAggregate(true), 0)
-                every { append("some-aggregate", someCmd.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
+                every { append(AGGREGATE_TYPE, someCmd.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
                         Unit
                 every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
             }
@@ -103,6 +110,58 @@ internal class CmdHandlerTest : StringSpec() {
             }
         }
 
+        "Test that multiple threads may issue commands that will results in events being applied to an existing aggregate" {
+            data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
+
+            val someCmd = SomeCmd(
+                    aggregateId = UUID.randomUUID()
+            )
+
+
+            val repoMock = mockk<AggregateRepository>().apply {
+                every { read(someCmd.aggregateId, any<ValidatedAggregateConfiguration<*>>()) } returns
+                        AggregateReadResult.InitializedAggregate(SomeAggregate(true), 0)
+                every { append(AGGREGATE_TYPE, someCmd.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
+                        Unit
+                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+            }
+
+            val countingCommandHandler = object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
+                init {
+                    apply<SomeCmd> {
+                        Result.Succeed(SomeEvent(it.aggregateId))
+                    }
+
+                }
+            }
+
+            countingCommandHandler.handle(someCmd).apply {
+                stateInitialized shouldBe true
+            }
+            Executors.newFixedThreadPool(10).asCoroutineDispatcher().use { dispatcher ->
+                awaitAll(
+                        async(dispatcher) { countingCommandHandler.handleUnsynchronized(someCmd) },
+                        async(dispatcher) { countingCommandHandler.handleUnsynchronized(someCmd) },
+                        async(dispatcher) { countingCommandHandler.handleUnsynchronized(someCmd) },
+                        async(dispatcher) { countingCommandHandler.handleUnsynchronized(someCmd) },
+                        async(dispatcher) { countingCommandHandler.handleUnsynchronized(someCmd) },
+                        async(dispatcher) { countingCommandHandler.handleUnsynchronized(someCmd) },
+                        async(dispatcher) { countingCommandHandler.handleUnsynchronized(someCmd) },
+                        async(dispatcher) { countingCommandHandler.handleUnsynchronized(someCmd) },
+                        async(dispatcher) { countingCommandHandler.handleUnsynchronized(someCmd) },
+                        async(dispatcher) { countingCommandHandler.handleUnsynchronized(someCmd) }
+                        )
+            }
+            verify(exactly = 15) {
+                repoMock.getSerializationId(any())
+            }
+            verify(exactly = 11) {
+                repoMock.append(AGGREGATE_TYPE, someCmd.aggregateId, ExpectedEventNumber.Exact(0), any())
+                repoMock.read(someCmd.aggregateId, any<ValidatedAggregateConfiguration<*>>())
+            }
+
+        }
+
         "Test that a command \"Fail\" results in an exception being thrown" {
             data class SomeCmd(override val aggregateId: UUID) : Cmd<SomeAggregate>
 
@@ -112,7 +171,7 @@ internal class CmdHandlerTest : StringSpec() {
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { read(someCmd.aggregateId, any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
-                every { append("some-aggregate", someCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, any()) } returns
+                every { append(AGGREGATE_TYPE, someCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, any()) } returns
                         Unit
                 every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
             }
