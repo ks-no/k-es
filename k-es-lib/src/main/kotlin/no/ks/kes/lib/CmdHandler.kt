@@ -33,7 +33,7 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
     fun handle(cmd: Cmd<A>): A = handleUnsynchronized(cmd)
 
     /**
-     * Handler that is not synchronized
+     * Handler that is not synchronized. To be used in cases where handling multiple commands from several threads simultaneously is safe. Use with care
      */
     fun handleUnsynchronized(cmd: Cmd<A>): A {
         val readResult = readAggregate(cmd)
