@@ -85,7 +85,7 @@ class EngineTest : StringSpec({
                     events shouldHaveAtLeastSize 2
                     events.filterIsInstance<Events.Created>() shouldHaveSize 1
                     // At this point we really don't know how many of these events was applied as EngineCmdHandler checks aggregate state before generating Started events
-                    // As we are using the handleUnsynchronized function we can therefore not gurantee how many started events are generated
+                    // As we are using the handleUnsynchronized function we can therefore not guarantee how many started events are generated
                     events.filterIsInstance<Events.Started>() shouldHaveAtLeastSize 1
                 } ?: fail("No events was found for aggregate")
             }
