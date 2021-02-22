@@ -8,6 +8,7 @@ import io.kotest.assertions.timing.eventually
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.beEmpty
 import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldHaveAtLeastSize
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
@@ -15,11 +16,15 @@ import io.kotest.matchers.throwable.shouldHaveMessage
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.uuid
 import io.kotest.property.checkAll
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import no.ks.kes.lib.Projections
 import no.ks.kes.lib.Sagas
 import no.ks.kes.test.AggregateKey
 import no.ks.kes.test.withKes
 import java.util.*
+import java.util.concurrent.Executors
 import kotlin.time.ExperimentalTime
 import kotlin.time.seconds
 
@@ -39,6 +44,49 @@ class EngineTest : StringSpec({
                 kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
                     events shouldHaveSize 1
                     events.filterIsInstance<Events.Created>() shouldHaveSize 1
+                } ?: fail("No events was found for aggregate")
+            }
+        }
+    }
+
+    "Test command handler using several threads" {
+        withKes(eventSerdes = Events.serdes, cmdSerdes = Cmds.serdes) { kes ->
+            val engineCmdHandler = EngineCmdHandler(kes.aggregateRepository)
+            val aggregateId = UUID.randomUUID()
+            engineCmdHandler.handle(Cmds.Create(aggregateId)).asClue {
+                it.id shouldBe aggregateId
+                it.running shouldBe false
+                it.startCount shouldBe 0
+            }
+            eventually(3.seconds) {
+                kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
+                    events shouldHaveSize 1
+                    events.filterIsInstance<Events.Created>() shouldHaveSize 1
+                } ?: fail("No events was found for aggregate")
+            }
+
+            Executors.newFixedThreadPool(10).asCoroutineDispatcher().use { dispatcher ->
+                awaitAll(
+                        async(dispatcher) { engineCmdHandler.handleUnsynchronized(Cmds.Start(aggregateId)) },
+                        async(dispatcher) { engineCmdHandler.handleUnsynchronized(Cmds.Start(aggregateId)) },
+                        async(dispatcher) { engineCmdHandler.handleUnsynchronized(Cmds.Start(aggregateId)) },
+                        async(dispatcher) { engineCmdHandler.handleUnsynchronized(Cmds.Start(aggregateId)) },
+                        async(dispatcher) { engineCmdHandler.handleUnsynchronized(Cmds.Start(aggregateId)) },
+                        async(dispatcher) { engineCmdHandler.handleUnsynchronized(Cmds.Start(aggregateId)) },
+                        async(dispatcher) { engineCmdHandler.handleUnsynchronized(Cmds.Start(aggregateId)) },
+                        async(dispatcher) { engineCmdHandler.handleUnsynchronized(Cmds.Start(aggregateId)) },
+                        async(dispatcher) { engineCmdHandler.handleUnsynchronized(Cmds.Start(aggregateId)) },
+                        async(dispatcher) { engineCmdHandler.handleUnsynchronized(Cmds.Start(aggregateId)) }
+                )
+
+            }
+            eventually(3.seconds) {
+                kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
+                    events shouldHaveAtLeastSize 2
+                    events.filterIsInstance<Events.Created>() shouldHaveSize 1
+                    // At this point we really don't know how many of these events was applied as EngineCmdHandler checks aggregate state before generating Started events
+                    // As we are using the handleUnsynchronized function we can therefore not guarantee how many started events are generated
+                    events.filterIsInstance<Events.Started>() shouldHaveAtLeastSize 1
                 } ?: fail("No events was found for aggregate")
             }
         }
