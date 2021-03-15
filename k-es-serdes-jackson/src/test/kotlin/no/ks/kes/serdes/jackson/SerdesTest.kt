@@ -5,6 +5,7 @@ import io.kotest.matchers.shouldBe
 import no.ks.kes.lib.Aggregate
 import no.ks.kes.lib.Cmd
 import no.ks.kes.lib.Event
+import no.ks.kes.lib.EventMeta
 import java.time.Instant
 import java.util.*
 
@@ -40,8 +41,8 @@ class SerdesTest : StringSpec() {
             val someEvent = SomeEvent(UUID.randomUUID())
             val someOtherEvent = SomeOtherEvent(UUID.randomUUID())
 
-            serdes.serialize(someEvent).run { serdes.deserialize(this, "foo") } shouldBe someEvent
-            serdes.serialize(someOtherEvent).run { serdes.deserialize(this, "bar") } shouldBe someOtherEvent
+            serdes.serialize(someEvent).run { serdes.deserialize( EventMeta.Builder().build(),this, "foo") } shouldBe someEvent
+            serdes.serialize(someOtherEvent).run { serdes.deserialize( EventMeta.Builder().build(),this, "bar") } shouldBe someOtherEvent
         }
 
         data class SomeState(val aggregateId: UUID, val timestamp: Instant)
@@ -54,8 +55,8 @@ class SerdesTest : StringSpec() {
             val someState = SomeState(UUID.randomUUID(), Instant.now())
             val someOtherState = SomeOtherState(UUID.randomUUID(), Instant.now())
 
-            serdes.serialize(someState).run { serdes.deserialize(this, SomeState::class) } shouldBe someState
-            serdes.serialize(someOtherState).run { serdes.deserialize(this, SomeOtherState::class) } shouldBe someOtherState
+            serdes.serialize(someState).run { serdes.deserialize( this, SomeState::class) } shouldBe someState
+            serdes.serialize(someOtherState).run { serdes.deserialize( this, SomeOtherState::class) } shouldBe someOtherState
         }
     }
 }

@@ -71,9 +71,9 @@ class EsjcAggregateReaderTest : StringSpec() {
                     }
 
             val deserializer = mockk<EventSerdes>().apply {
-                every { deserialize(EventMeta.Builder().build(), "some-id".toByteArray(), any()) } returns someEvent
+                every { deserialize(any(), "some-id".toByteArray(), any()) } returns someEvent
                 every { getSerializationId(any<KClass<Event<*>>>()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
-                every { deserialize(EventMeta.Builder().build(), "some-other-id".toByteArray(), any()) } returns someOtherEvent
+                every { deserialize(any(), "some-other-id".toByteArray(), any()) } returns someOtherEvent
             }
 
             EsjcAggregateRepository(

@@ -39,6 +39,7 @@ internal class EsjcEventWriterTest : StringSpec() {
 
             val deserializer = mockk<EventSerdes>()
                     .apply {
+                        every { isJson() } returns true
                         every { serialize(event) } returns "foo".toByteArray()
                         every { getSerializationId(any<KClass<Event<*>>>()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
                     }
