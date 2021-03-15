@@ -44,7 +44,7 @@ class EsjcEventSubscriberFactory(
                                 EsjcEventUtil.isIgnorableEvent(resolvedEvent) ->
                                     log.info { "$subscriber: event ignored: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}" }
                                 else -> try {
-                                    val event = EventUpgrader.upgrade(serdes.deserialize((resolvedEvent.event.data), resolvedEvent.event.eventType))
+                                    val event = EventUpgrader.upgrade(serdes.deserialize(EventMeta.fromJson(resolvedEvent.event.metadata), resolvedEvent.event.data, resolvedEvent.event.eventType))
                                     onEvent.invoke(EventWrapper(
                                             event = event,
                                             eventNumber = resolvedEvent.originalEventNumber(),

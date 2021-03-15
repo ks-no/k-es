@@ -28,9 +28,14 @@ class EsjcAggregateRepository(
                     streamId,
                     resolveExpectedEventNumber(expectedEventNumber),
                     events.map {
-                        EventData.newBuilder()
-                                .jsonData(serdes.serialize(it))
-                                .type(serdes.getSerializationId(it::class))
+                        val newBuilder = EventData.newBuilder()
+                        if (serdes.isJson()) {
+                            newBuilder.jsonData(serdes.serialize(it))
+                        } else {
+                            newBuilder.data(serdes.serialize(it))
+                        }
+                        newBuilder.jsonMetadata(EventMeta.Builder().aggregateId(it.aggregateId).build().serialize())
+                        newBuilder.type(serdes.getSerializationId(it::class))
                                 .build()
                     })
                     .get().also {
@@ -57,7 +62,9 @@ class EsjcAggregateRepository(
                             if (EsjcEventUtil.isIgnorableEvent(e)) {
                                 a.first to e.event.eventNumber
                             } else {
-                                val deserialized = EventUpgrader.upgrade(serdes.deserialize(e.event.data, e.event.eventType))
+                                val eventMeta = EventMeta.fromJson(e.event.metadata)
+                                val event = serdes.deserialize(eventMeta, e.event.data, e.event.eventType)
+                                val deserialized = EventUpgrader.upgrade(event)
                                 applicator.invoke(
                                         a.first,
                                         EventWrapper(deserialized as Event<A>, e.event.eventNumber, serdes.getSerializationId(deserialized::class))
