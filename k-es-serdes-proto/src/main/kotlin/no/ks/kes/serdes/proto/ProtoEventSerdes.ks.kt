@@ -5,7 +5,7 @@ import no.ks.kes.lib.Event
 import no.ks.kes.lib.EventSerdes
 import kotlin.reflect.KClass
 import com.google.protobuf.Any
-import no.ks.kes.lib.EventMeta
+import no.ks.kes.lib.EventMetadata
 
 class ProtoEventSerdes(private val register: Map<KClass<out ProtoEvent<*>>, Message> ) : EventSerdes {
 
@@ -13,7 +13,7 @@ class ProtoEventSerdes(private val register: Map<KClass<out ProtoEvent<*>>, Mess
         .map { getSerializationId(it) to it }
         .toMap()
 
-    override fun deserialize(eventMeta: EventMeta, eventData: ByteArray, eventType: String): Event<*> {
+    override fun deserialize(eventMetadata: EventMetadata, eventData: ByteArray, eventType: String): Event<*> {
         val eventClazz = events[eventType] ?: throw RuntimeException("Fant ikke event for type $eventType")
         val msgClazz = register[eventClazz] ?: throw RuntimeException("Fant ikke Protobuf type for event type $eventType")
 
@@ -22,7 +22,7 @@ class ProtoEventSerdes(private val register: Map<KClass<out ProtoEvent<*>>, Mess
 
         for (constructor in eventClazz.constructors) {
             try {
-                return constructor.call(eventMeta.aggregateId ?: throw RuntimeException("Mangler aggregateId for event $eventType"), msg)
+                return constructor.call(eventMetadata.aggregateId ?: throw RuntimeException("Mangler aggregateId for event $eventType"), msg)
             } catch (exception: Exception){
                 throw RuntimeException("Feil ved opprettelse av $eventClazz")
             }

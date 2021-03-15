@@ -5,9 +5,8 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import no.ks.kes.lib.Event
-import no.ks.kes.lib.EventMeta
+import no.ks.kes.lib.EventMetadata
 import no.ks.kes.lib.EventSerdes
-import java.util.*
 import kotlin.reflect.KClass
 
 class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
@@ -20,7 +19,7 @@ class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
             .map { getSerializationId(it) to it }
             .toMap()
 
-    override fun deserialize(eventMeta: EventMeta, eventData: ByteArray, eventType: String): Event<*> =
+    override fun deserialize(eventMetadata: EventMetadata, eventData: ByteArray, eventType: String): Event<*> =
             try {
                 objectMapper.readValue(
                         eventData,
