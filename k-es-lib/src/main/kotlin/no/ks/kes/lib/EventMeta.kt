@@ -1,6 +1,6 @@
 package no.ks.kes.lib
 
-import com.google.gson.Gson
+import com.fasterxml.jackson.databind.ObjectMapper
 import java.util.*
 
 class EventMeta private constructor(val aggregateId: UUID? = null) {
@@ -9,7 +9,7 @@ class EventMeta private constructor(val aggregateId: UUID? = null) {
         fun fromJson(json: ByteArray): EventMeta {
             val metaData = String(json)
             if (!metaData.isNullOrEmpty() ) {
-                return Gson().fromJson(metaData, EventMeta::class.java)
+                return ObjectMapper().readValue(json, EventMeta::class.java)
             } else {
                 return EventMeta()
             }
@@ -25,7 +25,7 @@ class EventMeta private constructor(val aggregateId: UUID? = null) {
     }
 
     fun serialize(): String {
-        return Gson().toJson(this)
+        return ObjectMapper().writeValueAsString(this)
     }
 }
 
