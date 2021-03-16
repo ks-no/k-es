@@ -7,9 +7,9 @@ import kotlin.reflect.KClass
 import com.google.protobuf.Any
 import no.ks.kes.lib.EventMetadata
 
-class ProtoEventSerdes(private val register: Map<KClass<out ProtoEvent<*>>, Message> ) : EventSerdes {
+class ProtoEventSerdes(private val register: Map<KClass<out ProtoEvent<*>>, Message>, private val deserializer: Deserializer ) : EventSerdes {
 
-    private val events = register.keys
+    val events = register.keys
         .map { getSerializationId(it) to it }
         .toMap()
 
@@ -20,14 +20,9 @@ class ProtoEventSerdes(private val register: Map<KClass<out ProtoEvent<*>>, Mess
         val any = Any.parseFrom(eventData)
         val msg = any.unpack(msgClazz.javaClass)
 
-        for (constructor in eventClazz.constructors) {
-            try {
-                return constructor.call(eventMetadata.aggregateId ?: throw RuntimeException("Mangler aggregateId for event $eventType"), msg)
-            } catch (exception: Exception){
-                throw RuntimeException("Feil ved opprettelse av $eventClazz")
-            }
-        }
-        throw RuntimeException("Event $eventClazz hadde ikke implementert konstruktør som tok inn param av type Protobuf Message")
+        eventClazz
+
+        return deserializer.deserialize(eventMetadata.aggregateId ?: throw RuntimeException("Mangler aggregateId for event $eventType"), msg)
     }
 
     override fun isJson() : Boolean = false

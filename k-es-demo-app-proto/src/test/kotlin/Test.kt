@@ -1,4 +1,5 @@
 import com.github.msemys.esjc.EventStoreBuilder
+import com.google.protobuf.Message
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import mu.KotlinLogging
@@ -7,14 +8,14 @@ import no.ks.kes.esjc.EsjcAggregateRepository
 import no.ks.kes.esjc.EsjcEventUtil
 import no.ks.kes.lib.AggregateReadResult
 import no.ks.kes.lib.AggregateRepository
+import no.ks.kes.serdes.proto.Deserializer
+import no.ks.kes.serdes.proto.ProtoEvent
 import no.ks.kes.serdes.proto.ProtoEventSerdes
 import no.ks.svarut.event.Avsender
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
@@ -52,7 +53,19 @@ class Test {
                     Konto.AvsenderOpprettet::class to Avsender.AvsenderOpprettet.getDefaultInstance(),
                     Konto.AvsenderAktivert::class to Avsender.AvsenderAktivert.getDefaultInstance(),
                     Konto.AvsenderDeaktivert::class to Avsender.AvsenderDeaktivert.getDefaultInstance(),
-                ))
+                ),
+                object: Deserializer {
+                    override fun deserialize(aggregateId: UUID, msg: Message): ProtoEvent<*> {
+                        return when (msg) {
+                            is Avsender.AvsenderOpprettet -> Konto.AvsenderOpprettet(aggregateId = aggregateId, orgId = msg.orgId)
+                            is Avsender.AvsenderAktivert -> Konto.AvsenderAktivert(aggregateId)
+                            is Avsender.AvsenderDeaktivert -> Konto.AvsenderDeaktivert(aggregateId)
+                            else -> throw RuntimeException("Event ${msg::class.java} mangler konvertering")
+                        }
+                    }
+
+                }
+            )
 
             repo = EsjcAggregateRepository(eventStore, eventSerdes, EsjcEventUtil.defaultStreamName("no.ks.kes.proto.demo"))
 

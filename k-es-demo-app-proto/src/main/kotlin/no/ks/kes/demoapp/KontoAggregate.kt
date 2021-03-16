@@ -41,7 +41,7 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
     @SerializationId("Avsender.AvsenderOpprettet")
     data class AvsenderOpprettet(override val aggregateId: UUID,val orgId: String) :
         ProtoEvent<KontoAggregate> {
-        constructor(aggregateId: UUID, msg: Avsender.AvsenderOpprettet): this(aggregateId = aggregateId, orgId = msg.orgId)
+
         override fun getMsg() = Avsender.AvsenderOpprettet.newBuilder()
             .setOrgId(orgId)
             .build()
@@ -50,15 +50,16 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
     @SerializationId("Avsender.AvsenderAktivert")
     data class AvsenderAktivert(override val aggregateId: UUID) :
         ProtoEvent<KontoAggregate> {
-        constructor(aggregateId: UUID, msg: Avsender.AvsenderAktivert): this(aggregateId)
+
         override fun getMsg() = Avsender.AvsenderAktivert.newBuilder().build()
     }
 
     @SerializationId("Avsender.AvsenderDeaktivert")
     data class AvsenderDeaktivert(override val aggregateId: UUID) :
         ProtoEvent<KontoAggregate> {
-        constructor(aggregateId: UUID, msg: Avsender.AvsenderDeaktivert): this(aggregateId)
+
         override fun getMsg() = Avsender.AvsenderDeaktivert.newBuilder().build()
+
     }
 }
 
