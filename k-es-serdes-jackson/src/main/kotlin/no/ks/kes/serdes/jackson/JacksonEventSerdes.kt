@@ -4,10 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import no.ks.kes.lib.Event
-import no.ks.kes.lib.EventMetadata
-import no.ks.kes.lib.EventSerdes
-import no.ks.kes.lib.getSerializationIdAnnotationValue
+import no.ks.kes.lib.*
 import kotlin.reflect.KClass
 
 class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
@@ -20,17 +17,23 @@ class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
             .map { getSerializationId(it) to it }
             .toMap()
 
-    override fun deserialize(eventMetadata: EventMetadata?, eventData: ByteArray, eventType: String): Event<*> =
-            try {
-                objectMapper.readValue(
-                        eventData,
-                        events[eventType]
-                                ?.javaObjectType
-                                ?: throw RuntimeException("No class registered for event type $eventType"))
-            } catch (e: Exception) {
-                throw  RuntimeException("Error during deserialization of eventType $eventType", e)
+    override fun deserialize(eventMetadata: EventMetadata?, eventData: ByteArray, eventType: String): Event<*> {
+        try {
+            val event = objectMapper.readValue(
+                eventData,
+                events[eventType]
+                    ?.javaObjectType
+                    ?: throw RuntimeException("No class registered for event type $eventType")
+            )
+            if( event is EventWithMetadata ){
+                if(eventMetadata == null) throw RuntimeException("Mangler EventMetadata for event av typen EventWithMetadata $event")
+                //event.metadata = eventMetadata
             }
-
+            return event;
+        } catch (e: Exception) {
+            throw  RuntimeException("Error during deserialization of eventType $eventType", e)
+        }
+    }
     override fun serialize(event: Event<*>): ByteArray =
             try {
                 objectMapper.writeValueAsBytes(event)
