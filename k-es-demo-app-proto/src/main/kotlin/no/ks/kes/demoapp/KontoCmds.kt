@@ -10,13 +10,13 @@ import java.util.*
 class KontoCmds(repo: AggregateRepository) : CmdHandler<KontoAggregate>(repo, Konto) {
 
     init {
-        init<Opprett> { Succeed(Konto.AvsenderOpprettet(it.aggregateId, it.orgId)) }
+        init<Opprett> { Succeed(Konto.AvsenderOpprettet(Konto.DemoEventMetadata(it.aggregateId, System.currentTimeMillis()), it.orgId)) }
 
         apply<Aktiver> {
             if (aktivert)
                 Fail(IllegalStateException("Konto er allerede aktivert"))
             else {
-                Succeed(Konto.AvsenderAktivert(it.aggregateId))
+                Succeed(Konto.AvsenderAktivert(Konto.DemoEventMetadata(it.aggregateId, System.currentTimeMillis())))
             }
         }
 
@@ -24,7 +24,7 @@ class KontoCmds(repo: AggregateRepository) : CmdHandler<KontoAggregate>(repo, Ko
             if (!aktivert)
                 Fail(IllegalStateException("Konto er allerede deaktivert"))
             else {
-                Succeed(Konto.AvsenderDeaktivert(it.aggregateId))
+                Succeed(Konto.AvsenderDeaktivert(Konto.DemoEventMetadata(it.aggregateId, System.currentTimeMillis())))
             }
         }
     }

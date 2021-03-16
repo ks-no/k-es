@@ -13,7 +13,7 @@ import kotlin.reflect.KClass
 
 private val LOG = mu.KotlinLogging.logger { }
 
-suspend fun withKes(eventSerdes: EventSerdes, cmdSerdes: CmdSerdes, context: suspend (KesTestSetup) -> Unit) {
+suspend fun withKes(eventSerdes: EventSerdes<EventMetadata>, cmdSerdes: CmdSerdes, context: suspend (KesTestSetup) -> Unit) {
     KesTestSetup(eventSerdes, cmdSerdes).use {
         context.invoke(it)
     }
@@ -23,7 +23,7 @@ suspend fun withKes(cmds: Set<KClass<out Cmd<*>>>, events: Set<KClass<out Event<
     withKes(eventSerdes = JacksonEventSerdes(events = events), cmdSerdes = JacksonCmdSerdes(cmds), context)
 }
 
-class KesTestSetup(val eventSerdes: EventSerdes, val cmdSerdes: CmdSerdes) : AutoCloseable {
+class KesTestSetup(val eventSerdes: EventSerdes<EventMetadata>, val cmdSerdes: CmdSerdes) : AutoCloseable {
     val eventStream = TestEventStream()
 
     val subscriberFactory: EventSubscriberFactory<TestEventSubscription> by lazy {
@@ -106,7 +106,7 @@ class TestEventSubscription(private val factory: TestEventSubscriberFactory,
     }
 }
 
-class TestEventSubscriberFactory(private val serdes: EventSerdes, private val testEventStream: TestEventStream) : EventSubscriberFactory<TestEventSubscription> {
+class TestEventSubscriberFactory(private val serdes: EventSerdes<EventMetadata>, private val testEventStream: TestEventStream) : EventSubscriberFactory<TestEventSubscription> {
     override fun getSerializationId(eventClass: KClass<Event<*>>): String = serdes.getSerializationId(eventClass)
 
     override fun createSubscriber(subscriber: String, fromEvent: Long, onEvent: (EventWrapper<Event<*>>) -> Unit, onClose: (Exception) -> Unit, onLive: () -> Unit): TestEventSubscription {
@@ -117,7 +117,7 @@ class TestEventSubscriberFactory(private val serdes: EventSerdes, private val te
 
 }
 
-internal class TestAggregateRepository(private val eventSerdes: EventSerdes, private val testEventStream: TestEventStream) : AggregateRepository() {
+internal class TestAggregateRepository(private val eventSerdes: EventSerdes<EventMetadata>, private val testEventStream: TestEventStream) : AggregateRepository() {
 
     override fun getSerializationId(eventClass: KClass<Event<*>>) = eventSerdes.getSerializationId(eventClass)
 

@@ -15,11 +15,11 @@ private const val BATCH_SIZE = 100
 
 private val log = KotlinLogging.logger {}
 
-class EsjcAggregateRepository(
+class EsjcAggregateRepository<T:EventMetadata>(
         private val eventStore: EventStore,
-        private val serdes: EventSerdes,
+        private val serdes: EventSerdes<T>,
         private val streamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String,
-        private val eventMetadataSerdes: EventMetadataSerdes? = null
+        private val eventMetadataSerdes: EventMetadataSerdes<T>? = null
 ) : AggregateRepository() {
 
     override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<Event<*>>) {
@@ -35,11 +35,10 @@ class EsjcAggregateRepository(
                         } else {
                             newBuilder.data(serdes.serialize(it))
                         }
-                        it.metadata()?.let { metadata ->
+                        if (it is EventWithMetadata ){
                             eventMetadataSerdes?.let { metadataSerdes ->
-                                newBuilder.jsonMetadata(metadataSerdes.serialize(metadata))
+                                newBuilder.jsonMetadata(metadataSerdes.serialize(it.metadata))
                             }
-
                         }
                         newBuilder.type(serdes.getSerializationId(it::class))
                                 .build()
@@ -68,7 +67,7 @@ class EsjcAggregateRepository(
                             if (EsjcEventUtil.isIgnorableEvent(e)) {
                                 a.first to e.event.eventNumber
                             } else {
-                                val eventMeta = if(e.event.metadata.isNotEmpty() && eventMetadataSerdes != null) eventMetadataSerdes.deserialize(e.event.metadata,e.event.eventType) else EventMetadata()
+                                val eventMeta = if(e.event.metadata.isNotEmpty() && eventMetadataSerdes != null) eventMetadataSerdes.deserialize(e.event.metadata) else null
                                 val event = serdes.deserialize(eventMeta, e.event.data, e.event.eventType)
                                 val deserialized = EventUpgrader.upgrade(event)
                                 applicator.invoke(

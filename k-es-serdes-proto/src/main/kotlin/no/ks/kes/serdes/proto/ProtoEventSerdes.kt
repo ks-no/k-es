@@ -8,20 +8,22 @@ import com.google.protobuf.Any
 import no.ks.kes.lib.EventMetadata
 import no.ks.kes.lib.getSerializationIdAnnotationValue
 
-class ProtoEventSerdes(private val register: Map<KClass<out ProtoEvent<*>>, Message>, private val protoEventDeserializer: ProtoEventDeserializer ) : EventSerdes {
+class ProtoEventSerdes<T:EventMetadata>(private val register: Map<KClass<out ProtoEvent<*>>, Message>, private val protoEventDeserializer: ProtoEventDeserializer<T> ) : EventSerdes<T> {
 
     val events = register.keys
         .map { getSerializationId(it) to it }
         .toMap()
 
-    override fun deserialize(eventMetadata: EventMetadata, eventData: ByteArray, eventType: String): Event<*> {
+    override fun deserialize(eventMetadata: T?, eventData: ByteArray, eventType: String): Event<*> {
+        if(eventMetadata == null) throw RuntimeException("Metadata er påkrevd for proto events")
+
         val eventClazz = events[eventType] ?: throw RuntimeException("Fant ikke event for type $eventType")
         val msgClazz = register[eventClazz] ?: throw RuntimeException("Fant ikke Protobuf type for event type $eventType")
 
         val any = Any.parseFrom(eventData)
         val msg = any.unpack(msgClazz.javaClass)
 
-        return protoEventDeserializer.deserialize(eventMetadata.aggregateId ?: throw RuntimeException("Mangler aggregateId for event $eventType"),  msg)
+        return protoEventDeserializer.deserialize(eventMetadata,  msg)
     }
 
     override fun isJson() : Boolean = false

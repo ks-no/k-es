@@ -39,34 +39,34 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
         }
     }
 
-    data class SvarUtMetadata(override val aggregateId: UUID, val occurredOn: Long): EventMetadata(aggregateId) {
+    data class DemoEventMetadata(override val aggregateId: UUID, val occurredOn: Long): EventMetadata(aggregateId) {
     }
 
     @SerializationId("Avsender.AvsenderOpprettet")
-    data class AvsenderOpprettet(override val aggregateId: UUID,val orgId: String) :
+    data class AvsenderOpprettet(override val metadata: DemoEventMetadata, val orgId: String) :
         ProtoEvent<KontoAggregate> {
 
         override fun getMsg() = Avsender.AvsenderOpprettet.newBuilder()
             .setOrgId(orgId)
             .build()
 
-        override fun metadata(): EventMetadata = SvarUtMetadata(aggregateId = aggregateId, System.currentTimeMillis())
+        override val aggregateId: UUID = metadata.aggregateId
     }
 
     @SerializationId("Avsender.AvsenderAktivert")
-    data class AvsenderAktivert(override val aggregateId: UUID) :
+    data class AvsenderAktivert(override val metadata: DemoEventMetadata) :
         ProtoEvent<KontoAggregate> {
 
         override fun getMsg() = Avsender.AvsenderAktivert.newBuilder().build()
-        override fun metadata(): EventMetadata = EventMetadata(aggregateId = aggregateId)
+        override val aggregateId: UUID = metadata.aggregateId
     }
 
     @SerializationId("Avsender.AvsenderDeaktivert")
-    data class AvsenderDeaktivert(override val aggregateId: UUID) :
+    data class AvsenderDeaktivert(override val metadata: DemoEventMetadata) :
         ProtoEvent<KontoAggregate> {
 
         override fun getMsg() = Avsender.AvsenderDeaktivert.newBuilder().build()
-        override fun metadata(): EventMetadata = EventMetadata(aggregateId = aggregateId)
+        override val aggregateId: UUID = metadata.aggregateId
 
     }
 }

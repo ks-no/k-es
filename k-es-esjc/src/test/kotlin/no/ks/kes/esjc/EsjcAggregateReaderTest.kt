@@ -70,7 +70,7 @@ class EsjcAggregateReaderTest : StringSpec() {
                                 )
                     }
 
-            val deserializer = mockk<EventSerdes>().apply {
+            val deserializer = mockk<EventSerdes<EventMetadata>>().apply {
                 every { deserialize(any(), "some-id".toByteArray(), any()) } returns someEvent
                 every { getSerializationId(any<KClass<Event<*>>>()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
                 every { deserialize(any(), "some-other-id".toByteArray(), any()) } returns someOtherEvent
@@ -121,7 +121,7 @@ class EsjcAggregateReaderTest : StringSpec() {
                                 )
                     }
 
-            EsjcAggregateRepository(
+            EsjcAggregateRepository<EventMetadata>(
                     eventStore = eventStoreMock,
                     serdes = mockk(),
                     streamIdGenerator = { t, id -> "$t.$id" }
@@ -141,7 +141,7 @@ class EsjcAggregateReaderTest : StringSpec() {
                     }
 
             shouldThrow<IllegalStateException> {
-                EsjcAggregateRepository(
+                EsjcAggregateRepository<EventMetadata>(
                         eventStore = eventStoreMock,
                         serdes = mockk(),
                         streamIdGenerator = { t, id -> "$t.$id" }
@@ -151,7 +151,7 @@ class EsjcAggregateReaderTest : StringSpec() {
         }
 
         "Test that the reader returns a NonExistingAggregate if no stream is found" {
-            EsjcAggregateRepository(
+            EsjcAggregateRepository<EventMetadata>(
                     eventStore = mockk<EventStore>()
                             .apply {
                                 every<Stream<ResolvedEvent>?> { streamEventsForward(any(), any(), any(), any()) } throws

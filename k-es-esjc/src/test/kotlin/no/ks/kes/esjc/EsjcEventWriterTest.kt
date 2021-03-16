@@ -10,10 +10,7 @@ import io.kotest.matchers.shouldNotBe
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import no.ks.kes.lib.Aggregate
-import no.ks.kes.lib.Event
-import no.ks.kes.lib.EventSerdes
-import no.ks.kes.lib.ExpectedEventNumber
+import no.ks.kes.lib.*
 import org.junit.jupiter.api.Assertions
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -37,7 +34,7 @@ internal class EsjcEventWriterTest : StringSpec() {
                         CompletableFuture.completedFuture(WriteResult(0, Position(0L, 0L)))
             }
 
-            val deserializer = mockk<EventSerdes>()
+            val deserializer = mockk<EventSerdes<EventMetadata>>()
                     .apply {
                         every { isJson() } returns true
                         every { serialize(event) } returns "foo".toByteArray()

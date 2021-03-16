@@ -53,12 +53,12 @@ class Test {
                     Konto.AvsenderAktivert::class to Avsender.AvsenderAktivert.getDefaultInstance(),
                     Konto.AvsenderDeaktivert::class to Avsender.AvsenderDeaktivert.getDefaultInstance(),
                 ),
-                object: ProtoEventDeserializer {
-                    override fun deserialize(aggregateId: UUID, msg: Message): ProtoEvent<*> {
+                object: ProtoEventDeserializer<Konto.DemoEventMetadata> {
+                    override fun deserialize(metadata: Konto.DemoEventMetadata, msg: Message): ProtoEvent<*> {
                         return when (msg) {
-                            is Avsender.AvsenderOpprettet -> Konto.AvsenderOpprettet(aggregateId = aggregateId, orgId = msg.orgId )
-                            is Avsender.AvsenderAktivert -> Konto.AvsenderAktivert(aggregateId)
-                            is Avsender.AvsenderDeaktivert -> Konto.AvsenderDeaktivert(aggregateId)
+                            is Avsender.AvsenderOpprettet -> Konto.AvsenderOpprettet(metadata = metadata, orgId = msg.orgId )
+                            is Avsender.AvsenderAktivert -> Konto.AvsenderAktivert(metadata = metadata)
+                            is Avsender.AvsenderDeaktivert -> Konto.AvsenderDeaktivert(metadata = metadata)
                             else -> throw RuntimeException("Event ${msg::class.java} mangler konvertering")
                         }
                     }
@@ -66,12 +66,7 @@ class Test {
                 }
             )
 
-            val jacksonEventMetadataSerdes = JacksonEventMetadataSerdes(
-                mapOf(
-                    Konto.AvsenderOpprettet::class to Konto.SvarUtMetadata::class,
-                    Konto.AvsenderAktivert::class to EventMetadata::class,
-                    Konto.AvsenderDeaktivert::class to EventMetadata::class
-                ))
+            val jacksonEventMetadataSerdes = JacksonEventMetadataSerdes(Konto.DemoEventMetadata::class)
 
             repo = EsjcAggregateRepository(eventStore, eventSerdes, EsjcEventUtil.defaultStreamName("no.ks.kes.proto.demo"),jacksonEventMetadataSerdes)
 

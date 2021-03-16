@@ -9,6 +9,7 @@ import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.beInstanceOf
 import io.mockk.*
+import no.ks.kes.lib.EventMetadata
 import java.util.*
 
 internal class EsjcEventSubscriberTest : StringSpec() {
@@ -19,7 +20,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
 
                 val eventStoreMock = mockk<EventStore>(relaxed = true)
 
-                EsjcEventSubscriberFactory(
+                EsjcEventSubscriberFactory<EventMetadata>(
                         eventStore = eventStoreMock,
                         category = category,
                         serdes = mockk()
@@ -38,7 +39,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
                 every { subscribeToStreamFrom("\$ce-$category", eventnumber, any(), capture(catchUpSubscriptionListener)) } returns subscription
             }
             var catchedException: Exception? = null
-            EsjcEventSubscriberFactory(
+            EsjcEventSubscriberFactory<EventMetadata>(
                     eventStore = eventStoreMock,
                     category = category,
                     serdes = mockk()
@@ -63,7 +64,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
             val eventStoreMock = mockk<EventStore>(relaxed = true)
 
             shouldThrowExactly<IllegalStateException> {
-                EsjcEventSubscriberFactory(
+                EsjcEventSubscriberFactory<EventMetadata>(
                         eventStore = eventStoreMock,
                         category = category,
                         serdes = mockk()
@@ -80,7 +81,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
                     every { subscribeToStreamFrom(streamName, eventnumber, any(), ofType<CatchUpSubscriptionListener>()) } returns mockk()
                 }
 
-                EsjcEventSubscriberFactory(
+                EsjcEventSubscriberFactory<EventMetadata>(
                         eventStore = eventStoreMock,
                         category = category,
                         serdes = mockk()
