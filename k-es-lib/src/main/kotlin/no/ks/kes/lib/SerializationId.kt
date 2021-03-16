@@ -1,4 +1,4 @@
-package no.ks.kes.serdes.proto
+package no.ks.kes.lib
 
 import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation

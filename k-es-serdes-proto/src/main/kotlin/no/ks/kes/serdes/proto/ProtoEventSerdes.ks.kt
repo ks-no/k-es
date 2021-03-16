@@ -6,8 +6,9 @@ import no.ks.kes.lib.EventSerdes
 import kotlin.reflect.KClass
 import com.google.protobuf.Any
 import no.ks.kes.lib.EventMetadata
+import no.ks.kes.lib.getSerializationIdAnnotationValue
 
-class ProtoEventSerdes(private val register: Map<KClass<out ProtoEvent<*>>, Message>, private val deserializer: Deserializer ) : EventSerdes {
+class ProtoEventSerdes(private val register: Map<KClass<out ProtoEvent<*>>, Message>, private val protoEventDeserializer: ProtoEventDeserializer ) : EventSerdes {
 
     val events = register.keys
         .map { getSerializationId(it) to it }
@@ -20,9 +21,7 @@ class ProtoEventSerdes(private val register: Map<KClass<out ProtoEvent<*>>, Mess
         val any = Any.parseFrom(eventData)
         val msg = any.unpack(msgClazz.javaClass)
 
-        eventClazz
-
-        return deserializer.deserialize(eventMetadata.aggregateId ?: throw RuntimeException("Mangler aggregateId for event $eventType"), msg)
+        return protoEventDeserializer.deserialize(eventMetadata.aggregateId ?: throw RuntimeException("Mangler aggregateId for event $eventType"),  msg)
     }
 
     override fun isJson() : Boolean = false

@@ -3,8 +3,9 @@ package no.ks.kes.demoapp
 import mu.KotlinLogging
 import no.ks.kes.lib.Aggregate
 import no.ks.kes.lib.AggregateConfiguration
+import no.ks.kes.lib.EventMetadata
+import no.ks.kes.lib.SerializationId
 import no.ks.kes.serdes.proto.ProtoEvent
-import no.ks.kes.serdes.proto.SerializationId
 import no.ks.svarut.event.Avsender
 import java.util.*
 
@@ -38,6 +39,9 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
         }
     }
 
+    data class SvarUtMetadata(override val aggregateId: UUID, val occurredOn: Long): EventMetadata(aggregateId) {
+    }
+
     @SerializationId("Avsender.AvsenderOpprettet")
     data class AvsenderOpprettet(override val aggregateId: UUID,val orgId: String) :
         ProtoEvent<KontoAggregate> {
@@ -45,6 +49,8 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
         override fun getMsg() = Avsender.AvsenderOpprettet.newBuilder()
             .setOrgId(orgId)
             .build()
+
+        override fun metadata(): EventMetadata = SvarUtMetadata(aggregateId = aggregateId, System.currentTimeMillis())
     }
 
     @SerializationId("Avsender.AvsenderAktivert")
@@ -52,6 +58,7 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
         ProtoEvent<KontoAggregate> {
 
         override fun getMsg() = Avsender.AvsenderAktivert.newBuilder().build()
+        override fun metadata(): EventMetadata = EventMetadata(aggregateId = aggregateId)
     }
 
     @SerializationId("Avsender.AvsenderDeaktivert")
@@ -59,6 +66,7 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
         ProtoEvent<KontoAggregate> {
 
         override fun getMsg() = Avsender.AvsenderDeaktivert.newBuilder().build()
+        override fun metadata(): EventMetadata = EventMetadata(aggregateId = aggregateId)
 
     }
 }

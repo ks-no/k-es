@@ -18,7 +18,8 @@ private val log = KotlinLogging.logger {}
 class EsjcAggregateRepository(
         private val eventStore: EventStore,
         private val serdes: EventSerdes,
-        private val streamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String
+        private val streamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String,
+        private val eventMetadataSerdes: EventMetadataSerdes? = null
 ) : AggregateRepository() {
 
     override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<Event<*>>) {
@@ -34,7 +35,12 @@ class EsjcAggregateRepository(
                         } else {
                             newBuilder.data(serdes.serialize(it))
                         }
-                        newBuilder.jsonMetadata(EventMetadata.Builder().aggregateId(it.aggregateId).build().serialize())
+                        it.metadata()?.let { metadata ->
+                            eventMetadataSerdes?.let { metadataSerdes ->
+                                newBuilder.jsonMetadata(metadataSerdes.serialize(metadata))
+                            }
+
+                        }
                         newBuilder.type(serdes.getSerializationId(it::class))
                                 .build()
                     })
@@ -62,12 +68,12 @@ class EsjcAggregateRepository(
                             if (EsjcEventUtil.isIgnorableEvent(e)) {
                                 a.first to e.event.eventNumber
                             } else {
-                                val eventMeta = EventMetadata.fromJson(e.event.metadata)
+                                val eventMeta = if(e.event.metadata.isNotEmpty() && eventMetadataSerdes != null) eventMetadataSerdes.deserialize(e.event.metadata,e.event.eventType) else EventMetadata()
                                 val event = serdes.deserialize(eventMeta, e.event.data, e.event.eventType)
                                 val deserialized = EventUpgrader.upgrade(event)
                                 applicator.invoke(
                                         a.first,
-                                        EventWrapper(deserialized as Event<A>, e.event.eventNumber, serdes.getSerializationId(deserialized::class))
+                                        EventWrapper(deserialized, e.event.eventNumber, serdes.getSerializationId(deserialized::class))
                                 ) to e.event.eventNumber
                             }
                         })

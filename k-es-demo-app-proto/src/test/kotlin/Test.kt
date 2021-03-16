@@ -6,9 +6,8 @@ import mu.KotlinLogging
 import no.ks.kes.demoapp.*
 import no.ks.kes.esjc.EsjcAggregateRepository
 import no.ks.kes.esjc.EsjcEventUtil
-import no.ks.kes.lib.AggregateReadResult
-import no.ks.kes.lib.AggregateRepository
-import no.ks.kes.serdes.proto.Deserializer
+import no.ks.kes.lib.*
+import no.ks.kes.serdes.proto.ProtoEventDeserializer
 import no.ks.kes.serdes.proto.ProtoEvent
 import no.ks.kes.serdes.proto.ProtoEventSerdes
 import no.ks.svarut.event.Avsender
@@ -54,10 +53,10 @@ class Test {
                     Konto.AvsenderAktivert::class to Avsender.AvsenderAktivert.getDefaultInstance(),
                     Konto.AvsenderDeaktivert::class to Avsender.AvsenderDeaktivert.getDefaultInstance(),
                 ),
-                object: Deserializer {
+                object: ProtoEventDeserializer {
                     override fun deserialize(aggregateId: UUID, msg: Message): ProtoEvent<*> {
                         return when (msg) {
-                            is Avsender.AvsenderOpprettet -> Konto.AvsenderOpprettet(aggregateId = aggregateId, orgId = msg.orgId)
+                            is Avsender.AvsenderOpprettet -> Konto.AvsenderOpprettet(aggregateId = aggregateId, orgId = msg.orgId )
                             is Avsender.AvsenderAktivert -> Konto.AvsenderAktivert(aggregateId)
                             is Avsender.AvsenderDeaktivert -> Konto.AvsenderDeaktivert(aggregateId)
                             else -> throw RuntimeException("Event ${msg::class.java} mangler konvertering")
@@ -67,7 +66,14 @@ class Test {
                 }
             )
 
-            repo = EsjcAggregateRepository(eventStore, eventSerdes, EsjcEventUtil.defaultStreamName("no.ks.kes.proto.demo"))
+            val jacksonEventMetadataSerdes = JacksonEventMetadataSerdes(
+                mapOf(
+                    Konto.AvsenderOpprettet::class to Konto.SvarUtMetadata::class,
+                    Konto.AvsenderAktivert::class to EventMetadata::class,
+                    Konto.AvsenderDeaktivert::class to EventMetadata::class
+                ))
+
+            repo = EsjcAggregateRepository(eventStore, eventSerdes, EsjcEventUtil.defaultStreamName("no.ks.kes.proto.demo"),jacksonEventMetadataSerdes)
 
             kontoCmds = KontoCmds(repo)
         }

@@ -11,7 +11,8 @@ private val log = KotlinLogging.logger {}
 class EsjcEventSubscriberFactory(
         private val eventStore: EventStore,
         private val serdes: EventSerdes,
-        private val category: String
+        private val category: String,
+        private val eventMetadataSerdes: EventMetadataSerdes? = null
 ) : EventSubscriberFactory<CatchUpSubscriptionWrapper> {
     override fun getSerializationId(eventClass: KClass<Event<*>>): String =
             serdes.getSerializationId(eventClass)
@@ -44,7 +45,8 @@ class EsjcEventSubscriberFactory(
                                 EsjcEventUtil.isIgnorableEvent(resolvedEvent) ->
                                     log.info { "$subscriber: event ignored: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}" }
                                 else -> try {
-                                    val event = EventUpgrader.upgrade(serdes.deserialize(EventMetadata.fromJson(resolvedEvent.event.metadata), resolvedEvent.event.data, resolvedEvent.event.eventType))
+                                    val eventMeta = if(resolvedEvent.event.metadata.isNotEmpty() && eventMetadataSerdes != null) eventMetadataSerdes.deserialize(resolvedEvent.event.metadata,resolvedEvent.event.eventType) else EventMetadata()
+                                    val event = EventUpgrader.upgrade(serdes.deserialize(eventMeta, resolvedEvent.event.data, resolvedEvent.event.eventType))
                                     onEvent.invoke(EventWrapper(
                                             event = event,
                                             eventNumber = resolvedEvent.originalEventNumber(),
