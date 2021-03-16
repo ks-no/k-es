@@ -3,7 +3,6 @@ package no.ks.kes.test.example
 import no.ks.kes.lib.*
 import no.ks.kes.serdes.jackson.JacksonCmdSerdes
 import no.ks.kes.serdes.jackson.JacksonEventSerdes
-import no.ks.kes.serdes.jackson.SerializationId
 import java.time.Duration
 import java.time.Instant
 import java.util.*

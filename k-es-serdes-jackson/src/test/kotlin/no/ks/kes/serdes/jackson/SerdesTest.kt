@@ -2,10 +2,7 @@ package no.ks.kes.serdes.jackson
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import no.ks.kes.lib.Aggregate
-import no.ks.kes.lib.Cmd
-import no.ks.kes.lib.Event
-import no.ks.kes.lib.EventMetadata
+import no.ks.kes.lib.*
 import java.time.Instant
 import java.util.*
 
@@ -41,8 +38,8 @@ class SerdesTest : StringSpec() {
             val someEvent = SomeEvent(UUID.randomUUID())
             val someOtherEvent = SomeOtherEvent(UUID.randomUUID())
 
-            serdes.serialize(someEvent).run { serdes.deserialize( EventMetadata.Builder().build(),this, "foo") } shouldBe someEvent
-            serdes.serialize(someOtherEvent).run { serdes.deserialize( EventMetadata.Builder().build(),this, "bar") } shouldBe someOtherEvent
+            serdes.serialize(someEvent).run { serdes.deserialize( EventMetadata(),this, "foo") } shouldBe someEvent
+            serdes.serialize(someOtherEvent).run { serdes.deserialize( EventMetadata(),this, "bar") } shouldBe someOtherEvent
         }
 
         data class SomeState(val aggregateId: UUID, val timestamp: Instant)
