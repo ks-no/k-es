@@ -2,6 +2,7 @@ package no.ks.kes.lib
 
 import mu.KotlinLogging
 import java.time.Instant
+import java.util.*
 import kotlin.reflect.KClass
 
 private val log = KotlinLogging.logger {}
@@ -52,9 +53,11 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
                         },
                         { a, e ->
                             validatedAggregateConfiguration.applyEvent(EventWrapper(
-                                    event = e,
+                                    aggregateId = e.aggregateId,
+                                    event = e.event,
+                                    metadata = e.metadata,
                                     eventNumber = -1,
-                                    serializationId = repository.getSerializationId(e::class as KClass<Event<*>>)
+                                    serializationId = repository.getSerializationId(e.event::class as KClass<Event<*>>)
                             ), a)
                         })
                         ?: error("applying derived events to the aggregate resulted in a null-state!")
@@ -95,7 +98,7 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
         }
     }
 
-    private fun appendDerivedEvents(aggregateType: String, readResult: AggregateReadResult, cmd: Cmd<A>, events: List<Event<A>>) {
+    private fun appendDerivedEvents(aggregateType: String, readResult: AggregateReadResult, cmd: Cmd<A>, events: List<WriteEventWrapper<Event<*>>>) {
         if (events.isNotEmpty())
             repository.append(aggregateType, cmd.aggregateId, resolveExpectedEventNumber(readResult, cmd.useOptimisticLocking()), events)
     }
@@ -139,25 +142,25 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
 
     sealed class Result<A : Aggregate>(val exception: Exception?) {
 
-        class Fail<A : Aggregate> private constructor(exception: Exception, val events: List<Event<A>>) : Result<A>(exception) {
-            constructor(event: Event<A>, exception: Exception) : this(exception, listOf(event))
-            constructor(events: List<Event<A>>, exception: Exception) : this(exception, events)
+        class Fail<A : Aggregate> private constructor(exception: Exception, val events: List<WriteEventWrapper<Event<*>>>) : Result<A>(exception) {
+            constructor(event: WriteEventWrapper<Event<*>>, exception: Exception) : this(exception, listOf(event))
+            constructor(events: List<WriteEventWrapper<Event<*>>>, exception: Exception) : this(exception, events)
             constructor(exception: Exception) : this(exception, emptyList())
         }
 
-        class RetryOrFail<A : Aggregate> private constructor(exception: Exception, val events: List<Event<A>>, val retryStrategy: (Int) -> Instant?) : Result<A>(exception) {
-            constructor(event: Event<A>, exception: Exception, retryStrategy: (Int) -> Instant?) : this(exception, listOf(event), retryStrategy)
-            constructor(events: List<Event<A>>, exception: Exception, retryStrategy: (Int) -> Instant?) : this(exception, events, retryStrategy)
+        class RetryOrFail<A : Aggregate> private constructor(exception: Exception, val events: List<WriteEventWrapper<Event<*>>>, val retryStrategy: (Int) -> Instant?) : Result<A>(exception) {
+            constructor(event: WriteEventWrapper<Event<*>>, exception: Exception, retryStrategy: (Int) -> Instant?) : this(exception, listOf(event), retryStrategy)
+            constructor(events: List<WriteEventWrapper<Event<*>>>, exception: Exception, retryStrategy: (Int) -> Instant?) : this(exception, events, retryStrategy)
             constructor(exception: Exception, retryStrategy: (Int) -> Instant?) : this(exception, emptyList(), retryStrategy)
-            constructor(event: Event<A>, exception: Exception) : this(exception, listOf(event), RetryStrategies.DEFAULT)
-            constructor(events: List<Event<A>>, exception: Exception) : this(exception, events, RetryStrategies.DEFAULT)
+            constructor(event: WriteEventWrapper<Event<*>>, exception: Exception) : this(exception, listOf(event), RetryStrategies.DEFAULT)
+            constructor(events: List<WriteEventWrapper<Event<*>>>, exception: Exception) : this(exception, events, RetryStrategies.DEFAULT)
             constructor(exception: Exception) : this(exception, emptyList(), RetryStrategies.DEFAULT)
         }
 
         internal class Error<A : Aggregate>(exception: Exception) : Result<A>(exception)
 
-        class Succeed<A : Aggregate>(val derivedEvents: List<Event<A>>) : Result<A>(null) {
-            constructor(event: Event<A>) : this(listOf(event))
+        class Succeed<A : Aggregate>(val derivedEvents: List<WriteEventWrapper<Event<*>>>) : Result<A>(null) {
+            constructor(writeEventWrapper: WriteEventWrapper<Event<*>>) : this(listOf(writeEventWrapper))
             constructor() : this(emptyList())
         }
     }

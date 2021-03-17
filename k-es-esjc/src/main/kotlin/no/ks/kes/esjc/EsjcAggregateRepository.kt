@@ -22,7 +22,7 @@ class EsjcAggregateRepository<T:EventMetadata>(
         private val eventMetadataSerdes: EventMetadataSerdes<T>? = null
 ) : AggregateRepository() {
 
-    override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<Event<*>>) {
+    override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<WriteEventWrapper<Event<*>>>) {
         val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
         try {
             eventStore.appendToStream(
@@ -31,16 +31,14 @@ class EsjcAggregateRepository<T:EventMetadata>(
                     events.map {
                         val newBuilder = EventData.newBuilder()
                         if (serdes.isJson()) {
-                            newBuilder.jsonData(serdes.serialize(it))
+                            newBuilder.jsonData(serdes.serialize(it.event))
                         } else {
-                            newBuilder.data(serdes.serialize(it))
+                            newBuilder.data(serdes.serialize(it.event))
                         }
-                        if (it is EventWithMetadata ){
-                            eventMetadataSerdes?.let { metadataSerdes ->
-                                newBuilder.jsonMetadata(metadataSerdes.serialize(it.metadata))
-                            }
+                        eventMetadataSerdes?.let { metadataSerdes ->
+                            newBuilder.jsonMetadata(metadataSerdes.serialize(it.metadata))
                         }
-                        newBuilder.type(serdes.getSerializationId(it::class))
+                        newBuilder.type(serdes.getSerializationId(it.event::class))
                                 .build()
                     })
                     .get().also {
@@ -72,7 +70,12 @@ class EsjcAggregateRepository<T:EventMetadata>(
                                 val deserialized = EventUpgrader.upgrade(event)
                                 applicator.invoke(
                                         a.first,
-                                        EventWrapper(deserialized, e.event.eventNumber, serdes.getSerializationId(deserialized::class))
+                                        EventWrapper(
+                                            aggregateId = aggregateId,
+                                            event = deserialized,
+                                            metadata= eventMeta,
+                                            eventNumber = e.event.eventNumber,
+                                            serializationId = serdes.getSerializationId(deserialized::class))
                                 ) to e.event.eventNumber
                             }
                         })

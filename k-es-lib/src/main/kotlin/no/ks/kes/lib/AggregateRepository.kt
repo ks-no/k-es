@@ -5,7 +5,7 @@ import kotlin.reflect.KClass
 
 
 abstract class AggregateRepository() {
-    abstract fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<Event<*>>)
+    abstract fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<WriteEventWrapper<Event<*>>>)
     abstract fun getSerializationId(eventClass: KClass<Event<*>>): String
 
     fun <A : Aggregate> read(aggregateId: UUID, aggregateConfiguration: ValidatedAggregateConfiguration<A>): AggregateReadResult =

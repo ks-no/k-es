@@ -19,11 +19,9 @@ data class KontoAggregate(
 object Konto: AggregateConfiguration<KontoAggregate>("konto") {
 
     init {
-        init<AvsenderOpprettet> {
-            log.info { "Avsender opprettet $it" }
-            KontoAggregate(
-                    aggregateId = it.aggregateId
-            )
+        init { avsenderOpprettet: AvsenderOpprettet, aggregatId: UUID ->
+            log.info { "Avsender opprettet $aggregatId" }
+            KontoAggregate(aggregatId)
         }
 
         apply<AvsenderAktivert> {
@@ -42,32 +40,16 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
     data class DemoEventMetadata(override val aggregateId: UUID, val occurredOn: Long): EventMetadata(aggregateId)
 
     @SerializationId("Avsender.AvsenderOpprettet")
-    data class AvsenderOpprettet(override val metadata: DemoEventMetadata, val orgId: String) :
-        ProtoEvent<KontoAggregate> {
-
-        override fun getMsg() = Avsender.AvsenderOpprettet.newBuilder()
-            .setOrgId(orgId)
-            .build()
-
-        override val aggregateId: UUID = metadata.aggregateId
-    }
+    data class AvsenderOpprettet(override val msg: Avsender.AvsenderOpprettet) :
+        ProtoEvent<KontoAggregate, Avsender.AvsenderOpprettet>
 
     @SerializationId("Avsender.AvsenderAktivert")
-    data class AvsenderAktivert(override val metadata: DemoEventMetadata) :
-        ProtoEvent<KontoAggregate> {
-
-        override fun getMsg() = Avsender.AvsenderAktivert.newBuilder().build()
-        override val aggregateId: UUID = metadata.aggregateId
-    }
+    data class AvsenderAktivert(override val msg: Avsender.AvsenderAktivert) :
+        ProtoEvent<KontoAggregate, Avsender.AvsenderAktivert>
 
     @SerializationId("Avsender.AvsenderDeaktivert")
-    data class AvsenderDeaktivert(override val metadata: DemoEventMetadata) :
-        ProtoEvent<KontoAggregate> {
-
-        override fun getMsg() = Avsender.AvsenderDeaktivert.newBuilder().build()
-        override val aggregateId: UUID = metadata.aggregateId
-
-    }
+    data class AvsenderDeaktivert(override val msg: Avsender.AvsenderDeaktivert) :
+        ProtoEvent<KontoAggregate,Avsender.AvsenderDeaktivert>
 }
 
 

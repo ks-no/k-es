@@ -19,11 +19,11 @@ private const val AGGREGATE_TYPE = "some-aggregate"
 internal class CmdHandlerTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
+    data class SomeEvent(val aggregateId: UUID) : Event<SomeAggregate>
 
     val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>(AGGREGATE_TYPE) {
         init {
-            init<SomeEvent> {
+            init { someEvent: SomeEvent, aggregateId: UUID ->
                 SomeAggregate(stateInitialized = true)
             }
 
@@ -46,11 +46,19 @@ internal class CmdHandlerTest : StringSpec() {
                 object : CmdHandler<SomeAggregate>(mockk(), aggregateConfiguration) {
                     init {
                         init<HireCmd> {
-                            Result.Succeed(SomeEvent(it.aggregateId))
+                            Result.Succeed(WriteEventWrapper(
+                                aggregateId = it.aggregateId,
+                                event = SomeEvent(it.aggregateId),
+                                metadata = EventMetadata()
+                            ))
                         }
 
                         init<HireCmd> {
-                            Result.Succeed(SomeEvent(it.aggregateId))
+                            Result.Succeed(WriteEventWrapper(
+                                aggregateId = it.aggregateId,
+                                event = SomeEvent(it.aggregateId),
+                                metadata = EventMetadata()
+                            ))
                         }
                     }
                 }
@@ -71,11 +79,19 @@ internal class CmdHandlerTest : StringSpec() {
                 object : CmdHandler<SomeAggregate>(mockk(), aggregateConfiguration) {
                     init {
                         apply<HireCmd> {
-                            Result.Succeed(SomeEvent(it.aggregateId))
+                            Result.Succeed(WriteEventWrapper(
+                                aggregateId = it.aggregateId,
+                                event = SomeEvent(it.aggregateId),
+                                metadata = EventMetadata()
+                            ))
                         }
 
                         apply<HireCmd> {
-                            Result.Succeed(SomeEvent(it.aggregateId))
+                            Result.Succeed(WriteEventWrapper(
+                                aggregateId = it.aggregateId,
+                                event = SomeEvent(it.aggregateId),
+                                metadata = EventMetadata()
+                            ))
                         }
                     }
                 }
@@ -102,7 +118,11 @@ internal class CmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(SomeEvent(it.aggregateId))
+                        Result.Succeed(WriteEventWrapper(
+                            aggregateId = it.aggregateId,
+                            event = SomeEvent(it.aggregateId),
+                            metadata = EventMetadata()
+                        ))
                     }
                 }
             }.handle(someCmd).apply {
@@ -129,7 +149,11 @@ internal class CmdHandlerTest : StringSpec() {
             val countingCommandHandler = object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(SomeEvent(it.aggregateId))
+                        Result.Succeed(WriteEventWrapper(
+                            aggregateId = it.aggregateId,
+                            event = SomeEvent(it.aggregateId),
+                            metadata = EventMetadata()
+                        ))
                     }
 
                 }

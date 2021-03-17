@@ -12,13 +12,13 @@ import kotlin.reflect.KClass
 internal class AsyncCmdHandlerTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeAggregate>
+    class SomeInitEvent : Event<SomeAggregate>
 
-    data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
+    class SomeEvent : Event<SomeAggregate>
 
     val aggregateConfig = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
         init {
-            init<SomeInitEvent> {
+            init { someInitEvent: SomeInitEvent, aggregateId: UUID ->
                 SomeAggregate(stateInitialized = true)
             }
 
@@ -34,7 +34,7 @@ internal class AsyncCmdHandlerTest : StringSpec() {
         "Test that a cmd can initialize an aggregate" {
             val someCmd = SomeCmd(UUID.randomUUID())
 
-            val slot = slot<List<Event<*>>>()
+            val slot = slot<List<WriteEventWrapper<Event<*>>>>()
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
@@ -45,20 +45,20 @@ internal class AsyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, aggregateConfig) {
                 init {
                     init<SomeCmd> {
-                        Result.Succeed(SomeInitEvent(it.aggregateId))
+                        Result.Succeed(WriteEventWrapper( event = SomeInitEvent(), aggregateId = it.aggregateId, metadata = EventMetadata()))
                     }
                 }
             }.handleAsync(someCmd, 0)
                     .apply { this.shouldBeInstanceOf<CmdHandler.AsyncResult.Success>() }
 
-            with(slot.captured.single() as SomeInitEvent) {
+            with(slot.captured.single() as WriteEventWrapper<*>) {
                 aggregateId shouldBe someCmd.aggregateId
             }
         }
 
         "Test that a cmd can append a new event to an existing aggregate" {
             val someCmd = SomeCmd(UUID.randomUUID())
-            val slot = slot<List<Event<*>>>()
+            val slot = slot<List<WriteEventWrapper<Event<*>>>>()
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
@@ -70,13 +70,13 @@ internal class AsyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, aggregateConfig) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(SomeEvent(it.aggregateId))
+                        Result.Succeed(WriteEventWrapper( event = SomeInitEvent(), aggregateId = it.aggregateId, metadata = EventMetadata()))
                     }
                 }
             }.handleAsync(someCmd, 0)
                     .apply { this.shouldBeInstanceOf<CmdHandler.AsyncResult.Success>() }
 
-            with(slot.captured.single() as SomeEvent) {
+            with(slot.captured.single() as WriteEventWrapper<*>) {
                 aggregateId shouldBe someCmd.aggregateId
             }
         }

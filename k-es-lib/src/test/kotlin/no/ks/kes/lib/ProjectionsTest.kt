@@ -13,7 +13,7 @@ internal class ProjectionsTest : StringSpec() {
 
     private data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
+    data class SomeEvent(val aggregateId: UUID) : Event<SomeAggregate>
 
     init {
         "test that a projection can handle incoming events and mutate its state accordingly" {
@@ -58,12 +58,13 @@ internal class ProjectionsTest : StringSpec() {
                     subscriber = consumerName
             )
 
+            val aggregateId = UUID.randomUUID()
             val hiredEvent = SomeEvent(
-                    aggregateId = UUID.randomUUID()
+                    aggregateId = aggregateId
             )
 
             //when we invoke the captured handler from the manager with the subscribed event
-            slot.invoke(EventWrapper(hiredEvent, 0, hiredEvent::class.simpleName!!))
+            slot.invoke(EventWrapper(aggregateId,hiredEvent,null, 0, hiredEvent::class.simpleName!!))
 
             //the projection should update
             startDates.hasBeenProjected(hiredEvent.aggregateId) shouldBe true

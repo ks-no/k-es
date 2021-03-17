@@ -18,18 +18,13 @@ class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
             .toMap()
 
     override fun deserialize(eventMetadata: EventMetadata?, eventData: ByteArray, eventType: String): Event<*> {
-        try {
-            val event = objectMapper.readValue(
+        return try {
+            objectMapper.readValue(
                 eventData,
                 events[eventType]
                     ?.javaObjectType
                     ?: throw RuntimeException("No class registered for event type $eventType")
             )
-            if( event is EventWithMetadata ){
-                if(eventMetadata == null) throw RuntimeException("Mangler EventMetadata for event av typen EventWithMetadata $event")
-                //event.metadata = eventMetadata
-            }
-            return event;
         } catch (e: Exception) {
             throw  RuntimeException("Error during deserialization of eventType $eventType", e)
         }

@@ -23,11 +23,11 @@ class CommandQueueTest : StringSpec() {
 
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    data class SomeInitEvent(override val aggregateId: UUID) : Event<SomeAggregate>
+    data class SomeInitEvent(val aggregateId: UUID) : Event<SomeAggregate>
 
     val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
         init {
-            init<SomeInitEvent> {
+            init { someInitEvent: SomeInitEvent, aggregateId: UUID ->
                 SomeAggregate(stateInitialized = true)
             }
         }

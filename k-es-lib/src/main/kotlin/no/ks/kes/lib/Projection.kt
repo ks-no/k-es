@@ -50,7 +50,7 @@ abstract class Projection {
 
             if (projector != null) {
                 projector.invoke(wrapper)
-                log.info("Event ${wrapper.serializationId} on aggregate ${wrapper.event.aggregateId} " +
+                log.info("Event ${wrapper.serializationId} on aggregate ${wrapper.aggregateId} " +
                         "applied to projection $name")
             }
 

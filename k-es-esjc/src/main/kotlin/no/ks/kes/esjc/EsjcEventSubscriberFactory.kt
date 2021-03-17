@@ -48,6 +48,8 @@ class EsjcEventSubscriberFactory<T:EventMetadata>(
                                     val eventMeta = if(resolvedEvent.event.metadata.isNotEmpty() && eventMetadataSerdes != null) eventMetadataSerdes.deserialize(resolvedEvent.event.metadata) else null
                                     val event = EventUpgrader.upgrade(serdes.deserialize(eventMeta, resolvedEvent.event.data, resolvedEvent.event.eventType))
                                     onEvent.invoke(EventWrapper(
+                                            aggregateId = resolvedEvent.event.eventId,
+                                            metadata = eventMeta,
                                             event = event,
                                             eventNumber = resolvedEvent.originalEventNumber(),
                                             serializationId = serdes.getSerializationId(event::class)))

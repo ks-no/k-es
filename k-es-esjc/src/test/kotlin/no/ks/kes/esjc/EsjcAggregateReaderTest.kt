@@ -22,13 +22,13 @@ import kotlin.reflect.KClass
 class EsjcAggregateReaderTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
+    data class SomeEvent(val aggregateId: UUID) : Event<SomeAggregate>
 
-    data class SomeOtherEvent(override val aggregateId: UUID) : Event<SomeAggregate>
+    data class SomeOtherEvent(val aggregateId: UUID) : Event<SomeAggregate>
 
     private val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
         init {
-            init<SomeEvent> {
+            init { someEvent: SomeEvent, aggregatId: UUID ->
                 SomeAggregate(stateInitialized = true)
             }
             apply<SomeOtherEvent> {

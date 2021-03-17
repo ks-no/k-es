@@ -32,7 +32,7 @@ object EngineSaga : Saga<EngineSagaState>(EngineSagaState::class, SAGA_SERILIZAT
             setState(state.copy(startInitiated = false))
         }
 
-        timeout<Events.Started>({ it.aggregateId }, { Instant.now().plus(Duration.ofSeconds(5L)) }) {
+        timeout({ e: Events.Started, aggregateId: UUID -> aggregateId }, { Instant.now().plus(Duration.ofSeconds(5L)) }) {
             LOG.debug { "Saga timed: ${state.aggregateId}" }
             if (state.startInitiated) {
                 setState(state.copy(stoppedBySaga = true))
@@ -45,8 +45,8 @@ object EngineSaga : Saga<EngineSagaState>(EngineSagaState::class, SAGA_SERILIZAT
 object Engine : AggregateConfiguration<EngineProperties>(ENGINE_AGGREGATE_TYPE) {
 
     init {
-        init<Events.Created> {
-            EngineProperties(id = it.aggregateId, running = false)
+        init { e: Events.Created, aggregateId: UUID ->
+            EngineProperties(id = aggregateId, running = false)
         }
 
         apply<Events.Started> { copy(running = true, startCount = startCount + 1) }
@@ -60,7 +60,8 @@ class EngineCmdHandler(repository: AggregateRepository) : CmdHandler<EnginePrope
     init {
         init<Cmds.Create> {
             LOG.debug { "Create command: ${it.aggregateId}" }
-            Result.Succeed(Events.Created(it.aggregateId))
+            Result.Succeed(
+                WriteEventWrapper( event = Events.Created(it.aggregateId), aggregateId = it.aggregateId, metadata = EventMetadata()))
         }
 
         apply<Cmds.Start> {
@@ -68,13 +69,17 @@ class EngineCmdHandler(repository: AggregateRepository) : CmdHandler<EnginePrope
             if (running) {
                 Result.Succeed()
             } else {
-                Result.Succeed(Events.Started(it.aggregateId))
+                Result.Succeed(
+                    WriteEventWrapper( event = Events.Started(it.aggregateId), aggregateId = it.aggregateId, metadata = EventMetadata())
+                )
             }
         }
 
         apply<Cmds.Stop> {
             if (running) {
-                Result.Succeed(Events.Stopped(it.aggregateId))
+                Result.Succeed(
+                    WriteEventWrapper( event = Events.Stopped(it.aggregateId), aggregateId = it.aggregateId, metadata = EventMetadata())
+                )
             } else {
                 Result.Fail(RuntimeException("Can not stop engine that has already been stopped"))
             }
@@ -116,13 +121,13 @@ object Events {
     val serdes = JacksonEventSerdes(all)
 
     @SerializationId("Created")
-    data class Created(override val aggregateId: UUID) : EngineEvent("Created engine with id $aggregateId")
+    data class Created(val aggregateId: UUID) : EngineEvent("Created engine with id $aggregateId")
 
     @SerializationId("Started")
-    data class Started(override val aggregateId: UUID) : EngineEvent("Engine $aggregateId started")
+    data class Started(val aggregateId: UUID) : EngineEvent("Engine $aggregateId started")
 
     @SerializationId("Stopped")
-    data class Stopped(override val aggregateId: UUID) : EngineEvent("Engine $aggregateId stopped")
+    data class Stopped(val aggregateId: UUID) : EngineEvent("Engine $aggregateId stopped")
 }
 
 class EnginesProjection: Projection() {

@@ -1,5 +1,6 @@
 package no.ks.kes.lib
 
+import java.util.*
 import kotlin.reflect.KClass
 
 
@@ -13,8 +14,8 @@ abstract class AggregateConfiguration<STATE : Aggregate>(val aggregateType: Stri
         applicators[E::class as KClass<Event<*>>] = { s, e -> applicator(s, e.event as E) }
     }
 
-    protected inline fun <reified E : Event<*>> init(crossinline initializer: (E) -> STATE) {
-        initializers[E::class as KClass<Event<*>>] = { initializer(it.event as E) }
+    protected inline fun <reified E : Event<*>> init(crossinline initializer: (E, UUID) -> STATE) {
+        initializers[E::class as KClass<Event<*>>] = { initializer(it.event as E, it.aggregateId) }
     }
 
     fun getConfiguration(serializationIdFunction: (KClass<Event<*>>) -> String): ValidatedAggregateConfiguration<STATE> =
@@ -49,7 +50,7 @@ class ValidatedAggregateConfiguration<STATE : Aggregate>(
             val initializer = initializers[wrapper.serializationId]
 
             if(initializer == null && applicators.containsKey(wrapper.serializationId))
-                error("Error reading ${aggregateType}(${wrapper.event.aggregateId}): event #${wrapper.eventNumber}(${wrapper.serializationId}) is configured as an applicator in the $aggregateType configuration, but the aggregate state has not yet been initialized. Please verify that an init event precedes this event in the event stream, or update your configuration")
+                error("Error reading ${aggregateType}(${wrapper.aggregateId}): event #${wrapper.eventNumber}(${wrapper.serializationId}) is configured as an applicator in the $aggregateType configuration, but the aggregate state has not yet been initialized. Please verify that an init event precedes this event in the event stream, or update your configuration")
 
             initializer?.invoke(wrapper)
         } else {

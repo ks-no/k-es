@@ -13,11 +13,11 @@ import kotlin.reflect.KClass
 internal class SyncCmdHandlerTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
+    data class SomeEvent(val aggregateId: UUID) : Event<SomeAggregate>
 
     val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
         init {
-            init<SomeEvent> {
+            init { someEvent: SomeEvent, aggregateId: UUID ->
                 SomeAggregate(stateInitialized = true)
             }
 
@@ -46,7 +46,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     init<HireCmd> {
-                        Result.Succeed(SomeEvent(it.aggregateId))
+                        Result.Succeed(WriteEventWrapper(it.aggregateId, SomeEvent(it.aggregateId), EventMetadata()))
                     }
                 }
             }.handle(hireCmd).apply { stateInitialized shouldBe true }
@@ -71,7 +71,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     init<HireCmd> {
-                        Result.Succeed(SomeEvent(it.aggregateId))
+                        Result.Succeed(WriteEventWrapper(it.aggregateId, SomeEvent(it.aggregateId), EventMetadata()))
                     }
                 }
             }.handle(hireCmd).apply { stateInitialized shouldBe true }
@@ -95,7 +95,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(SomeEvent(it.aggregateId))
+                        Result.Succeed(WriteEventWrapper(it.aggregateId, SomeEvent(it.aggregateId), EventMetadata()))
                     }
                 }
             }.handle(someCmd).apply {

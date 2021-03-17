@@ -10,8 +10,8 @@ internal class EventUpgraderTest : StringSpec() {
     init {
         "Test that the upgrade method of an event is executed, and that the upgraded event is returned" {
             data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
-            data class NewEvent(override val aggregateId: UUID) : Event<SomeAggregate>
-            data class OldEvent(override val aggregateId: UUID) : Event<SomeAggregate> {
+            data class NewEvent(val aggregateId: UUID) : Event<SomeAggregate>
+            data class OldEvent(val aggregateId: UUID) : Event<SomeAggregate> {
                 override fun upgrade(): Event<SomeAggregate>? = NewEvent(aggregateId)
             }
 

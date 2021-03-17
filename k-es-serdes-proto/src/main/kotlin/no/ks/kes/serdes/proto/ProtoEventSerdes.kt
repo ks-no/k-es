@@ -8,7 +8,7 @@ import com.google.protobuf.Any
 import no.ks.kes.lib.EventMetadata
 import no.ks.kes.lib.getSerializationIdAnnotationValue
 
-class ProtoEventSerdes<T:EventMetadata>(private val register: Map<KClass<out ProtoEvent<*>>, Message>, private val protoEventDeserializer: ProtoEventDeserializer<T> ) : EventSerdes<T> {
+class ProtoEventSerdes<T:EventMetadata>(private val register: Map<KClass<out ProtoEvent<*,*>>, Message>, private val protoEventDeserializer: ProtoEventDeserializer<T> ) : EventSerdes<T> {
 
     val events = register.keys
         .map { getSerializationId(it) to it }
@@ -30,8 +30,8 @@ class ProtoEventSerdes<T:EventMetadata>(private val register: Map<KClass<out Pro
 
     override fun serialize(event: Event<*>): ByteArray {
         try {
-            if( event is ProtoEvent ){
-                val msg = event.getMsg()
+            if( event is ProtoEvent<*,*> ){
+                val msg = event.msg
                 val any = Any.pack(msg)
 
                 return any.toByteArray()
