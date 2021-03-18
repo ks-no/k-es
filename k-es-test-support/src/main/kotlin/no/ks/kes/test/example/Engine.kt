@@ -61,7 +61,7 @@ class EngineCmdHandler(repository: AggregateRepository) : CmdHandler<EnginePrope
         init<Cmds.Create> {
             LOG.debug { "Create command: ${it.aggregateId}" }
             Result.Succeed(
-                WriteEventWrapper( event = Events.Created(it.aggregateId), aggregateId = it.aggregateId, metadata = EventMetadata()))
+                WriteEventWrapper( event = Events.Created(it.aggregateId), aggregateId = it.aggregateId))
         }
 
         apply<Cmds.Start> {
@@ -70,7 +70,7 @@ class EngineCmdHandler(repository: AggregateRepository) : CmdHandler<EnginePrope
                 Result.Succeed()
             } else {
                 Result.Succeed(
-                    WriteEventWrapper( event = Events.Started(it.aggregateId), aggregateId = it.aggregateId, metadata = EventMetadata())
+                    WriteEventWrapper( event = Events.Started(it.aggregateId), aggregateId = it.aggregateId)
                 )
             }
         }
@@ -78,7 +78,7 @@ class EngineCmdHandler(repository: AggregateRepository) : CmdHandler<EnginePrope
         apply<Cmds.Stop> {
             if (running) {
                 Result.Succeed(
-                    WriteEventWrapper( event = Events.Stopped(it.aggregateId), aggregateId = it.aggregateId, metadata = EventMetadata())
+                    WriteEventWrapper( event = Events.Stopped(it.aggregateId), aggregateId = it.aggregateId)
                 )
             } else {
                 Result.Fail(RuntimeException("Can not stop engine that has already been stopped"))

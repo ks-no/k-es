@@ -48,16 +48,14 @@ internal class CmdHandlerTest : StringSpec() {
                         init<HireCmd> {
                             Result.Succeed(WriteEventWrapper(
                                 aggregateId = it.aggregateId,
-                                event = SomeEvent(it.aggregateId),
-                                metadata = EventMetadata()
+                                event = SomeEvent(it.aggregateId)
                             ))
                         }
 
                         init<HireCmd> {
                             Result.Succeed(WriteEventWrapper(
                                 aggregateId = it.aggregateId,
-                                event = SomeEvent(it.aggregateId),
-                                metadata = EventMetadata()
+                                event = SomeEvent(it.aggregateId)
                             ))
                         }
                     }
@@ -81,16 +79,14 @@ internal class CmdHandlerTest : StringSpec() {
                         apply<HireCmd> {
                             Result.Succeed(WriteEventWrapper(
                                 aggregateId = it.aggregateId,
-                                event = SomeEvent(it.aggregateId),
-                                metadata = EventMetadata()
+                                event = SomeEvent(it.aggregateId)
                             ))
                         }
 
                         apply<HireCmd> {
                             Result.Succeed(WriteEventWrapper(
                                 aggregateId = it.aggregateId,
-                                event = SomeEvent(it.aggregateId),
-                                metadata = EventMetadata()
+                                event = SomeEvent(it.aggregateId)
                             ))
                         }
                     }
@@ -120,8 +116,7 @@ internal class CmdHandlerTest : StringSpec() {
                     apply<SomeCmd> {
                         Result.Succeed(WriteEventWrapper(
                             aggregateId = it.aggregateId,
-                            event = SomeEvent(it.aggregateId),
-                            metadata = EventMetadata()
+                            event = SomeEvent(it.aggregateId)
                         ))
                     }
                 }
@@ -151,8 +146,7 @@ internal class CmdHandlerTest : StringSpec() {
                     apply<SomeCmd> {
                         Result.Succeed(WriteEventWrapper(
                             aggregateId = it.aggregateId,
-                            event = SomeEvent(it.aggregateId),
-                            metadata = EventMetadata()
+                            event = SomeEvent(it.aggregateId)
                         ))
                     }
 

@@ -27,7 +27,7 @@ internal class EsjcEventWriterTest : StringSpec() {
             val eventAggregateType = UUID.randomUUID().toString()
 
             val aggregateId = UUID.randomUUID()
-            val eventWrapper: WriteEventWrapper<Event<*>> = WriteEventWrapper(aggregateId = aggregateId, event = SomeEvent(aggregateId), metadata = EventMetadata())
+            val eventWrapper: WriteEventWrapper = WriteEventWrapper(aggregateId = aggregateId, event = SomeEvent(aggregateId))
 
             val capturedEventData = slot<List<EventData>>()
             val eventStoreMock = mockk<EventStore>().apply {

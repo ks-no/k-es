@@ -37,7 +37,7 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
         }
     }
 
-    data class DemoEventMetadata(override val aggregateId: UUID, val occurredOn: Long): EventMetadata(aggregateId)
+    data class DemoEventMetadata(val aggregateId: UUID, val occurredOn: Long): EventMetadata
 
     @SerializationId("Avsender.AvsenderOpprettet")
     data class AvsenderOpprettet(override val msg: Avsender.AvsenderOpprettet) :

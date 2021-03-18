@@ -2,8 +2,8 @@ package no.ks.kes.lib
 
 import java.util.*
 
-data class WriteEventWrapper<T : Event<*>>(
+data class WriteEventWrapper (
         val aggregateId : UUID,
-        val event: T,
-        val metadata: EventMetadata,
+        val event: Event<*>,
+        val metadata: EventMetadata? = null,
 )

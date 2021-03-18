@@ -22,7 +22,7 @@ class EsjcAggregateRepository(
         private val eventMetadataSerdes: EventMetadataSerdes<out EventMetadata>? = null
 ) : AggregateRepository() {
 
-    override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<WriteEventWrapper<Event<*>>>) {
+    override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<WriteEventWrapper>) {
         val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
         try {
             eventStore.appendToStream(
@@ -35,8 +35,8 @@ class EsjcAggregateRepository(
                         } else {
                             newBuilder.data(serdes.serialize(it.event))
                         }
-                        eventMetadataSerdes?.let { metadataSerdes ->
-                            newBuilder.jsonMetadata(metadataSerdes.serialize(it.metadata))
+                        if(eventMetadataSerdes != null && it.metadata != null){
+                            newBuilder.jsonMetadata(eventMetadataSerdes.serialize(it.metadata!!))
                         }
                         newBuilder.type(serdes.getSerializationId(it.event::class))
                                 .build()

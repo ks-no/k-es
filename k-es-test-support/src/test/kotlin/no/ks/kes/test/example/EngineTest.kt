@@ -19,6 +19,7 @@ import io.kotest.property.checkAll
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import no.ks.kes.lib.Event
 import no.ks.kes.lib.Projections
 import no.ks.kes.lib.Sagas
 import no.ks.kes.lib.WriteEventWrapper
@@ -44,7 +45,7 @@ class EngineTest : StringSpec({
             eventually(3.seconds) {
                 kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
                     events shouldHaveSize 1
-                    events.filterIsInstance<WriteEventWrapper<Events.Created>>() shouldHaveSize 1
+                    events[0].event::class.java shouldBe Events.Created::class.java
                 } ?: fail("No events was found for aggregate")
             }
         }
@@ -62,7 +63,7 @@ class EngineTest : StringSpec({
             eventually(3.seconds) {
                 kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
                     events shouldHaveSize 1
-                    events.filterIsInstance<WriteEventWrapper<Events.Created>>() shouldHaveSize 1
+                    events[0].event::class.java shouldBe Events.Created::class.java
                 } ?: fail("No events was found for aggregate")
             }
 
@@ -106,7 +107,7 @@ class EngineTest : StringSpec({
             eventually(3.seconds) {
                 kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
                     events shouldHaveSize 1
-                    events.filterIsInstance<WriteEventWrapper<Events.Created>>() shouldHaveSize 1
+                    events[0].event::class.java shouldBe Events.Created::class.java
                 } ?: fail("No events was found for aggregate")
             }
         }
