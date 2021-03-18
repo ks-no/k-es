@@ -41,15 +41,15 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
 
     @SerializationId("Avsender.AvsenderOpprettet")
     data class AvsenderOpprettet(override val msg: Avsender.AvsenderOpprettet) :
-        ProtoEvent<KontoAggregate, Avsender.AvsenderOpprettet>
+        ProtoEvent<KontoAggregate>
 
     @SerializationId("Avsender.AvsenderAktivert")
     data class AvsenderAktivert(override val msg: Avsender.AvsenderAktivert) :
-        ProtoEvent<KontoAggregate, Avsender.AvsenderAktivert>
+        ProtoEvent<KontoAggregate>
 
     @SerializationId("Avsender.AvsenderDeaktivert")
     data class AvsenderDeaktivert(override val msg: Avsender.AvsenderDeaktivert) :
-        ProtoEvent<KontoAggregate,Avsender.AvsenderDeaktivert>
+        ProtoEvent<KontoAggregate>
 }
 
 

@@ -56,9 +56,9 @@ class Test {
                 object: ProtoEventDeserializer<Konto.DemoEventMetadata> {
                     override fun deserialize(metadata: Konto.DemoEventMetadata, msg: Message): ProtoEvent<*> {
                         return when (msg) {
-                            is Avsender.AvsenderOpprettet -> Konto.AvsenderOpprettet(metadata = metadata, orgId = msg.orgId )
-                            is Avsender.AvsenderAktivert -> Konto.AvsenderAktivert(metadata = metadata)
-                            is Avsender.AvsenderDeaktivert -> Konto.AvsenderDeaktivert(metadata = metadata)
+                            is Avsender.AvsenderOpprettet -> Konto.AvsenderOpprettet(msg = msg)
+                            is Avsender.AvsenderAktivert -> Konto.AvsenderAktivert(msg = msg)
+                            is Avsender.AvsenderDeaktivert -> Konto.AvsenderDeaktivert(msg = msg)
                             else -> throw RuntimeException("Event ${msg::class.java} mangler konvertering")
                         }
                     }

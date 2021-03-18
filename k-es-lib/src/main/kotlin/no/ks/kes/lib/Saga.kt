@@ -1,9 +1,11 @@
 package no.ks.kes.lib
 
+import mu.KotlinLogging
 import java.time.Instant
 import java.util.*
 import kotlin.reflect.KClass
 
+private val log = KotlinLogging.logger {}
 
 abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val serializationId: String) {
 
@@ -21,11 +23,11 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val seri
                     serializationIdFunction = serializationIdFunction
             )
 
-    protected inline fun <reified E : Event<*>> init(crossinline correlationId: (E, UUID) -> UUID = { event: Event<*>, aggregateId: UUID -> aggregateId }, crossinline initializer: InitContext<STATE>.(E) -> Unit) =
-            initWrapped({ correlationId.invoke(it.event, it.aggregateId) }, { w: EventWrapper<E> -> initializer.invoke(this, w.event) })
+    protected inline fun <reified E : Event<*>> init(crossinline correlationId: (E, UUID) -> UUID = { event: Event<*>, aggregateId: UUID -> aggregateId }, crossinline initializer: InitContext<STATE>.(E,UUID) -> Unit) =
+            initWrapped({ correlationId.invoke(it.event, it.aggregateId) }, { w: EventWrapper<E> -> initializer.invoke(this, w.event, w.aggregateId) })
 
-    protected inline fun <reified E : Event<*>> apply(crossinline correlationId: (E, UUID) -> UUID = { event: Event<*>, aggregateId: UUID -> aggregateId }, crossinline handler: ApplyContext<STATE>.(E) -> Unit) =
-            applyWrapped({ correlationId.invoke(it.event, it.aggregateId) }, { w: EventWrapper<E> -> handler.invoke(this, w.event) })
+    protected inline fun <reified E : Event<*>> apply(crossinline correlationId: (E, UUID) -> UUID = { event: Event<*>, aggregateId: UUID -> aggregateId }, crossinline handler: ApplyContext<STATE>.(E,UUID) -> Unit) =
+            applyWrapped({ correlationId.invoke(it.event, it.aggregateId) }, { w: EventWrapper<E> -> handler.invoke(this, w.event, w.aggregateId) })
 
     protected inline fun <reified E : Event<*>> timeout(crossinline correlationId: (E, UUID) -> UUID = { event: Event<*>, aggregateId: UUID -> aggregateId }, crossinline timeoutAt: (E) -> Instant, crossinline handler: ApplyContext<STATE>.() -> Unit) {
         timeoutWrapped<E>({ correlationId.invoke(it.event, it.aggregateId) }, { timeoutAt.invoke(it.event) }, handler)
@@ -110,6 +112,7 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val seri
             } as STATE?
 
             return if (sagaState == null) {
+                log.info { "handleEvent eventInitializers.keys ${eventInitializers.keys}, serializationId ${wrapper.serializationId}" }
                 //non existing saga state, attempting initialization
                 eventInitializers[wrapper.serializationId]
                         ?.let {

@@ -95,7 +95,7 @@ class TestEventSubscription(private val factory: TestEventSubscriberFactory,
     override fun eventAdded(event: WriteEventWrapper<Event<*>>) {
         EventUpgrader.upgrade(event.event).run {
             onEvent.invoke(EventWrapper(
-                    aggregateId = UUID.randomUUID(),
+                    aggregateId = event.aggregateId,
                     event = this,
                     eventNumber = lastProcessedEvent.getAndIncrement(),
                     serializationId = factory.getSerializationId(this::class as KClass<Event<*>>)

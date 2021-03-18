@@ -21,6 +21,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import no.ks.kes.lib.Projections
 import no.ks.kes.lib.Sagas
+import no.ks.kes.lib.WriteEventWrapper
 import no.ks.kes.test.AggregateKey
 import no.ks.kes.test.withKes
 import java.util.*
@@ -43,7 +44,7 @@ class EngineTest : StringSpec({
             eventually(3.seconds) {
                 kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
                     events shouldHaveSize 1
-                    events.filterIsInstance<Events.Created>() shouldHaveSize 1
+                    events.filterIsInstance<WriteEventWrapper<Events.Created>>() shouldHaveSize 1
                 } ?: fail("No events was found for aggregate")
             }
         }
@@ -61,7 +62,7 @@ class EngineTest : StringSpec({
             eventually(3.seconds) {
                 kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
                     events shouldHaveSize 1
-                    events.filterIsInstance<Events.Created>() shouldHaveSize 1
+                    events.filterIsInstance<WriteEventWrapper<Events.Created>>() shouldHaveSize 1
                 } ?: fail("No events was found for aggregate")
             }
 
@@ -81,8 +82,9 @@ class EngineTest : StringSpec({
 
             }
             eventually(3.seconds) {
-                kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
-                    events shouldHaveAtLeastSize 2
+                kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { writeEventWrappers ->
+                    writeEventWrappers shouldHaveAtLeastSize 2
+                    val events = writeEventWrappers.map { it.event }.toList()
                     events.filterIsInstance<Events.Created>() shouldHaveSize 1
                     // At this point we really don't know how many of these events was applied as EngineCmdHandler checks aggregate state before generating Started events
                     // As we are using the handleUnsynchronized function we can therefore not guarantee how many started events are generated
@@ -104,7 +106,7 @@ class EngineTest : StringSpec({
             eventually(3.seconds) {
                 kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
                     events shouldHaveSize 1
-                    events.filterIsInstance<Events.Created>() shouldHaveSize 1
+                    events.filterIsInstance<WriteEventWrapper<Events.Created>>() shouldHaveSize 1
                 } ?: fail("No events was found for aggregate")
             }
         }
@@ -130,7 +132,8 @@ class EngineTest : StringSpec({
                 it.startCount shouldBe 0
             }
             eventually(10.seconds) {
-                kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
+                kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { wrappers ->
+                    val events = wrappers.map { it.event }.toList()
                     events.filterIsInstance<Events.Created>() shouldHaveSize 1
                     events.filterIsInstance<Events.Started>() shouldHaveSize 1
                     events.filterIsInstance<Events.Stopped>() shouldHaveSize 1

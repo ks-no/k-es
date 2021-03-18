@@ -24,7 +24,7 @@ class SagaEventHandlingTest : StringSpec() {
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {
-                    init({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { setState(SomeState(it.aggregateId)) }
+                    init({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { someEvent: SomeEvent, aggregateId: UUID -> setState(SomeState(aggregateId)) }
                 }
             }.getConfiguration { it.simpleName!! }
                     .handleEvent(EventWrapper(aggregateId, event,null, -1, event::class.simpleName!!)) { _, _ -> null }
@@ -44,7 +44,7 @@ class SagaEventHandlingTest : StringSpec() {
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {
-                    init({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { setState(SomeState(it.aggregateId)) }
+                    init({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { someEvent: SomeEvent, aggregateId: UUID -> setState(SomeState(aggregateId)) }
                 }
             }.getConfiguration { it.simpleName!! }
                     .handleEvent(EventWrapper(aggregateId,event,null, -1, event::class.simpleName!!)) { id, _ -> SomeState(id) }.apply {
@@ -58,9 +58,9 @@ class SagaEventHandlingTest : StringSpec() {
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {
-                    init({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) {
-                        setState(SomeState(it.aggregateId))
-                        dispatch(SomeCmd(it.aggregateId))
+                    init({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { someEvent: SomeEvent, aggregateId: UUID ->
+                        setState(SomeState(aggregateId))
+                        dispatch(SomeCmd(aggregateId))
                     }
                 }
             }.getConfiguration { it.simpleName!! }
@@ -80,7 +80,7 @@ class SagaEventHandlingTest : StringSpec() {
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {
-                    apply({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { setState(state.copy(updated = true)) }
+                    apply({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { someEvent: SomeEvent, aggregateId: UUID -> setState(state.copy(updated = true)) }
                 }
             }.getConfiguration { it.simpleName!! }
                     .handleEvent(EventWrapper(aggregateId,event,null, 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }.apply {
@@ -99,7 +99,7 @@ class SagaEventHandlingTest : StringSpec() {
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {
-                    apply({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { dispatch(SomeCmd(it.aggregateId)) }
+                    apply({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { someEvent: SomeEvent, aggregateId: UUID -> dispatch(SomeCmd(aggregateId)) }
                 }
             }.getConfiguration { it.simpleName!! }
                     .handleEvent(EventWrapper(aggregateId,event,null, 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }.apply {
@@ -170,8 +170,8 @@ class SagaEventHandlingTest : StringSpec() {
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {
-                    init({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { setState(SomeState(it.aggregateId)) }
-                    apply({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { setState(state.copy(updated = true)) }
+                    init({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { someEvent: SomeEvent, aggregateId: UUID -> setState(SomeState(aggregateId)) }
+                    apply({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { someEvent: SomeEvent, aggregateId: UUID -> setState(state.copy(updated = true)) }
                 }
             }.getConfiguration { it.simpleName!! }
                     .handleEvent(EventWrapper(aggregateId,event,null, 0, event::class.simpleName!!)) { _, _ -> null }
@@ -191,8 +191,8 @@ class SagaEventHandlingTest : StringSpec() {
             val sagaSerializationId = "SomeSaga"
             object : Saga<SomeState>(SomeState::class, sagaSerializationId) {
                 init {
-                    init({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { setState(SomeState(it.aggregateId)) }
-                    apply({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { setState(state.copy(updated = true)) }
+                    init({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { someEvent: SomeEvent, aggregateId: UUID -> setState(SomeState(aggregateId)) }
+                    apply({ someEvent: SomeEvent, aggregateId: UUID -> aggregateId }) { someEvent: SomeEvent, aggregateId: UUID -> setState(state.copy(updated = true)) }
                 }
             }.getConfiguration { it.simpleName!! }
                     .handleEvent(EventWrapper(aggregateId,event,null, 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }

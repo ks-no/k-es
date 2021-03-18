@@ -21,14 +21,14 @@ data class EngineSagaState(val aggregateId: UUID, val startInitiated: Boolean, v
 
 object EngineSaga : Saga<EngineSagaState>(EngineSagaState::class, SAGA_SERILIZATION_ID) {
     init {
-        init<Events.Created> {
-            LOG.debug { "Saga created: ${it.aggregateId}" }
-            dispatch(Cmds.Start(aggregateId = it.aggregateId))
-            setState(EngineSagaState(aggregateId = it.aggregateId, startInitiated = true))
+        init { e: Events.Created, aggregateId: UUID ->
+            LOG.debug { "Saga created: $aggregateId" }
+            dispatch(Cmds.Start(aggregateId = aggregateId))
+            setState(EngineSagaState(aggregateId = aggregateId, startInitiated = true))
         }
 
-        apply<Events.Stopped> {
-            LOG.debug { "Saga handles Stopped: ${it.aggregateId}" }
+        apply { e: Events.Stopped, aggregateId: UUID ->
+            LOG.debug { "Saga handles Stopped: $aggregateId" }
             setState(state.copy(startInitiated = false))
         }
 
