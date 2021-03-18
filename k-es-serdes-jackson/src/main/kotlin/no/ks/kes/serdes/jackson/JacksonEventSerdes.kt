@@ -12,12 +12,12 @@ class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
                                  .registerModule(Jdk8Module())
                                  .registerModule(JavaTimeModule())
                                  .registerModule(KotlinModule())
-) : EventSerdes<EventMetadata> {
+) : EventSerdes {
     private val events = events
             .map { getSerializationId(it) to it }
             .toMap()
 
-    override fun deserialize(eventMetadata: EventMetadata?, eventData: ByteArray, eventType: String): Event<*> {
+    override fun deserialize(eventData: ByteArray, eventType: String): Event<*> {
         return try {
             objectMapper.readValue(
                 eventData,

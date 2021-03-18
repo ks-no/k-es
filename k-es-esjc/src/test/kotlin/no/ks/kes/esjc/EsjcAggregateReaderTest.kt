@@ -70,10 +70,10 @@ class EsjcAggregateReaderTest : StringSpec() {
                                 )
                     }
 
-            val deserializer = mockk<EventSerdes<EventMetadata>>().apply {
-                every { deserialize(any(), "some-id".toByteArray(), any()) } returns someEvent
+            val deserializer = mockk<EventSerdes>().apply {
+                every { deserialize("some-id".toByteArray(), any()) } returns someEvent
                 every { getSerializationId(any<KClass<Event<*>>>()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
-                every { deserialize(any(), "some-other-id".toByteArray(), any()) } returns someOtherEvent
+                every { deserialize("some-other-id".toByteArray(), any()) } returns someOtherEvent
             }
 
             EsjcAggregateRepository(
@@ -121,7 +121,7 @@ class EsjcAggregateReaderTest : StringSpec() {
                                 )
                     }
 
-            EsjcAggregateRepository<EventMetadata>(
+            EsjcAggregateRepository(
                     eventStore = eventStoreMock,
                     serdes = mockk(),
                     streamIdGenerator = { t, id -> "$t.$id" }
@@ -141,7 +141,7 @@ class EsjcAggregateReaderTest : StringSpec() {
                     }
 
             shouldThrow<IllegalStateException> {
-                EsjcAggregateRepository<EventMetadata>(
+                EsjcAggregateRepository(
                         eventStore = eventStoreMock,
                         serdes = mockk(),
                         streamIdGenerator = { t, id -> "$t.$id" }
@@ -151,7 +151,7 @@ class EsjcAggregateReaderTest : StringSpec() {
         }
 
         "Test that the reader returns a NonExistingAggregate if no stream is found" {
-            EsjcAggregateRepository<EventMetadata>(
+            EsjcAggregateRepository(
                     eventStore = mockk<EventStore>()
                             .apply {
                                 every<Stream<ResolvedEvent>?> { streamEventsForward(any(), any(), any(), any()) } throws

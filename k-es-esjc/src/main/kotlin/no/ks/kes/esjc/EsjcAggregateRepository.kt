@@ -15,11 +15,11 @@ private const val BATCH_SIZE = 100
 
 private val log = KotlinLogging.logger {}
 
-class EsjcAggregateRepository<T:EventMetadata>(
+class EsjcAggregateRepository(
         private val eventStore: EventStore,
-        private val serdes: EventSerdes<T>,
+        private val serdes: EventSerdes,
         private val streamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String,
-        private val eventMetadataSerdes: EventMetadataSerdes<T>? = null
+        private val eventMetadataSerdes: EventMetadataSerdes<out EventMetadata>? = null
 ) : AggregateRepository() {
 
     override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<WriteEventWrapper<Event<*>>>) {
@@ -66,7 +66,7 @@ class EsjcAggregateRepository<T:EventMetadata>(
                                 a.first to e.event.eventNumber
                             } else {
                                 val eventMeta = if(e.event.metadata.isNotEmpty() && eventMetadataSerdes != null) eventMetadataSerdes.deserialize(e.event.metadata) else null
-                                val event = serdes.deserialize(eventMeta, e.event.data, e.event.eventType)
+                                val event = serdes.deserialize(e.event.data, e.event.eventType)
                                 val deserialized = EventUpgrader.upgrade(event)
                                 applicator.invoke(
                                         a.first,

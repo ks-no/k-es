@@ -35,7 +35,7 @@ internal class EsjcEventWriterTest : StringSpec() {
                         CompletableFuture.completedFuture(WriteResult(0, Position(0L, 0L)))
             }
 
-            val deserializer = mockk<EventSerdes<EventMetadata>>()
+            val deserializer = mockk<EventSerdes>()
                     .apply {
                         every { isJson() } returns true
                         every { serialize(eventWrapper.event) } returns "foo".toByteArray()

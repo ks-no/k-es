@@ -8,11 +8,11 @@ import java.lang.Exception as JavaException
 
 private val log = KotlinLogging.logger {}
 
-class EsjcEventSubscriberFactory<T:EventMetadata>(
+class EsjcEventSubscriberFactory(
         private val eventStore: EventStore,
-        private val serdes: EventSerdes<T>,
+        private val serdes: EventSerdes,
         private val category: String,
-        private val eventMetadataSerdes: EventMetadataSerdes<T>? = null
+        private val eventMetadataSerdes: EventMetadataSerdes<out EventMetadata>? = null
 ) : EventSubscriberFactory<CatchUpSubscriptionWrapper> {
     override fun getSerializationId(eventClass: KClass<Event<*>>): String =
             serdes.getSerializationId(eventClass)
@@ -46,7 +46,7 @@ class EsjcEventSubscriberFactory<T:EventMetadata>(
                                     log.info { "$subscriber: event ignored: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}" }
                                 else -> try {
                                     val eventMeta = if(resolvedEvent.event.metadata.isNotEmpty() && eventMetadataSerdes != null) eventMetadataSerdes.deserialize(resolvedEvent.event.metadata) else null
-                                    val event = EventUpgrader.upgrade(serdes.deserialize(eventMeta, resolvedEvent.event.data, resolvedEvent.event.eventType))
+                                    val event = EventUpgrader.upgrade(serdes.deserialize(resolvedEvent.event.data, resolvedEvent.event.eventType))
                                     onEvent.invoke(EventWrapper(
                                             aggregateId = resolvedEvent.event.eventId,
                                             metadata = eventMeta,

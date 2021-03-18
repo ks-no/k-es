@@ -38,8 +38,8 @@ class SerdesTest : StringSpec() {
             val someEvent = SomeEvent(UUID.randomUUID())
             val someOtherEvent = SomeOtherEvent(UUID.randomUUID())
 
-            serdes.serialize(someEvent).run { serdes.deserialize( EventMetadata(),this, "foo") } shouldBe someEvent
-            serdes.serialize(someOtherEvent).run { serdes.deserialize( EventMetadata(),this, "bar") } shouldBe someOtherEvent
+            serdes.serialize(someEvent).run { serdes.deserialize( this, "foo") } shouldBe someEvent
+            serdes.serialize(someOtherEvent).run { serdes.deserialize( this, "bar") } shouldBe someOtherEvent
         }
 
         data class SomeState(val aggregateId: UUID, val timestamp: Instant)

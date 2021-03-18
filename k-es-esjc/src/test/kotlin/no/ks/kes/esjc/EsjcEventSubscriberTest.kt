@@ -20,7 +20,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
 
                 val eventStoreMock = mockk<EventStore>(relaxed = true)
 
-                EsjcEventSubscriberFactory<EventMetadata>(
+                EsjcEventSubscriberFactory(
                         eventStore = eventStoreMock,
                         category = category,
                         serdes = mockk()
@@ -39,7 +39,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
                 every { subscribeToStreamFrom("\$ce-$category", eventnumber, any(), capture(catchUpSubscriptionListener)) } returns subscription
             }
             var catchedException: Exception? = null
-            EsjcEventSubscriberFactory<EventMetadata>(
+            EsjcEventSubscriberFactory(
                     eventStore = eventStoreMock,
                     category = category,
                     serdes = mockk()
@@ -64,7 +64,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
             val eventStoreMock = mockk<EventStore>(relaxed = true)
 
             shouldThrowExactly<IllegalStateException> {
-                EsjcEventSubscriberFactory<EventMetadata>(
+                EsjcEventSubscriberFactory(
                         eventStore = eventStoreMock,
                         category = category,
                         serdes = mockk()
@@ -81,7 +81,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
                     every { subscribeToStreamFrom(streamName, eventnumber, any(), ofType<CatchUpSubscriptionListener>()) } returns mockk()
                 }
 
-                EsjcEventSubscriberFactory<EventMetadata>(
+                EsjcEventSubscriberFactory(
                         eventStore = eventStoreMock,
                         category = category,
                         serdes = mockk()

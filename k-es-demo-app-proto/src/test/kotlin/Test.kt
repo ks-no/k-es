@@ -53,8 +53,8 @@ class Test {
                     Konto.AvsenderAktivert::class to Avsender.AvsenderAktivert.getDefaultInstance(),
                     Konto.AvsenderDeaktivert::class to Avsender.AvsenderDeaktivert.getDefaultInstance(),
                 ),
-                object: ProtoEventDeserializer<Konto.DemoEventMetadata> {
-                    override fun deserialize(metadata: Konto.DemoEventMetadata, msg: Message): ProtoEvent<*> {
+                object: ProtoEventDeserializer {
+                    override fun deserialize(msg: Message): ProtoEvent<*> {
                         return when (msg) {
                             is Avsender.AvsenderOpprettet -> Konto.AvsenderOpprettet(msg = msg)
                             is Avsender.AvsenderAktivert -> Konto.AvsenderAktivert(msg = msg)
