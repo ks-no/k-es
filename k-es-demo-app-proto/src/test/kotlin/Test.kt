@@ -76,7 +76,6 @@ class Test {
         @AfterAll
         @JvmStatic
         fun afterClass() {
-            log.info ("END *******************")
             eventStoreContainer.stop()
         }
     }

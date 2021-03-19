@@ -14,21 +14,21 @@ data class ShipmentSagaState(
 object ShipmentSaga : Saga<ShipmentSagaState>(ShipmentSagaState::class, "CreateShipmentSaga") {
 
     init {
-        init<Basket.CheckedOut> {
+        init { e: Basket.CheckedOut, aggregateId: UUID ->
             val shipmentId = UUID.randomUUID()
-            dispatch(ShipmentCmds.Request(shipmentId, it.items, it.aggregateId))
-            setState(ShipmentSagaState(shipmentId, it.aggregateId))
+            dispatch(ShipmentCmds.Request(shipmentId, e.items, aggregateId))
+            setState(ShipmentSagaState(shipmentId, aggregateId ))
         }
 
-        apply<Shipment.Delivered>({ it.basketId }) {
+        apply({  e: Shipment.Delivered, aggregateId: UUID -> e.basketId }) { e: Shipment.Delivered, aggregateId: UUID ->
             setState(state.copy(delivered = true))
         }
 
-        apply<Shipment.Failed>({ it.basketId }) {
+        apply({ e: Shipment.Failed, aggregateId: UUID -> e.basketId }) { e: Shipment.Failed, aggregateId: UUID ->
             setState(state.copy(failed = true))
         }
 
-        timeout<Shipment.Prepared>({ it.basketId }, { Instant.now().plusSeconds(5) }) {
+        timeout({ e: Shipment.Prepared, aggregateId: UUID -> e.basketId }, { Instant.now().plusSeconds(5) }) {
             if (!state.delivered && !state.failed)
                 dispatch(ShipmentCmds.SendMissingShipmentAlert(state.orderId, state.basketId))
         }

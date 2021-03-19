@@ -17,7 +17,6 @@
         <mssql-jdbc.version>7.4.1.jre11</mssql-jdbc.version>
         <awaitility.version>4.0.2</awaitility.version>
         <svarut-events.version>1.2.2</svarut-events.version>
-        <testcontainers.version>1.15.2</testcontainers.version>
     </properties>
 
     <dependencies>
@@ -111,7 +110,6 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
             <scope>test</scope>
-            <version>${testcontainers.version}</version>
         </dependency>
     </dependencies>
 
