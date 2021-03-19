@@ -18,7 +18,7 @@
         <module>k-es-serdes-proto</module>
         <module>k-es-test-support</module>
         <module>k-es-demo-app-proto</module>
-        <module>k-es-demo-app-jackson</module>
+        <!-- <module>k-es-demo-app-jackson</module> -->
     </modules>
 
     <distributionManagement>
