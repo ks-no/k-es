@@ -116,7 +116,6 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
     private fun invokeHandler(cmd: Cmd<A>, readResult: AggregateReadResult): Result<A> =
             when (readResult) {
                 is AggregateReadResult.NonExistingAggregate, is AggregateReadResult.UninitializedAggregate -> {
-                    log.info { "Initializers $initializers, class ${cmd::class}" }
                     initializers[cmd::class]
                             ?.run {
                                 try {

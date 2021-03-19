@@ -112,7 +112,6 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val seri
             } as STATE?
 
             return if (sagaState == null) {
-                log.info { "handleEvent eventInitializers.keys ${eventInitializers.keys}, serializationId ${wrapper.serializationId}" }
                 //non existing saga state, attempting initialization
                 eventInitializers[wrapper.serializationId]
                         ?.let {
