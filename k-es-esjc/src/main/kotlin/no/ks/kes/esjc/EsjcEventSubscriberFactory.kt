@@ -3,6 +3,7 @@ package no.ks.kes.esjc
 import com.github.msemys.esjc.*
 import mu.KotlinLogging
 import no.ks.kes.lib.*
+import java.util.*
 import kotlin.reflect.KClass
 import java.lang.Exception as JavaException
 
@@ -47,8 +48,9 @@ class EsjcEventSubscriberFactory(
                                 else -> try {
                                     val eventMeta = if(resolvedEvent.event.metadata.isNotEmpty() && eventMetadataSerdes != null) eventMetadataSerdes.deserialize(resolvedEvent.event.metadata) else null
                                     val event = EventUpgrader.upgrade(serdes.deserialize(resolvedEvent.event.data, resolvedEvent.event.eventType))
+                                    val aggregateId = UUID.fromString(resolvedEvent.event.eventStreamId.takeLast(36))
                                     onEvent.invoke(EventWrapper(
-                                            aggregateId = resolvedEvent.event.eventId,
+                                            aggregateId = aggregateId,
                                             metadata = eventMeta,
                                             event = event,
                                             eventNumber = resolvedEvent.originalEventNumber(),
