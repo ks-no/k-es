@@ -6,7 +6,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import kotlin.reflect.KClass
 
-class JacksonEventMetadataSerdes<T : EventMetadata>(val clazz: KClass<T>): EventMetadataSerdes<T> {
+class JacksonEventMetadataSerdes<T : Metadata>(val clazz: KClass<T>): EventMetadataSerdes<T> {
 
     private val objectMapper: ObjectMapper = ObjectMapper()
         .registerModule(Jdk8Module())
@@ -17,7 +17,7 @@ class JacksonEventMetadataSerdes<T : EventMetadata>(val clazz: KClass<T>): Event
         return objectMapper.readValue(metadata, clazz.javaObjectType)
     }
 
-    override fun serialize(metadata: EventMetadata): ByteArray {
+    override fun serialize(metadata: Metadata): ByteArray {
         return objectMapper.writeValueAsBytes(metadata)
     }
 }

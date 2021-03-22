@@ -12,20 +12,20 @@ class ShipmentCmds(repo: AggregateRepository, warehouseManager: WarehouseManager
             try {
                 warehouseManager.shipOrder(it.aggregateId)
                 Succeed(
-                    WriteEventWrapper( event = Shipment.Prepared(it.aggregateId, it.basketId, it.items), aggregateId = it.aggregateId))
+                    EventData( event = Shipment.Prepared(it.aggregateId, it.basketId, it.items), aggregateId = it.aggregateId))
             } catch (e: ItemNoLongerCarried) {
                 Fail(
-                    WriteEventWrapper( event = Shipment.Failed(it.aggregateId, "Item no longer carried!", it.basketId), aggregateId = it.aggregateId), e)
+                    EventData( event = Shipment.Failed(it.aggregateId, "Item no longer carried!", it.basketId), aggregateId = it.aggregateId), e)
             } catch (e: WarehouseSystemFailure) {
                 RetryOrFail(
-                    WriteEventWrapper(  event = Shipment.Failed(it.aggregateId,  "System problem!", it.basketId), aggregateId = it.aggregateId), e) { Instant.now() }
+                    EventData(  event = Shipment.Failed(it.aggregateId,  "System problem!", it.basketId), aggregateId = it.aggregateId), e) { Instant.now() }
             }
         }
 
         apply<SendMissingShipmentAlert> {
             warehouseManager.investigateMissingShipment(it.aggregateId)
             Succeed(
-                WriteEventWrapper( event = Shipment.WarehouseNotifiedOfMissingShipment(it.aggregateId, it.basketId), aggregateId = it.aggregateId))
+                EventData( event = Shipment.WarehouseNotifiedOfMissingShipment(it.aggregateId, it.basketId), aggregateId = it.aggregateId))
         }
     }
 

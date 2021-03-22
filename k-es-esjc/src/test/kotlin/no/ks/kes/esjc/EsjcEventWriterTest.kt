@@ -27,18 +27,19 @@ internal class EsjcEventWriterTest : StringSpec() {
             val eventAggregateType = UUID.randomUUID().toString()
 
             val aggregateId = UUID.randomUUID()
-            val eventWrapper: WriteEventWrapper = WriteEventWrapper(aggregateId = aggregateId, event = SomeEvent(aggregateId))
+            val eventData: no.ks.kes.lib.EventData =
+                EventData(aggregateId = aggregateId, event = SomeEvent(aggregateId))
 
             val capturedEventData = slot<List<EventData>>()
             val eventStoreMock = mockk<EventStore>().apply {
-                every { appendToStream("ks.fiks.$eventAggregateType.${eventWrapper.aggregateId}", 0L, capture(capturedEventData)) } returns
+                every { appendToStream("ks.fiks.$eventAggregateType.${eventData.aggregateId}", 0L, capture(capturedEventData)) } returns
                         CompletableFuture.completedFuture(WriteResult(0, Position(0L, 0L)))
             }
 
             val deserializer = mockk<EventSerdes>()
                     .apply {
                         every { isJson() } returns true
-                        every { serialize(eventWrapper.event) } returns "foo".toByteArray()
+                        every { serialize(eventData.event) } returns "foo".toByteArray()
                         every { getSerializationId(any<KClass<Event<*>>>()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
                     }
             val esjcEventWriter = EsjcAggregateRepository(
@@ -46,7 +47,7 @@ internal class EsjcEventWriterTest : StringSpec() {
                     streamIdGenerator = { t: String, id: UUID -> "ks.fiks.$t.$id" },
                     serdes = deserializer)
 
-            esjcEventWriter.append(eventAggregateType, eventWrapper.aggregateId, ExpectedEventNumber.Exact(0L), listOf(eventWrapper))
+            esjcEventWriter.append(eventAggregateType, eventData.aggregateId, ExpectedEventNumber.Exact(0L), listOf(eventData))
 
             with(capturedEventData.captured.single()) {
                 Assertions.assertArrayEquals( "foo".toByteArray(), this.data!!)

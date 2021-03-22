@@ -1,6 +1,5 @@
 import com.github.msemys.esjc.EventStoreBuilder
 import com.google.protobuf.Message
-import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import mu.KotlinLogging
 import no.ks.kes.demoapp.*
@@ -66,7 +65,7 @@ class Test {
                 }
             )
 
-            val jacksonEventMetadataSerdes = JacksonEventMetadataSerdes(Konto.DemoEventMetadata::class)
+            val jacksonEventMetadataSerdes = JacksonEventMetadataSerdes(Konto.DemoMetadata::class)
 
             repo = EsjcAggregateRepository(eventStore, eventSerdes, EsjcEventUtil.defaultStreamName("no.ks.kes.proto.demo"),jacksonEventMetadataSerdes)
 

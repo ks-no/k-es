@@ -46,7 +46,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     init<HireCmd> {
-                        Result.Succeed(WriteEventWrapper(it.aggregateId, SomeEvent(it.aggregateId)))
+                        Result.Succeed(EventData(it.aggregateId, SomeEvent(it.aggregateId)))
                     }
                 }
             }.handle(hireCmd).apply { stateInitialized shouldBe true }
@@ -71,7 +71,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     init<HireCmd> {
-                        Result.Succeed(WriteEventWrapper(it.aggregateId, SomeEvent(it.aggregateId)))
+                        Result.Succeed(EventData(it.aggregateId, SomeEvent(it.aggregateId)))
                     }
                 }
             }.handle(hireCmd).apply { stateInitialized shouldBe true }
@@ -95,7 +95,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(WriteEventWrapper(it.aggregateId, SomeEvent(it.aggregateId)))
+                        Result.Succeed(EventData(it.aggregateId, SomeEvent(it.aggregateId)))
                     }
                 }
             }.handle(someCmd).apply {

@@ -3,7 +3,7 @@ package no.ks.kes.demoapp
 import mu.KotlinLogging
 import no.ks.kes.lib.Aggregate
 import no.ks.kes.lib.AggregateConfiguration
-import no.ks.kes.lib.EventMetadata
+import no.ks.kes.lib.Metadata
 import no.ks.kes.lib.SerializationId
 import no.ks.kes.serdes.proto.ProtoEvent
 import no.ks.svarut.event.Avsender
@@ -37,7 +37,7 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
         }
     }
 
-    data class DemoEventMetadata(val aggregateId: UUID, val occurredOn: Long): EventMetadata
+    data class DemoMetadata(val aggregateId: UUID, val occurredOn: Long): Metadata
 
     @SerializationId("Avsender.AvsenderOpprettet")
     data class AvsenderOpprettet(override val msg: Avsender.AvsenderOpprettet) :

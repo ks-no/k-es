@@ -9,10 +9,10 @@ class KontoCmds(repo: AggregateRepository) : CmdHandler<KontoAggregate>(repo, Ko
 
     init {
         init<Opprett> { Succeed(
-            WriteEventWrapper(
+            EventData(
                 aggregateId = it.aggregateId,
                 event = Konto.AvsenderOpprettet(Avsender.AvsenderOpprettet.newBuilder().setOrgId(it.orgId).build()),
-                metadata = Konto.DemoEventMetadata(it.aggregateId, System.currentTimeMillis())
+                metadata = Konto.DemoMetadata(it.aggregateId, System.currentTimeMillis())
             ))
         }
 
@@ -21,10 +21,10 @@ class KontoCmds(repo: AggregateRepository) : CmdHandler<KontoAggregate>(repo, Ko
                 Fail(IllegalStateException("Konto er allerede aktivert"))
             else {
                 Succeed(
-                    WriteEventWrapper(
+                    EventData(
                         aggregateId = it.aggregateId,
                         event = Konto.AvsenderAktivert(Avsender.AvsenderAktivert.newBuilder().build()),
-                        metadata = Konto.DemoEventMetadata(it.aggregateId, System.currentTimeMillis())
+                        metadata = Konto.DemoMetadata(it.aggregateId, System.currentTimeMillis())
                     ))
             }
         }
@@ -34,10 +34,10 @@ class KontoCmds(repo: AggregateRepository) : CmdHandler<KontoAggregate>(repo, Ko
                 Fail(IllegalStateException("Konto er allerede deaktivert"))
             else {
                 Succeed(
-                    WriteEventWrapper(
+                    EventData(
                         aggregateId = it.aggregateId,
                         event = Konto.AvsenderDeaktivert(Avsender.AvsenderDeaktivert.newBuilder().build()),
-                        metadata = Konto.DemoEventMetadata(it.aggregateId, System.currentTimeMillis())
+                        metadata = Konto.DemoMetadata(it.aggregateId, System.currentTimeMillis())
                     ))
             }
         }

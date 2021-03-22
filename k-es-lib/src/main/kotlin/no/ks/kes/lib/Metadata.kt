@@ -1,5 +1,5 @@
 package no.ks.kes.lib
 
-interface EventMetadata
+interface Metadata
 
 

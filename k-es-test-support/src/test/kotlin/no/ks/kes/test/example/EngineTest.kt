@@ -19,10 +19,8 @@ import io.kotest.property.checkAll
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import no.ks.kes.lib.Event
 import no.ks.kes.lib.Projections
 import no.ks.kes.lib.Sagas
-import no.ks.kes.lib.WriteEventWrapper
 import no.ks.kes.test.AggregateKey
 import no.ks.kes.test.withKes
 import java.util.*

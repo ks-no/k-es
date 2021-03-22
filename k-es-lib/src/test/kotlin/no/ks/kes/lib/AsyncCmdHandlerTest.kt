@@ -34,7 +34,7 @@ internal class AsyncCmdHandlerTest : StringSpec() {
         "Test that a cmd can initialize an aggregate" {
             val someCmd = SomeCmd(UUID.randomUUID())
 
-            val slot = slot<List<WriteEventWrapper>>()
+            val slot = slot<List<EventData>>()
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
@@ -45,20 +45,20 @@ internal class AsyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, aggregateConfig) {
                 init {
                     init<SomeCmd> {
-                        Result.Succeed(WriteEventWrapper( event = SomeInitEvent(), aggregateId = it.aggregateId))
+                        Result.Succeed(EventData( event = SomeInitEvent(), aggregateId = it.aggregateId))
                     }
                 }
             }.handleAsync(someCmd, 0)
                     .apply { this.shouldBeInstanceOf<CmdHandler.AsyncResult.Success>() }
 
-            with(slot.captured.single() as WriteEventWrapper) {
+            with(slot.captured.single() as EventData) {
                 aggregateId shouldBe someCmd.aggregateId
             }
         }
 
         "Test that a cmd can append a new event to an existing aggregate" {
             val someCmd = SomeCmd(UUID.randomUUID())
-            val slot = slot<List<WriteEventWrapper>>()
+            val slot = slot<List<EventData>>()
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
@@ -70,13 +70,13 @@ internal class AsyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, aggregateConfig) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(WriteEventWrapper( event = SomeInitEvent(), aggregateId = it.aggregateId))
+                        Result.Succeed(EventData( event = SomeInitEvent(), aggregateId = it.aggregateId))
                     }
                 }
             }.handleAsync(someCmd, 0)
                     .apply { this.shouldBeInstanceOf<CmdHandler.AsyncResult.Success>() }
 
-            with(slot.captured.single() as WriteEventWrapper) {
+            with(slot.captured.single() as EventData) {
                 aggregateId shouldBe someCmd.aggregateId
             }
         }

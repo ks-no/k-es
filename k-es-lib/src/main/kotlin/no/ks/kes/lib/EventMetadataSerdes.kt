@@ -1,6 +1,6 @@
 package no.ks.kes.lib
 
-interface EventMetadataSerdes<T : EventMetadata> {
+interface EventMetadataSerdes<T : Metadata> {
     fun deserialize(data: ByteArray): T
-    fun serialize(metadata: EventMetadata): ByteArray
+    fun serialize(metadata: Metadata): ByteArray
 }

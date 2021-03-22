@@ -46,14 +46,14 @@ internal class CmdHandlerTest : StringSpec() {
                 object : CmdHandler<SomeAggregate>(mockk(), aggregateConfiguration) {
                     init {
                         init<HireCmd> {
-                            Result.Succeed(WriteEventWrapper(
+                            Result.Succeed(EventData(
                                 aggregateId = it.aggregateId,
                                 event = SomeEvent(it.aggregateId)
                             ))
                         }
 
                         init<HireCmd> {
-                            Result.Succeed(WriteEventWrapper(
+                            Result.Succeed(EventData(
                                 aggregateId = it.aggregateId,
                                 event = SomeEvent(it.aggregateId)
                             ))
@@ -77,14 +77,14 @@ internal class CmdHandlerTest : StringSpec() {
                 object : CmdHandler<SomeAggregate>(mockk(), aggregateConfiguration) {
                     init {
                         apply<HireCmd> {
-                            Result.Succeed(WriteEventWrapper(
+                            Result.Succeed(EventData(
                                 aggregateId = it.aggregateId,
                                 event = SomeEvent(it.aggregateId)
                             ))
                         }
 
                         apply<HireCmd> {
-                            Result.Succeed(WriteEventWrapper(
+                            Result.Succeed(EventData(
                                 aggregateId = it.aggregateId,
                                 event = SomeEvent(it.aggregateId)
                             ))
@@ -114,7 +114,7 @@ internal class CmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(WriteEventWrapper(
+                        Result.Succeed(EventData(
                             aggregateId = it.aggregateId,
                             event = SomeEvent(it.aggregateId)
                         ))
@@ -144,7 +144,7 @@ internal class CmdHandlerTest : StringSpec() {
             val countingCommandHandler = object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(WriteEventWrapper(
+                        Result.Succeed(EventData(
                             aggregateId = it.aggregateId,
                             event = SomeEvent(it.aggregateId)
                         ))

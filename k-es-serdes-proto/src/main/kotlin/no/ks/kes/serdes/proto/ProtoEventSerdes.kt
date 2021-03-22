@@ -5,7 +5,6 @@ import no.ks.kes.lib.Event
 import no.ks.kes.lib.EventSerdes
 import kotlin.reflect.KClass
 import com.google.protobuf.Any
-import no.ks.kes.lib.EventMetadata
 import no.ks.kes.lib.getSerializationIdAnnotationValue
 
 class ProtoEventSerdes(private val register: Map<KClass<out ProtoEvent<*>>, Message>, private val protoEventDeserializer: ProtoEventDeserializer ) : EventSerdes {

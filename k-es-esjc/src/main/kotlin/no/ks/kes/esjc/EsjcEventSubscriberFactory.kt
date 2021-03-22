@@ -13,7 +13,7 @@ class EsjcEventSubscriberFactory(
         private val eventStore: EventStore,
         private val serdes: EventSerdes,
         private val category: String,
-        private val eventMetadataSerdes: EventMetadataSerdes<out EventMetadata>? = null
+        private val metadataSerdes: EventMetadataSerdes<out Metadata>? = null
 ) : EventSubscriberFactory<CatchUpSubscriptionWrapper> {
     override fun getSerializationId(eventClass: KClass<Event<*>>): String =
             serdes.getSerializationId(eventClass)
@@ -46,7 +46,7 @@ class EsjcEventSubscriberFactory(
                                 EsjcEventUtil.isIgnorableEvent(resolvedEvent) ->
                                     log.info { "$subscriber: event ignored: ${resolvedEvent.originalEventNumber()} ${resolvedEvent.originalStreamId()}" }
                                 else -> try {
-                                    val eventMeta = if(resolvedEvent.event.metadata.isNotEmpty() && eventMetadataSerdes != null) eventMetadataSerdes.deserialize(resolvedEvent.event.metadata) else null
+                                    val eventMeta = if(resolvedEvent.event.metadata.isNotEmpty() && metadataSerdes != null) metadataSerdes.deserialize(resolvedEvent.event.metadata) else null
                                     val event = EventUpgrader.upgrade(serdes.deserialize(resolvedEvent.event.data, resolvedEvent.event.eventType))
                                     val aggregateId = UUID.fromString(resolvedEvent.event.eventStreamId.takeLast(36))
                                     onEvent.invoke(EventWrapper(
