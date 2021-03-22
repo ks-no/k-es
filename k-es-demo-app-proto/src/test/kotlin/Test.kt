@@ -1,5 +1,6 @@
 import com.github.msemys.esjc.EventStoreBuilder
 import com.google.protobuf.Message
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import mu.KotlinLogging
 import no.ks.kes.demoapp.*
