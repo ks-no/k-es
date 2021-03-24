@@ -13,15 +13,15 @@ import kotlin.reflect.KClass
 internal class SyncCmdHandlerTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    data class SomeEvent(val aggregateId: UUID) : Event<SomeAggregate>
+    data class SomeEventData(val aggregateId: UUID) : EventData<SomeAggregate>
 
     val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
         init {
-            init { someEvent: SomeEvent, aggregateId: UUID ->
+            init { someEvent: SomeEventData, aggregateId: UUID ->
                 SomeAggregate(stateInitialized = true)
             }
 
-            apply<SomeEvent> {
+            apply<SomeEventData> {
                 copy(stateUpdated = true)
             }
         }
@@ -38,7 +38,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { read(hireCmd.aggregateId, any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
-                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
                 every { append("some-aggregate", hireCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, any()) } returns
                         Unit
             }
@@ -46,7 +46,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     init<HireCmd> {
-                        Result.Succeed(EventData(it.aggregateId, SomeEvent(it.aggregateId)))
+                        Result.Succeed(Event(it.aggregateId, SomeEventData(it.aggregateId)))
                     }
                 }
             }.handle(hireCmd).apply { stateInitialized shouldBe true }
@@ -63,7 +63,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
             val eventNumber = Random.nextLong(0L, 10000000L)
             val repoMock = mockk<AggregateRepository>().apply {
                 every { read(hireCmd.aggregateId, any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.UninitializedAggregate(eventNumber)
-                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
                 every { append("some-aggregate", hireCmd.aggregateId, ExpectedEventNumber.Exact(eventNumber), any()) } returns
                         Unit
             }
@@ -71,7 +71,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     init<HireCmd> {
-                        Result.Succeed(EventData(it.aggregateId, SomeEvent(it.aggregateId)))
+                        Result.Succeed(Event(it.aggregateId, SomeEventData(it.aggregateId)))
                     }
                 }
             }.handle(hireCmd).apply { stateInitialized shouldBe true }
@@ -87,7 +87,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
             val repoMock = mockk<AggregateRepository>().apply {
                 every { read(someCmd.aggregateId, any<ValidatedAggregateConfiguration<*>>()) } returns
                         AggregateReadResult.InitializedAggregate(SomeAggregate(true), 0)
-                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
                 every { append("some-aggregate", someCmd.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
                         Unit
             }
@@ -95,7 +95,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(EventData(it.aggregateId, SomeEvent(it.aggregateId)))
+                        Result.Succeed(Event(it.aggregateId, SomeEventData(it.aggregateId)))
                     }
                 }
             }.handle(someCmd).apply {
@@ -112,7 +112,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { read(someCmd.aggregateId, any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
-                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
                 every { append("some-aggregate", someCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, any()) } returns
                         Unit
             }
@@ -139,7 +139,7 @@ internal class SyncCmdHandlerTest : StringSpec() {
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { read(changeStartDate.aggregateId, any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
-                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
             }
 
             class EmployeeCmdHandler : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {

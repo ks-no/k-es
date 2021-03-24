@@ -22,16 +22,16 @@ import kotlin.reflect.KClass
 class EsjcAggregateReaderTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    data class SomeEvent(val aggregateId: UUID) : Event<SomeAggregate>
+    data class SomeEventData(val aggregateId: UUID) : EventData<SomeAggregate>
 
-    data class SomeOtherEvent(val aggregateId: UUID) : Event<SomeAggregate>
+    data class SomeOtherEventData(val aggregateId: UUID) : EventData<SomeAggregate>
 
     private val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
         init {
-            init { someEvent: SomeEvent, aggregatId: UUID ->
+            init { someEvent: SomeEventData, aggregatId: UUID ->
                 SomeAggregate(stateInitialized = true)
             }
-            apply<SomeOtherEvent> {
+            apply<SomeOtherEventData> {
                 copy(stateUpdated = true)
             }
         }
@@ -39,8 +39,8 @@ class EsjcAggregateReaderTest : StringSpec() {
 
     init {
         "Test that the reader returns InitializedAggregate if a configured init-event is found in the stream" {
-            val someEvent = SomeEvent(UUID.randomUUID())
-            val someOtherEvent = SomeOtherEvent(UUID.randomUUID())
+            val someEvent = SomeEventData(UUID.randomUUID())
+            val someOtherEvent = SomeOtherEventData(UUID.randomUUID())
             val eventStoreMock = mockk<EventStore>()
                     .apply {
                         every { streamEventsForward(any(), any(), any(), any()) } returns
@@ -72,7 +72,7 @@ class EsjcAggregateReaderTest : StringSpec() {
 
             val deserializer = mockk<EventSerdes>().apply {
                 every { deserialize("some-id".toByteArray(), any()) } returns someEvent
-                every { getSerializationId(any<KClass<Event<*>>>()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                every { getSerializationId(any<KClass<EventData<*>>>()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
                 every { deserialize("some-other-id".toByteArray(), any()) } returns someOtherEvent
             }
 

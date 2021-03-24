@@ -61,7 +61,7 @@ class EngineCmdHandler(repository: AggregateRepository) : CmdHandler<EnginePrope
         init<Cmds.Create> {
             LOG.debug { "Create command: ${it.aggregateId}" }
             Result.Succeed(
-                EventData( event = Events.Created(it.aggregateId), aggregateId = it.aggregateId))
+                Event( eventData = Events.Created(it.aggregateId), aggregateId = it.aggregateId))
         }
 
         apply<Cmds.Start> {
@@ -70,7 +70,7 @@ class EngineCmdHandler(repository: AggregateRepository) : CmdHandler<EnginePrope
                 Result.Succeed()
             } else {
                 Result.Succeed(
-                    EventData( event = Events.Started(it.aggregateId), aggregateId = it.aggregateId)
+                    Event( eventData = Events.Started(it.aggregateId), aggregateId = it.aggregateId)
                 )
             }
         }
@@ -78,7 +78,7 @@ class EngineCmdHandler(repository: AggregateRepository) : CmdHandler<EnginePrope
         apply<Cmds.Stop> {
             if (running) {
                 Result.Succeed(
-                    EventData( event = Events.Stopped(it.aggregateId), aggregateId = it.aggregateId)
+                    Event( eventData = Events.Stopped(it.aggregateId), aggregateId = it.aggregateId)
                 )
             } else {
                 Result.Fail(RuntimeException("Can not stop engine that has already been stopped"))
@@ -111,7 +111,7 @@ object Cmds {
     data class Check(override val aggregateId: UUID) : EngineCommand(aggregateId)
 }
 
-abstract class EngineEvent(val description: String) : Event<EngineProperties> {
+abstract class EngineEvent(val description: String) : EventData<EngineProperties> {
     val timestamp: Instant = Instant.now()
 }
 

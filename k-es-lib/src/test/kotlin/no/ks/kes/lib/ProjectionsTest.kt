@@ -13,7 +13,7 @@ internal class ProjectionsTest : StringSpec() {
 
     private data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    data class SomeEvent(val aggregateId: UUID) : Event<SomeAggregate>
+    data class SomeEventData(val aggregateId: UUID) : EventData<SomeAggregate>
 
     init {
         "test that a projection can handle incoming events and mutate its state accordingly" {
@@ -25,7 +25,7 @@ internal class ProjectionsTest : StringSpec() {
                 }
 
                 init {
-                    on<SomeEvent> { startDates.add(it.aggregateId) }
+                    on<SomeEventData> { startDates.add(it.aggregateId) }
                 }
             }
 
@@ -40,7 +40,7 @@ internal class ProjectionsTest : StringSpec() {
                                 onClose = any(),
                                 onLive = any()
                         ) } returns SimpleEventSubscription(-1)
-                        every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                        every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
                     },
                     projections = setOf(startDates),
                     projectionRepository = object : ProjectionRepository {
@@ -59,7 +59,7 @@ internal class ProjectionsTest : StringSpec() {
             )
 
             val aggregateId = UUID.randomUUID()
-            val hiredEvent = SomeEvent(
+            val hiredEvent = SomeEventData(
                     aggregateId = aggregateId
             )
 

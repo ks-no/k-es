@@ -7,7 +7,7 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import no.ks.kes.lib.*
 import kotlin.reflect.KClass
 
-class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
+class JacksonEventSerdes(events: Set<KClass<out EventData<*>>>,
                          private val objectMapper: ObjectMapper = ObjectMapper()
                                  .registerModule(Jdk8Module())
                                  .registerModule(JavaTimeModule())
@@ -17,7 +17,7 @@ class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
             .map { getSerializationId(it) to it }
             .toMap()
 
-    override fun deserialize(eventData: ByteArray, eventType: String): Event<*> {
+    override fun deserialize(eventData: ByteArray, eventType: String): EventData<*> {
         return try {
             objectMapper.readValue(
                 eventData,
@@ -29,14 +29,14 @@ class JacksonEventSerdes(events: Set<KClass<out Event<*>>>,
             throw  RuntimeException("Error during deserialization of eventType $eventType", e)
         }
     }
-    override fun serialize(event: Event<*>): ByteArray =
+    override fun serialize(eventData: EventData<*>): ByteArray =
             try {
-                objectMapper.writeValueAsBytes(event)
+                objectMapper.writeValueAsBytes(eventData)
             } catch (e: Exception) {
-                throw RuntimeException("Error during serialization of event: $event")
+                throw RuntimeException("Error during serialization of event: $eventData")
             }
 
-    override fun <T : Event<*>> getSerializationId(eventClass: KClass<T>): String {
+    override fun <T : EventData<*>> getSerializationId(eventClass: KClass<T>): String {
         return getSerializationIdAnnotationValue(eventClass)
     }
 }

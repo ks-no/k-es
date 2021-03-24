@@ -3,6 +3,7 @@ package no.ks.kes.esjc
 import com.github.msemys.esjc.*
 import mu.KotlinLogging
 import no.ks.kes.lib.*
+import no.ks.kes.lib.EventData
 import java.util.*
 import kotlin.reflect.KClass
 import java.lang.Exception as JavaException
@@ -15,10 +16,10 @@ class EsjcEventSubscriberFactory(
         private val category: String,
         private val metadataSerdes: EventMetadataSerdes<out Metadata>? = null
 ) : EventSubscriberFactory<CatchUpSubscriptionWrapper> {
-    override fun getSerializationId(eventClass: KClass<Event<*>>): String =
-            serdes.getSerializationId(eventClass)
+    override fun getSerializationId(eventDataClass: KClass<EventData<*>>): String =
+            serdes.getSerializationId(eventDataClass)
 
-    override fun createSubscriber(subscriber: String, fromEvent: Long, onEvent: (EventWrapper<Event<*>>) -> Unit, onClose: (JavaException) -> Unit, onLive: () -> Unit): CatchUpSubscriptionWrapper =
+    override fun createSubscriber(subscriber: String, fromEvent: Long, onEvent: (EventWrapper<EventData<*>>) -> Unit, onClose: (JavaException) -> Unit, onLive: () -> Unit): CatchUpSubscriptionWrapper =
             CatchUpSubscriptionWrapper(eventStore.subscribeToStreamFrom(
                     "\$ce-$category",
                     when {

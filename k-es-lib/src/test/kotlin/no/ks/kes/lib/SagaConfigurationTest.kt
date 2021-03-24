@@ -11,10 +11,10 @@ class SagaConfigurationTest : StringSpec() {
 
     private data class SomeState(val id: UUID)
 
-    private data class SomeEvent(val aggregateId: UUID) : Event<SomeAggregate>
+    private data class SomeEventData(val aggregateId: UUID) : EventData<SomeAggregate>
 
     @Deprecated(message = "dont use this event")
-    private data class SomeDeprecatedEvent(val aggregateId: UUID) : Event<SomeAggregate>
+    private data class SomeDeprecatedEvent(val aggregateId: UUID) : EventData<SomeAggregate>
 
     init {
 
@@ -22,8 +22,8 @@ class SagaConfigurationTest : StringSpec() {
             shouldThrow<IllegalStateException> {
                 object : Saga<SomeState>(SomeState::class, "SomeSaga") {
                     init {
-                        init({ someEvent: SomeEvent, aggregateId: UUID ->  aggregateId }) { someEvent: SomeEvent, aggregateId: UUID ->  SomeState(aggregateId) }
-                        init({ someEvent: SomeEvent, aggregateId: UUID ->  aggregateId }) { someEvent: SomeEvent, aggregateId: UUID ->  SomeState(aggregateId) }
+                        init({ _: SomeEventData, aggregateId: UUID ->  aggregateId }) { _: SomeEventData, aggregateId: UUID ->  SomeState(aggregateId) }
+                        init({ _: SomeEventData, aggregateId: UUID ->  aggregateId }) { _: SomeEventData, aggregateId: UUID ->  SomeState(aggregateId) }
                     }
                 }.getConfiguration { it.simpleName!! }
             }.message shouldContain "There are multiple \"init\" configurations for event-type(s)"
@@ -34,7 +34,7 @@ class SagaConfigurationTest : StringSpec() {
             shouldThrow<IllegalStateException> {
                 object : Saga<SomeState>(SomeState::class, "SomeSaga") {
                     init {
-                        init({ someEvent: SomeDeprecatedEvent, aggregateId: UUID ->  aggregateId }) { someEvent: SomeDeprecatedEvent, aggregateId: UUID ->  SomeState(aggregateId) }
+                        init({ _: SomeDeprecatedEvent, aggregateId: UUID ->  aggregateId }) { _: SomeDeprecatedEvent, aggregateId: UUID ->  SomeState(aggregateId) }
                     }
                 }.getConfiguration { it.simpleName!! }
             }.message shouldContain "handles deprecated event"
@@ -45,7 +45,7 @@ class SagaConfigurationTest : StringSpec() {
             shouldThrow<IllegalStateException> {
                 object : Saga<SomeState>(SomeState::class, "SomeSaga") {
                     init {
-                        apply({ someEvent: SomeDeprecatedEvent, aggregateId: UUID ->  aggregateId }) { someEvent: SomeDeprecatedEvent, aggregateId: UUID ->  SomeState(aggregateId) }
+                        apply({ _: SomeDeprecatedEvent, aggregateId: UUID ->  aggregateId }) { _: SomeDeprecatedEvent, aggregateId: UUID ->  SomeState(aggregateId) }
                     }
                 }.getConfiguration { it.simpleName!! }
             }.message shouldContain "handles deprecated event"
@@ -56,8 +56,8 @@ class SagaConfigurationTest : StringSpec() {
             shouldThrow<IllegalStateException> {
                 object : Saga<SomeState>(SomeState::class, "someSaga") {
                     init {
-                        init({ someEvent: SomeEvent, aggregateId: UUID ->  aggregateId }) { someEvent: SomeEvent, aggregateId: UUID ->  setState(SomeState(aggregateId)) }
-                        timeout({ someEvent: SomeDeprecatedEvent, aggregateId: UUID ->  aggregateId }, { Instant.now() }) { setState(SomeState(UUID.randomUUID())) }
+                        init({ _: SomeEventData, aggregateId: UUID ->  aggregateId }) { _: SomeEventData, aggregateId: UUID ->  setState(SomeState(aggregateId)) }
+                        timeout({ _: SomeDeprecatedEvent, aggregateId: UUID ->  aggregateId }, { Instant.now() }) { setState(SomeState(UUID.randomUUID())) }
                     }
                 }.getConfiguration { it.simpleName!! }
             }.message shouldContain "handles deprecated event"
@@ -68,8 +68,8 @@ class SagaConfigurationTest : StringSpec() {
             shouldThrow<IllegalStateException> {
                 object : Saga<SomeState>(SomeState::class, "someSaga") {
                     init {
-                        apply { e: SomeEvent, aggregateId: UUID -> setState(SomeState(aggregateId)) }
-                        timeout({ someEvent: SomeEvent, aggregateId: UUID ->  aggregateId }, { Instant.now() }) { setState(SomeState(UUID.randomUUID())) }
+                        apply { _: SomeEventData, aggregateId: UUID -> setState(SomeState(aggregateId)) }
+                        timeout({ _: SomeEventData, aggregateId: UUID ->  aggregateId }, { Instant.now() }) { setState(SomeState(UUID.randomUUID())) }
                     }
                 }.getConfiguration { it.simpleName!! }
             }.message shouldContain "There are multiple \"apply/timeout\" configurations for event-type(s)"
@@ -80,8 +80,8 @@ class SagaConfigurationTest : StringSpec() {
             shouldThrow<IllegalStateException> {
                 object : Saga<SomeState>(SomeState::class, "someSaga") {
                     init {
-                        apply<SomeEvent> { e: SomeEvent, aggregateId: UUID -> setState(SomeState(aggregateId)) }
-                        apply<SomeEvent> { e: SomeEvent, aggregateId: UUID -> setState(SomeState(aggregateId)) }
+                        apply { _: SomeEventData, aggregateId: UUID -> setState(SomeState(aggregateId)) }
+                        apply { _: SomeEventData, aggregateId: UUID -> setState(SomeState(aggregateId)) }
                     }
                 }.getConfiguration { it.simpleName!! }
             }.message shouldContain "There are multiple \"apply/timeout\" configurations for event-type(s)"

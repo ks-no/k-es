@@ -14,7 +14,7 @@ internal class ProjectionTest : StringSpec() {
             data class Hired(
                     val aggregateId: UUID,
                     val recruitedBy: UUID,
-                    val startDate: LocalDate) : Event<SomeAggregate>
+                    val startDate: LocalDate) : EventData<SomeAggregate>
 
             class StartDatesProjection : Projection() {
                 private val startDates: MutableMap<UUID, LocalDate> = HashMap()

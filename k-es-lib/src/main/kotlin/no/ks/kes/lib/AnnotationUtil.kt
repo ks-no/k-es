@@ -9,5 +9,5 @@ object AnnotationUtil {
     }
 }
 
-val <T : Event<*>> KClass<T>.deprecated: Boolean
+val <T : EventData<*>> KClass<T>.deprecated: Boolean
     get() = AnnotationUtil.isDeprecated(this)

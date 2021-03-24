@@ -23,11 +23,11 @@ class CommandQueueTest : StringSpec() {
 
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    data class SomeInitEvent(val aggregateId: UUID) : Event<SomeAggregate>
+    data class SomeInitEventData(val aggregateId: UUID) : EventData<SomeAggregate>
 
     val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>("some-aggregate") {
         init {
-            init { someInitEvent: SomeInitEvent, aggregateId: UUID ->
+            init { someInitEvent: SomeInitEventData, aggregateId: UUID ->
                 SomeAggregate(stateInitialized = true)
             }
         }
@@ -40,7 +40,7 @@ class CommandQueueTest : StringSpec() {
             val repository = mockk<AggregateRepository>()
                     .apply {
                         every { read(any(), any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
-                        every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>()::class.simpleName!! }
+                        every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>()::class.simpleName!! }
                     }
 
             val queue = spyk(
@@ -65,7 +65,7 @@ class CommandQueueTest : StringSpec() {
 
             val repository = mockk<AggregateRepository>().apply {
                 every { read(any(), any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
-                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>()::class.simpleName!! }
+                every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>()::class.simpleName!! }
             }
 
             val queue = spyk(
@@ -90,7 +90,7 @@ class CommandQueueTest : StringSpec() {
 
             val repository = mockk<AggregateRepository>().apply {
                 every { read(any(), any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
-                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>()::class.simpleName!! }
+                every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>()::class.simpleName!! }
             }
 
             val queue = spyk(
@@ -115,7 +115,7 @@ class CommandQueueTest : StringSpec() {
 
             val repository = mockk<AggregateRepository>().apply {
                 every { read(any(), any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
-                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>()::class.simpleName!! }
+                every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>()::class.simpleName!! }
             }
 
             val queue = spyk(

@@ -16,6 +16,7 @@
         <flyway.version>6.1.4</flyway.version>
         <mssql-jdbc.version>7.4.1.jre11</mssql-jdbc.version>
         <awaitility.version>4.0.2</awaitility.version>
+        <spring-boot-maven-plugin.version>2.4.4</spring-boot-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -98,6 +99,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot-maven-plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>

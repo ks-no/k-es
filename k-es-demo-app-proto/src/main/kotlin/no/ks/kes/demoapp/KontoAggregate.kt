@@ -5,7 +5,7 @@ import no.ks.kes.lib.Aggregate
 import no.ks.kes.lib.AggregateConfiguration
 import no.ks.kes.lib.Metadata
 import no.ks.kes.lib.SerializationId
-import no.ks.kes.serdes.proto.ProtoEvent
+import no.ks.kes.serdes.proto.ProtoEventData
 import no.ks.svarut.event.Avsender
 import java.util.*
 
@@ -41,15 +41,15 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
 
     @SerializationId("Avsender.AvsenderOpprettet")
     data class AvsenderOpprettet(override val msg: Avsender.AvsenderOpprettet) :
-        ProtoEvent<KontoAggregate>
+        ProtoEventData<KontoAggregate>
 
     @SerializationId("Avsender.AvsenderAktivert")
     data class AvsenderAktivert(override val msg: Avsender.AvsenderAktivert) :
-        ProtoEvent<KontoAggregate>
+        ProtoEventData<KontoAggregate>
 
     @SerializationId("Avsender.AvsenderDeaktivert")
     data class AvsenderDeaktivert(override val msg: Avsender.AvsenderDeaktivert) :
-        ProtoEvent<KontoAggregate>
+        ProtoEventData<KontoAggregate>
 }
 
 

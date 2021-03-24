@@ -8,13 +8,13 @@ class BasketCmds(repo: AggregateRepository, paymentProcessor: PaymentProcessor) 
 
     init {
         init<Create> { Succeed(
-            EventData( event = Basket.Created(it.aggregateId), aggregateId = it.aggregateId)) }
+            Event( eventData = Basket.Created(it.aggregateId), aggregateId = it.aggregateId)) }
 
         apply<AddItem> {
             if (basketClosed)
                 Fail(IllegalStateException("Can't add items to a closed basket"))
             else
-                Succeed(EventData(event = Basket.ItemAdded(it.aggregateId, it.itemId), aggregateId = it.aggregateId))
+                Succeed(Event(eventData = Basket.ItemAdded(it.aggregateId, it.itemId), aggregateId = it.aggregateId))
         }
 
         apply<CheckOut> {
@@ -24,7 +24,7 @@ class BasketCmds(repo: AggregateRepository, paymentProcessor: PaymentProcessor) 
                 else -> try {
                     paymentProcessor.process(it.aggregateId)
                     Succeed(
-                        EventData( event = Basket.CheckedOut(it.aggregateId, basketContents.toMap()), aggregateId = it.aggregateId))
+                        Event( eventData = Basket.CheckedOut(it.aggregateId, basketContents.toMap()), aggregateId = it.aggregateId))
                 } catch (e: Exception) {
                     RetryOrFail<BasketAggregate>(e)
                 }

@@ -1,9 +1,11 @@
-package no.ks.kes.lib
+package no.ks.kes.serdes.jackson
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import no.ks.kes.lib.EventMetadataSerdes
+import no.ks.kes.lib.Metadata
 import kotlin.reflect.KClass
 
 class JacksonEventMetadataSerdes<T : Metadata>(val clazz: KClass<T>): EventMetadataSerdes<T> {

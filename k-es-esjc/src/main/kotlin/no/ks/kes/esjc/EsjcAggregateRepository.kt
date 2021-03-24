@@ -22,34 +22,34 @@ class EsjcAggregateRepository(
         private val metadataSerdes: EventMetadataSerdes<out Metadata>? = null
 ) : AggregateRepository() {
 
-    override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<no.ks.kes.lib.EventData>) {
+    override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, eventWrappers: List<no.ks.kes.lib.Event>) {
         val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
         try {
             eventStore.appendToStream(
                     streamId,
                     resolveExpectedEventNumber(expectedEventNumber),
-                    events.map {
+                    eventWrappers.map {
                         val newBuilder = EventData.newBuilder()
                         if (serdes.isJson()) {
-                            newBuilder.jsonData(serdes.serialize(it.event))
+                            newBuilder.jsonData(serdes.serialize(it.eventData))
                         } else {
-                            newBuilder.data(serdes.serialize(it.event))
+                            newBuilder.data(serdes.serialize(it.eventData))
                         }
                         if(metadataSerdes != null && it.metadata != null){
                             newBuilder.jsonMetadata(metadataSerdes.serialize(it.metadata!!))
                         }
-                        newBuilder.type(serdes.getSerializationId(it.event::class))
+                        newBuilder.type(serdes.getSerializationId(it.eventData::class))
                                 .build()
                     })
                     .get().also {
-                        log.info("wrote ${events.size} events to stream ${streamId}, next expected version for this stream is ${it.nextExpectedVersion}")
+                        log.info("wrote ${eventWrappers.size} events to stream ${streamId}, next expected version for this stream is ${it.nextExpectedVersion}")
                     }
         } catch (e: Exception) {
             throw RuntimeException("Error while appending events to stream $streamId", e)
         }
     }
 
-    override fun getSerializationId(eventClass: KClass<Event<*>>): String = serdes.getSerializationId(eventClass)
+    override fun getSerializationId(eventDataClass: KClass<no.ks.kes.lib.EventData<*>>): String = serdes.getSerializationId(eventDataClass)
 
     override fun <A : Aggregate> read(aggregateId: UUID, aggregateType: String, applicator: (state: A?, event: EventWrapper<*>) -> A?): AggregateReadResult =
             try {

@@ -7,8 +7,9 @@ import no.ks.kes.demoapp.*
 import no.ks.kes.esjc.EsjcAggregateRepository
 import no.ks.kes.esjc.EsjcEventUtil
 import no.ks.kes.lib.*
+import no.ks.kes.serdes.jackson.JacksonEventMetadataSerdes
 import no.ks.kes.serdes.proto.ProtoEventDeserializer
-import no.ks.kes.serdes.proto.ProtoEvent
+import no.ks.kes.serdes.proto.ProtoEventData
 import no.ks.kes.serdes.proto.ProtoEventSerdes
 import no.ks.svarut.event.Avsender
 import org.junit.jupiter.api.AfterAll
@@ -54,7 +55,7 @@ class Test {
                     Konto.AvsenderDeaktivert::class to Avsender.AvsenderDeaktivert.getDefaultInstance(),
                 ),
                 object: ProtoEventDeserializer {
-                    override fun deserialize(msg: Message): ProtoEvent<*> {
+                    override fun deserialize(msg: Message): ProtoEventData<*> {
                         return when (msg) {
                             is Avsender.AvsenderOpprettet -> Konto.AvsenderOpprettet(msg = msg)
                             is Avsender.AvsenderAktivert -> Konto.AvsenderAktivert(msg = msg)

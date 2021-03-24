@@ -7,18 +7,18 @@ import kotlin.reflect.KClass
 interface Aggregate
 
 abstract class AggregateConfiguration<STATE : Aggregate>(val aggregateType: String) {
-    protected val applicators: MutableMap<KClass<Event<*>>, (STATE, EventWrapper<*>) -> STATE> = mutableMapOf()
-    protected val initializers: MutableMap<KClass<Event<*>>, (EventWrapper<*>) -> STATE> = mutableMapOf()
+    protected val applicators: MutableMap<KClass<EventData<*>>, (STATE, EventWrapper<*>) -> STATE> = mutableMapOf()
+    protected val initializers: MutableMap<KClass<EventData<*>>, (EventWrapper<*>) -> STATE> = mutableMapOf()
 
-    protected inline fun <reified E : Event<*>> apply(crossinline applicator: STATE.(E) -> STATE) {
-        applicators[E::class as KClass<Event<*>>] = { s, e -> applicator(s, e.event as E) }
+    protected inline fun <reified E : EventData<*>> apply(crossinline applicator: STATE.(E) -> STATE) {
+        applicators[E::class as KClass<EventData<*>>] = { s, e -> applicator(s, e.event as E) }
     }
 
-    protected inline fun <reified E : Event<*>> init(crossinline initializer: (E, UUID) -> STATE) {
-        initializers[E::class as KClass<Event<*>>] = { initializer(it.event as E, it.aggregateId) }
+    protected inline fun <reified E : EventData<*>> init(crossinline initializer: (E, UUID) -> STATE) {
+        initializers[E::class as KClass<EventData<*>>] = { initializer(it.event as E, it.aggregateId) }
     }
 
-    fun getConfiguration(serializationIdFunction: (KClass<Event<*>>) -> String): ValidatedAggregateConfiguration<STATE> =
+    fun getConfiguration(serializationIdFunction: (KClass<EventData<*>>) -> String): ValidatedAggregateConfiguration<STATE> =
             ValidatedAggregateConfiguration(
                     aggregateType = aggregateType,
                     applicators = applicators,
@@ -27,10 +27,10 @@ abstract class AggregateConfiguration<STATE : Aggregate>(val aggregateType: Stri
             )
 }
 class ValidatedAggregateConfiguration<STATE : Aggregate>(
-        val aggregateType: String,
-        applicators: Map<KClass<Event<*>>, (STATE, EventWrapper<*>) -> STATE>,
-        initializers: Map<KClass<Event<*>>, (EventWrapper<*>) -> STATE>,
-        serializationIdFunction: (KClass<Event<*>>) -> String
+    val aggregateType: String,
+    applicators: Map<KClass<EventData<*>>, (STATE, EventWrapper<*>) -> STATE>,
+    initializers: Map<KClass<EventData<*>>, (EventWrapper<*>) -> STATE>,
+    serializationIdFunction: (KClass<EventData<*>>) -> String
 ) {
     private val applicators: Map<String, (STATE, EventWrapper<*>) -> STATE>
     private val initializers: Map<String, (EventWrapper<*>) -> STATE>
@@ -45,7 +45,7 @@ class ValidatedAggregateConfiguration<STATE : Aggregate>(
         this.initializers = initializers.map { serializationIdFunction.invoke(it.key) to it.value }.toMap()
     }
 
-    internal fun <E : Event<*>> applyEvent(wrapper: EventWrapper<E>, currentState: STATE?): STATE? {
+    internal fun <E : EventData<*>> applyEvent(wrapper: EventWrapper<E>, currentState: STATE?): STATE? {
         return if (currentState == null) {
             val initializer = initializers[wrapper.serializationId]
 
