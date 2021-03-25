@@ -38,7 +38,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kotlin.version>1.4.31</kotlin.version>
+        <kotlin.version>1.4.32</kotlin.version>
         <jackson.version>2.12.1</jackson.version>
         <slf4j.version>1.7.30</slf4j.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
