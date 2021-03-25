@@ -42,6 +42,11 @@
             </dependency>
             <dependency>
                 <groupId>no.ks.fiks</groupId>
+                <artifactId>k-es-serdes-proto</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>no.ks.fiks</groupId>
                 <artifactId>k-es-test-support</artifactId>
                 <version>${project.version}</version>
             </dependency>
