@@ -19,7 +19,7 @@ import kotlin.reflect.KClass
 internal class EsjcEventWriterTest : StringSpec() {
 
     init {
-        "Test at esjc writer blir korrekt invokert under skriving av hendelser til aggregat" {
+        "Test that the esjc writer is correctly invoked during the writing of events to the aggregate" {
             data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
             data class SomeEventData(val aggregateId: UUID) : no.ks.kes.lib.EventData<SomeAggregate>

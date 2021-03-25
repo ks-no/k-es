@@ -19,9 +19,9 @@ data class KontoAggregate(
 object Konto: AggregateConfiguration<KontoAggregate>("konto") {
 
     init {
-        init { avsenderOpprettet: AvsenderOpprettet, aggregatId: UUID ->
-            log.info { "Avsender opprettet $aggregatId" }
-            KontoAggregate(aggregatId)
+        init { _: AvsenderOpprettet, aggregateId: UUID ->
+            log.info { "Avsender opprettet $aggregateId" }
+            KontoAggregate(aggregateId)
         }
 
         apply<AvsenderAktivert> {
@@ -51,5 +51,3 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
     data class AvsenderDeaktivert(override val msg: Avsender.AvsenderDeaktivert) :
         ProtoEventData<KontoAggregate>
 }
-
-

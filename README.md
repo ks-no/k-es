@@ -1,31 +1,52 @@
 # k-es
 
-Kotlin library for persistance through [event-sourced](https://martinfowler.com/eaaDev/EventSourcing.html) aggregates. Support for projections and sagas included, check out the demo-app to see how it all fits together.
+Kotlin library for persistance through [event-sourced](https://martinfowler.com/eaaDev/EventSourcing.html) aggregates. Support for projections and sagas included, check out the demo-app to see how it all fits together. One extended demo app with Jackson (k-es-demo-app-jackson), and one light demo app with Proto (k-es-demo-app-proto)
 
 Currently supports [ESJC](https://github.com/msemys/esjc) (a netty based client for [eventstore.org](https://eventstore.org/)) as the event store, Microsoft Sql Server as a command and saga repository, and JSON/Jackson (Protobuf support for Event serialization) as a serialization method, but a modular design should allow other databases and serialization types to be supported in the future. 
 
-## Events
-Events classes must implement the `Event<Aggregate>` or `ProtoEvent<Aggregate>` interface and be annotated with `@SerializationId".  
+## EventData
+EventData must implement interface `EventData<Aggregate>` or `ProtoEventData<Aggregate>` and be annotated with `@SerializationId".  
 ```kotlin
     @SerializationId("BasketCreated")
-    data class Created(override val aggregateId: UUID, override val timestamp: Instant) : Event<Basket>
+    data class SomeEvent(val customData: String) : EventData<Basket>
 ```
 
 * _SerializationId_: This id is used for mapping serialized events to java classes. Must be unique for all events in the system.
-* _aggregateId_: The specific instance of the aggregate associated with the event.
-* _timestamp_: The of the event occurrence.
 
 As time moves on the system (and the world it describes) changes, and altering or replacing events might become necessary. K-ES supports this through event upgrading: an event may implement an upgrade function which will be invoked when the event is read from the event-store, either through projection or saga subscriptions or when restoring aggregates. It is also recommended to tag the older version with the `@Deprecated` annotation, which will make it easier to identify usages of the replaced event. K-ES will throw an error if an aggregate, projection or saga subscribe to a deprecated event.  
 
 ```kotlin
     @SerializationId("BasketSessionStarted")
     @Deprecated("This event has been replaced by a newer version", replaceWith = ReplaceWith("Basket.Created(aggregateId, timestamp)"), level = DeprecationLevel.ERROR)
-    data class SessionStarted(override val aggregateId: UUID, override val timestamp: Instant) : Event<Basket> {
+    data class SessionStarted(val timestamp: Instant) : Event<Basket> {
         override fun upgrade(): Event<Basket>? {
-            return Created(aggregateId, timestamp)
+            return Created(timestamp)
         }
     }
 ```
+### Metadata
+
+Metadata interface can be implemented with custom fields. Only Jackson serializer is implemented, but supports later implementation of Proto or other format.
+
+Metadata is stored with event data
+
+### Event
+
+Event class contains EventData, Metadata and aggregateId
+
+```kotlin
+    Event (
+            val aggregateId : UUID,
+            val eventData: EventData<out Aggregate>,
+            val metadata: Metadata? = null,
+    )
+```
+
+* _aggregateId_: The specific instance of the aggregate associated with the event.
+* _eventData_: The event.
+* _metadata_: Event metadata with custom fields
+
+
 ## Aggregates
 Aggregates are created by extending the `AggregateConfiguration` class, and using `init` and `apply` handlers to incrementally build a state from the events in the aggregates stream.   
 
@@ -39,9 +60,9 @@ data class BasketAggregate(
 object Basket : AggregateConfiguration<BasketAggregate>("basket") {
 
     init {
-        init<Created> {
+        init { _: Created, aggregateId: UUID ->
             BasketAggregate(
-                    aggregateId = it.aggregateId
+                    aggregateId = aggregateId
             )
         }
 
@@ -71,20 +92,24 @@ class BasketCmds(repo: AggregateRepository, paymentProcessor: PaymentProcessor) 
     init {
         init<Create> { Succeed(Basket.Created(it.aggregateId, Instant.now())) }
 
-        apply<AddItem> {
+        apply { item: AddItem, aggregateId: UUID ->
             if (basketClosed)
                 Fail(IllegalStateException("Can't add items to a closed basket"))
             else
-                Succeed(Basket.ItemAdded(it.aggregateId, Instant.now(), it.itemId))
+                Succeed(
+                    Event( eventdata = Basket.ItemAdded(aggregateId, Instant.now(), item.itemId),
+                           aggregateId = aggregateId))
         }
 
-        apply<CheckOut> {
+        apply { event: CheckOut, aggregateId: UUID ->
             when {
                 basketClosed -> Fail(IllegalStateException("Can't check out a closed basket"))
                 basketContents.isEmpty() -> Fail(IllegalStateException("Can't check out a empty basket, buy something first?"))
                 else -> try {
                     paymentProcessor.process(it.aggregateId)
-                    Succeed(Basket.CheckedOut(it.aggregateId, Instant.now(), basketContents.toMap()))
+                    Succeed(
+                        Event(  eventdata = Basket.CheckedOut(it.aggregateId, Instant.now(), basketContents.toMap()),
+                                aggregateId = aggregateId))
                 } catch (e: Exception) {
                     RetryOrFail<BasketAggregate>(e)
                 }

@@ -8,7 +8,11 @@ class BasketCmds(repo: AggregateRepository, paymentProcessor: PaymentProcessor) 
 
     init {
         init<Create> { Succeed(
-            Event( eventData = Basket.Created(it.aggregateId), aggregateId = it.aggregateId)) }
+            Event(
+                eventData = Basket.Created(it.aggregateId),
+                aggregateId = it.aggregateId
+            )
+        )}
 
         apply<AddItem> {
             if (basketClosed)
