@@ -1,22 +1,24 @@
 package no.ks.kes.demoapp
 
-import no.ks.kes.lib.AggregateRepository
-import no.ks.kes.lib.Cmd
-import no.ks.kes.lib.CmdHandler
+import no.ks.kes.lib.*
 import no.ks.kes.lib.CmdHandler.Result.*
-import no.ks.kes.serdes.jackson.SerializationId
 import java.util.*
 
 class BasketCmds(repo: AggregateRepository, paymentProcessor: PaymentProcessor) : CmdHandler<BasketAggregate>(repo, Basket) {
 
     init {
-        init<Create> { Succeed(Basket.Created(it.aggregateId)) }
+        init<Create> { Succeed(
+            Event(
+                eventData = Basket.Created(it.aggregateId),
+                aggregateId = it.aggregateId
+            )
+        )}
 
         apply<AddItem> {
             if (basketClosed)
                 Fail(IllegalStateException("Can't add items to a closed basket"))
             else
-                Succeed(Basket.ItemAdded(it.aggregateId, it.itemId))
+                Succeed(Event(eventData = Basket.ItemAdded(it.aggregateId, it.itemId), aggregateId = it.aggregateId))
         }
 
         apply<CheckOut> {
@@ -25,7 +27,8 @@ class BasketCmds(repo: AggregateRepository, paymentProcessor: PaymentProcessor) 
                 basketContents.isEmpty() -> Fail(IllegalStateException("Can't check out a empty basket, buy something first?"))
                 else -> try {
                     paymentProcessor.process(it.aggregateId)
-                    Succeed(Basket.CheckedOut(it.aggregateId, basketContents.toMap()))
+                    Succeed(
+                        Event( eventData = Basket.CheckedOut(it.aggregateId, basketContents.toMap()), aggregateId = it.aggregateId))
                 } catch (e: Exception) {
                     RetryOrFail<BasketAggregate>(e)
                 }

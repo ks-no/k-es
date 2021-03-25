@@ -1,10 +1,7 @@
 package no.ks.kes.demoapp
 
-import no.ks.kes.lib.AggregateRepository
-import no.ks.kes.lib.Cmd
-import no.ks.kes.lib.CmdHandler
+import no.ks.kes.lib.*
 import no.ks.kes.lib.CmdHandler.Result.*
-import no.ks.kes.serdes.jackson.SerializationId
 import java.time.Instant
 import java.util.*
 
@@ -14,17 +11,21 @@ class ShipmentCmds(repo: AggregateRepository, warehouseManager: WarehouseManager
         init<Request> {
             try {
                 warehouseManager.shipOrder(it.aggregateId)
-                Succeed(Shipment.Prepared(it.aggregateId, it.basketId, it.items))
+                Succeed(
+                    Event( eventData = Shipment.Prepared(it.aggregateId, it.basketId, it.items), aggregateId = it.aggregateId))
             } catch (e: ItemNoLongerCarried) {
-                Fail(Shipment.Failed(it.aggregateId, "Item no longer carried!", it.basketId), e)
+                Fail(
+                    Event( eventData = Shipment.Failed(it.aggregateId, "Item no longer carried!", it.basketId), aggregateId = it.aggregateId), e)
             } catch (e: WarehouseSystemFailure) {
-                RetryOrFail(Shipment.Failed(it.aggregateId,  "System problem!", it.basketId), e) { Instant.now() }
+                RetryOrFail(
+                    Event(  eventData = Shipment.Failed(it.aggregateId,  "System problem!", it.basketId), aggregateId = it.aggregateId), e) { Instant.now() }
             }
         }
 
         apply<SendMissingShipmentAlert> {
             warehouseManager.investigateMissingShipment(it.aggregateId)
-            Succeed(Shipment.WarehouseNotifiedOfMissingShipment(it.aggregateId, it.basketId))
+            Succeed(
+                Event( eventData = Shipment.WarehouseNotifiedOfMissingShipment(it.aggregateId, it.basketId), aggregateId = it.aggregateId))
         }
     }
 

@@ -19,15 +19,15 @@ private const val AGGREGATE_TYPE = "some-aggregate"
 internal class CmdHandlerTest : StringSpec() {
     data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
+    data class SomeEventData(val aggregateId: UUID) : EventData<SomeAggregate>
 
     val someAggregateConfiguration = object : AggregateConfiguration<SomeAggregate>(AGGREGATE_TYPE) {
         init {
-            init<SomeEvent> {
+            init { someEvent: SomeEventData, aggregateId: UUID ->
                 SomeAggregate(stateInitialized = true)
             }
 
-            apply<SomeEvent> {
+            apply<SomeEventData> {
                 copy(stateUpdated = true)
             }
         }
@@ -46,11 +46,17 @@ internal class CmdHandlerTest : StringSpec() {
                 object : CmdHandler<SomeAggregate>(mockk(), aggregateConfiguration) {
                     init {
                         init<HireCmd> {
-                            Result.Succeed(SomeEvent(it.aggregateId))
+                            Result.Succeed(Event(
+                                aggregateId = it.aggregateId,
+                                eventData = SomeEventData(it.aggregateId)
+                            ))
                         }
 
                         init<HireCmd> {
-                            Result.Succeed(SomeEvent(it.aggregateId))
+                            Result.Succeed(Event(
+                                aggregateId = it.aggregateId,
+                                eventData = SomeEventData(it.aggregateId)
+                            ))
                         }
                     }
                 }
@@ -71,11 +77,17 @@ internal class CmdHandlerTest : StringSpec() {
                 object : CmdHandler<SomeAggregate>(mockk(), aggregateConfiguration) {
                     init {
                         apply<HireCmd> {
-                            Result.Succeed(SomeEvent(it.aggregateId))
+                            Result.Succeed(Event(
+                                aggregateId = it.aggregateId,
+                                eventData = SomeEventData(it.aggregateId)
+                            ))
                         }
 
                         apply<HireCmd> {
-                            Result.Succeed(SomeEvent(it.aggregateId))
+                            Result.Succeed(Event(
+                                aggregateId = it.aggregateId,
+                                eventData = SomeEventData(it.aggregateId)
+                            ))
                         }
                     }
                 }
@@ -96,13 +108,16 @@ internal class CmdHandlerTest : StringSpec() {
                         AggregateReadResult.InitializedAggregate(SomeAggregate(true), 0)
                 every { append(AGGREGATE_TYPE, someCmd.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
                         Unit
-                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
             }
 
             object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(SomeEvent(it.aggregateId))
+                        Result.Succeed(Event(
+                            aggregateId = it.aggregateId,
+                            eventData = SomeEventData(it.aggregateId)
+                        ))
                     }
                 }
             }.handle(someCmd).apply {
@@ -123,13 +138,16 @@ internal class CmdHandlerTest : StringSpec() {
                         AggregateReadResult.InitializedAggregate(SomeAggregate(true), 0)
                 every { append(AGGREGATE_TYPE, someCmd.aggregateId, ExpectedEventNumber.Exact(0), any()) } returns
                         Unit
-                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
             }
 
             val countingCommandHandler = object : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
                 init {
                     apply<SomeCmd> {
-                        Result.Succeed(SomeEvent(it.aggregateId))
+                        Result.Succeed(Event(
+                            aggregateId = it.aggregateId,
+                            eventData = SomeEventData(it.aggregateId)
+                        ))
                     }
 
                 }
@@ -173,7 +191,7 @@ internal class CmdHandlerTest : StringSpec() {
                 every { read(someCmd.aggregateId, any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
                 every { append(AGGREGATE_TYPE, someCmd.aggregateId, ExpectedEventNumber.AggregateDoesNotExist, any()) } returns
                         Unit
-                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
             }
 
             class EmployeeCmdHandler : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {
@@ -198,7 +216,7 @@ internal class CmdHandlerTest : StringSpec() {
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { read(changeStartDate.aggregateId, any<ValidatedAggregateConfiguration<*>>()) } returns AggregateReadResult.NonExistingAggregate
-                every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
             }
 
             class EmployeeCmdHandler : CmdHandler<SomeAggregate>(repoMock, someAggregateConfiguration) {

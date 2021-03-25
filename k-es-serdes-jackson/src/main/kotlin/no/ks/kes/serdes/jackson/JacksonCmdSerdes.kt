@@ -6,6 +6,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import no.ks.kes.lib.Cmd
 import no.ks.kes.lib.CmdSerdes
+import no.ks.kes.lib.getSerializationIdAnnotationValue
 import kotlin.reflect.KClass
 
 class JacksonCmdSerdes(cmds: Set<KClass<out Cmd<*>>>, private val objectMapper: ObjectMapper = ObjectMapper()

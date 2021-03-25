@@ -12,9 +12,9 @@ internal class ProjectionTest : StringSpec() {
             data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
             data class Hired(
-                    override val aggregateId: UUID,
+                    val aggregateId: UUID,
                     val recruitedBy: UUID,
-                    val startDate: LocalDate) : Event<SomeAggregate>
+                    val startDate: LocalDate) : EventData<SomeAggregate>
 
             class StartDatesProjection : Projection() {
                 private val startDates: MutableMap<UUID, LocalDate> = HashMap()
@@ -28,13 +28,14 @@ internal class ProjectionTest : StringSpec() {
                 }
             }
 
+            val aggregateId = UUID.randomUUID()
             val hiredEvent = Hired(
-                    aggregateId = UUID.randomUUID(),
+                    aggregateId = aggregateId,
                     startDate = LocalDate.now(),
                     recruitedBy = UUID.randomUUID())
 
             StartDatesProjection().apply {
-                getConfiguration { it.simpleName!! }.accept(EventWrapper(hiredEvent, 0, hiredEvent::class.simpleName!!))
+                getConfiguration { it.simpleName!! }.accept(EventWrapper(aggregateId, hiredEvent, null, 0, hiredEvent::class.simpleName!!))
 
                 getStartDate(hiredEvent.aggregateId) shouldBe LocalDate.now()
             }

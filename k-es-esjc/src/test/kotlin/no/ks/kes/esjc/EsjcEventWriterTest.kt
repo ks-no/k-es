@@ -10,10 +10,7 @@ import io.kotest.matchers.shouldNotBe
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import no.ks.kes.lib.Aggregate
-import no.ks.kes.lib.Event
-import no.ks.kes.lib.EventSerdes
-import no.ks.kes.lib.ExpectedEventNumber
+import no.ks.kes.lib.*
 import org.junit.jupiter.api.Assertions
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -22,14 +19,16 @@ import kotlin.reflect.KClass
 internal class EsjcEventWriterTest : StringSpec() {
 
     init {
-        "Test at esjc writer blir korrekt invokert under skriving av hendelser til aggregat" {
+        "Test that the esjc writer is correctly invoked during the writing of events to the aggregate" {
             data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-            data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
+            data class SomeEventData(val aggregateId: UUID) : no.ks.kes.lib.EventData<SomeAggregate>
 
             val eventAggregateType = UUID.randomUUID().toString()
 
-            val event = SomeEvent(UUID.randomUUID())
+            val aggregateId = UUID.randomUUID()
+            val event: no.ks.kes.lib.Event =
+                Event(aggregateId = aggregateId, eventData = SomeEventData(aggregateId))
 
             val capturedEventData = slot<List<EventData>>()
             val eventStoreMock = mockk<EventStore>().apply {
@@ -39,8 +38,9 @@ internal class EsjcEventWriterTest : StringSpec() {
 
             val deserializer = mockk<EventSerdes>()
                     .apply {
-                        every { serialize(event) } returns "foo".toByteArray()
-                        every { getSerializationId(any<KClass<Event<*>>>()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                        every { isJson() } returns true
+                        every { serialize(event.eventData) } returns "foo".toByteArray()
+                        every { getSerializationId(any<KClass<no.ks.kes.lib.EventData<*>>>()) } answers { firstArg<KClass<no.ks.kes.lib.EventData<*>>>().simpleName!! }
                     }
             val esjcEventWriter = EsjcAggregateRepository(
                     eventStore = eventStoreMock,
@@ -52,7 +52,7 @@ internal class EsjcEventWriterTest : StringSpec() {
             with(capturedEventData.captured.single()) {
                 Assertions.assertArrayEquals( "foo".toByteArray(), this.data!!)
                 isJsonData shouldBe true
-                type shouldBe "SomeEvent"
+                type shouldBe "SomeEventData"
                 eventId shouldNotBe null
             }
 

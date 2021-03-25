@@ -18,30 +18,38 @@ private val log = KotlinLogging.logger {}
 class EsjcAggregateRepository(
         private val eventStore: EventStore,
         private val serdes: EventSerdes,
-        private val streamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String
+        private val streamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String,
+        private val metadataSerdes: EventMetadataSerdes<out Metadata>? = null
 ) : AggregateRepository() {
 
-    override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<Event<*>>) {
+    override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, eventWrappers: List<no.ks.kes.lib.Event>) {
         val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
         try {
             eventStore.appendToStream(
                     streamId,
                     resolveExpectedEventNumber(expectedEventNumber),
-                    events.map {
-                        EventData.newBuilder()
-                                .jsonData(serdes.serialize(it))
-                                .type(serdes.getSerializationId(it::class))
+                    eventWrappers.map {
+                        val newBuilder = EventData.newBuilder()
+                        if (serdes.isJson()) {
+                            newBuilder.jsonData(serdes.serialize(it.eventData))
+                        } else {
+                            newBuilder.data(serdes.serialize(it.eventData))
+                        }
+                        if(metadataSerdes != null && it.metadata != null){
+                            newBuilder.jsonMetadata(metadataSerdes.serialize(it.metadata!!))
+                        }
+                        newBuilder.type(serdes.getSerializationId(it.eventData::class))
                                 .build()
                     })
                     .get().also {
-                        log.info("wrote ${events.size} events to stream ${streamId}, next expected version for this stream is ${it.nextExpectedVersion}")
+                        log.info("wrote ${eventWrappers.size} events to stream ${streamId}, next expected version for this stream is ${it.nextExpectedVersion}")
                     }
         } catch (e: Exception) {
             throw RuntimeException("Error while appending events to stream $streamId", e)
         }
     }
 
-    override fun getSerializationId(eventClass: KClass<Event<*>>): String = serdes.getSerializationId(eventClass)
+    override fun getSerializationId(eventDataClass: KClass<no.ks.kes.lib.EventData<*>>): String = serdes.getSerializationId(eventDataClass)
 
     override fun <A : Aggregate> read(aggregateId: UUID, aggregateType: String, applicator: (state: A?, event: EventWrapper<*>) -> A?): AggregateReadResult =
             try {
@@ -57,10 +65,17 @@ class EsjcAggregateRepository(
                             if (EsjcEventUtil.isIgnorableEvent(e)) {
                                 a.first to e.event.eventNumber
                             } else {
-                                val deserialized = EventUpgrader.upgrade(serdes.deserialize(e.event.data, e.event.eventType))
+                                val eventMeta = if(e.event.metadata.isNotEmpty() && metadataSerdes != null) metadataSerdes.deserialize(e.event.metadata) else null
+                                val event = serdes.deserialize(e.event.data, e.event.eventType)
+                                val deserialized = EventUpgrader.upgrade(event)
                                 applicator.invoke(
                                         a.first,
-                                        EventWrapper(deserialized as Event<A>, e.event.eventNumber, serdes.getSerializationId(deserialized::class))
+                                        EventWrapper(
+                                            aggregateId = aggregateId,
+                                            event = deserialized,
+                                            metadata= eventMeta,
+                                            eventNumber = e.event.eventNumber,
+                                            serializationId = serdes.getSerializationId(deserialized::class))
                                 ) to e.event.eventNumber
                             }
                         })

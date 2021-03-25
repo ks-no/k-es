@@ -2,7 +2,8 @@ package no.ks.kes.lib
 
 import java.util.*
 
-interface Event<A : Aggregate> {
-    val aggregateId: UUID
-    fun upgrade(): Event<A>? = null
-}
+data class Event (
+        val aggregateId : UUID,
+        val eventData: EventData<out Aggregate>,
+        val metadata: Metadata? = null,
+)

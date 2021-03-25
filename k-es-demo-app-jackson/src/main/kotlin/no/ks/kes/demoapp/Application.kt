@@ -79,13 +79,13 @@ class Application {
             ShipmentCmds(aggregateRepository, warehouseManager)
 
     @Bean
-    fun subscriber(eventStore: EventStore, eventSerdes: EventSerdes): EventSubscriberFactory =
+    fun subscriber(eventStore: EventStore, eventSerdes: EventSerdes): EventSubscriberFactory<*> =
             EsjcEventSubscriberFactory(eventStore, eventSerdes, "no.ks.kes.demoapp")
 
     @Component
     class MyInitializer(
             val shipments: Shipments,
-            val eventSubscriberFactory: EventSubscriberFactory,
+            val eventSubscriberFactory: EventSubscriberFactory<*>,
             val dataSource: DataSource,
             val basketCmds: BasketCmds,
             val shipmentCmds: ShipmentCmds

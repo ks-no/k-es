@@ -2,8 +2,8 @@ package no.ks.kes.demoapp
 
 import no.ks.kes.lib.Aggregate
 import no.ks.kes.lib.AggregateConfiguration
-import no.ks.kes.lib.Event
-import no.ks.kes.serdes.jackson.SerializationId
+import no.ks.kes.lib.EventData
+import no.ks.kes.lib.SerializationId
 import java.util.*
 
 
@@ -16,9 +16,9 @@ data class BasketAggregate(
 object Basket : AggregateConfiguration<BasketAggregate>("basket") {
 
     init {
-        init<Created> {
+        init { e: Created, aggregateId: UUID ->
             BasketAggregate(
-                    aggregateId = it.aggregateId
+                    aggregateId = aggregateId
             )
         }
 
@@ -37,20 +37,20 @@ object Basket : AggregateConfiguration<BasketAggregate>("basket") {
 
     @SerializationId("BasketSessionStarted")
     @Deprecated("This event has been replaced by a newer version", replaceWith = ReplaceWith("Basket.Created(aggregateId, timestamp)"), level = DeprecationLevel.ERROR)
-    data class SessionStarted(override val aggregateId: UUID) : Event<BasketAggregate> {
-        override fun upgrade(): Event<BasketAggregate>? {
+    data class SessionStarted(val aggregateId: UUID) : EventData<BasketAggregate> {
+        override fun upgrade(): EventData<BasketAggregate>? {
             return Created(aggregateId)
         }
     }
 
     @SerializationId("BasketCreated")
-    data class Created(override val aggregateId: UUID) : Event<BasketAggregate>
+    data class Created(val aggregateId: UUID) : EventData<BasketAggregate>
 
     @SerializationId("BasketItemAdded")
-    data class ItemAdded(override val aggregateId: UUID, val itemId: UUID) : Event<BasketAggregate>
+    data class ItemAdded(val aggregateId: UUID, val itemId: UUID) : EventData<BasketAggregate>
 
     @SerializationId("BasketCheckedOut")
-    data class CheckedOut(override val aggregateId: UUID, val items: Map<UUID, Int>) : Event<BasketAggregate>
+    data class CheckedOut(val aggregateId: UUID, val items: Map<UUID, Int>) : EventData<BasketAggregate>
 }
 
 

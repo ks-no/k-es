@@ -6,26 +6,26 @@ import kotlin.reflect.KClass
 private val log = KotlinLogging.logger {}
 
 abstract class Projection {
-    protected val projectors: MutableMap<KClass<Event<*>>, (EventWrapper<*>) -> Any?> = mutableMapOf()
+    protected val projectors: MutableMap<KClass<EventData<*>>, (EventWrapper<*>) -> Any?> = mutableMapOf()
 
     open fun onLive() {
         return
     }
 
-    protected inline fun <reified E : Event<*>> on(crossinline consumer: (E) -> Any?) =
+    protected inline fun <reified E : EventData<*>> on(crossinline consumer: (E) -> Any?) =
             onWrapper<E> { consumer.invoke(it.event) }
 
     @Suppress("UNCHECKED_CAST")
-    protected inline fun <reified E : Event<*>> onWrapper(crossinline consumer: (EventWrapper<E>) -> Any?) {
+    protected inline fun <reified E : EventData<*>> onWrapper(crossinline consumer: (EventWrapper<E>) -> Any?) {
         if (AnnotationUtil.isDeprecated(E::class as KClass<Any>))
             error("The projection ${this::class.simpleName} subscribes to event ${E::class.simpleName} which has been deprecated. Please replace with subscription to the new version of this event")
 
-        projectors[E::class as KClass<Event<*>>] = { e ->
+        projectors[E::class as KClass<EventData<*>>] = { e ->
             consumer.invoke(e as EventWrapper<E>)
         }
     }
 
-    internal fun getConfiguration(serializationIdFunction: (KClass<Event<*>>) -> String): ValidatedProjectionConfiguration =
+    internal fun getConfiguration(serializationIdFunction: (KClass<EventData<*>>) -> String): ValidatedProjectionConfiguration =
             ValidatedProjectionConfiguration(
                     name = this::class.simpleName ?: "anonymous",
                     projectors = projectors,
@@ -33,9 +33,9 @@ abstract class Projection {
             )
 
     class ValidatedProjectionConfiguration(
-            private val name: String,
-            serializationIdFunction: (KClass<Event<*>>) -> String,
-            projectors: Map<KClass<Event<*>>, (EventWrapper<*>) -> Any?>
+        private val name: String,
+        serializationIdFunction: (KClass<EventData<*>>) -> String,
+        projectors: Map<KClass<EventData<*>>, (EventWrapper<*>) -> Any?>
     ) {
         private val projectors: Map<String, (EventWrapper<*>) -> Any?>
 
@@ -50,7 +50,7 @@ abstract class Projection {
 
             if (projector != null) {
                 projector.invoke(wrapper)
-                log.info("Event ${wrapper.serializationId} on aggregate ${wrapper.event.aggregateId} " +
+                log.debug("Event ${wrapper.serializationId} on aggregate ${wrapper.aggregateId} " +
                         "applied to projection $name")
             }
 

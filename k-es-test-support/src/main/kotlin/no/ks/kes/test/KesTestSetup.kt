@@ -19,7 +19,7 @@ suspend fun withKes(eventSerdes: EventSerdes, cmdSerdes: CmdSerdes, context: sus
     }
 }
 
-suspend fun withKes(cmds: Set<KClass<out Cmd<*>>>, events: Set<KClass<out Event<*>>>, context: suspend (KesTestSetup) -> Unit) {
+suspend fun withKes(cmds: Set<KClass<out Cmd<*>>>, events: Set<KClass<out EventData<*>>>, context: suspend (KesTestSetup) -> Unit) {
     withKes(eventSerdes = JacksonEventSerdes(events = events), cmdSerdes = JacksonCmdSerdes(cmds), context)
 }
 
@@ -49,14 +49,14 @@ class KesTestSetup(val eventSerdes: EventSerdes, val cmdSerdes: CmdSerdes) : Aut
 
 data class AggregateKey(val type: String, val aggregateId: UUID)
 class TestEventStream : AutoCloseable {
-    private val stream: MutableMap<AggregateKey, List<Event<*>>> = mutableMapOf()
+    private val stream: MutableMap<AggregateKey, List<Event>> = mutableMapOf()
     private val listeners = mutableSetOf<EventListener>()
 
-    fun add(aggregateKey: AggregateKey, events: List<Event<*>>) {
+    fun add(aggregateKey: AggregateKey, eventWrappers: List<Event>) {
         stream.getOrDefault(aggregateKey, emptyList()).apply {
-            stream[aggregateKey] = this.plus(events)
+            stream[aggregateKey] = this.plus(eventWrappers)
         }.also {
-            events.forEach { event ->
+            eventWrappers.forEach { event ->
                 LOG.debug { "Sender event" }
                 listeners.forEach { listener ->
                     listener.eventAdded(event)
@@ -65,7 +65,7 @@ class TestEventStream : AutoCloseable {
         }
     }
 
-    fun get(aggregateKey: AggregateKey): List<Event<*>>? = stream[aggregateKey]
+    fun get(aggregateKey: AggregateKey): List<Event>? = stream[aggregateKey]
 
     fun eventCount(): Long = stream.map { it.value.size }.sum().toLong()
 
@@ -83,20 +83,22 @@ class TestEventStream : AutoCloseable {
 }
 
 interface EventListener {
-    fun eventAdded(event: Event<*>)
+    fun eventAdded(eventWrapper: Event)
 }
 
 class TestEventSubscription(private val factory: TestEventSubscriberFactory,
-                            private val onEvent: (EventWrapper<Event<*>>) -> Unit,
+                            private val onEvent: (EventWrapper<EventData<*>>) -> Unit,
                             private val closeHandler: (TestEventSubscription) -> Unit
 ) : EventSubscription, EventListener, AutoCloseable {
     private val lastProcessedEvent = AtomicLong(-1)
     override fun lastProcessedEvent(): Long = lastProcessedEvent.get()
-    override fun eventAdded(event: Event<*>) {
-        EventUpgrader.upgrade(event).run {
-            onEvent.invoke(EventWrapper(event = this,
+    override fun eventAdded(eventWrapper: Event) {
+        EventUpgrader.upgrade(eventWrapper.eventData).run {
+            onEvent.invoke(EventWrapper(
+                    aggregateId = eventWrapper.aggregateId,
+                    event = this,
                     eventNumber = lastProcessedEvent.getAndIncrement(),
-                    serializationId = factory.getSerializationId(this::class as KClass<Event<*>>)
+                    serializationId = factory.getSerializationId(this::class as KClass<EventData<*>>)
             ))
         }
     }
@@ -107,9 +109,9 @@ class TestEventSubscription(private val factory: TestEventSubscriberFactory,
 }
 
 class TestEventSubscriberFactory(private val serdes: EventSerdes, private val testEventStream: TestEventStream) : EventSubscriberFactory<TestEventSubscription> {
-    override fun getSerializationId(eventClass: KClass<Event<*>>): String = serdes.getSerializationId(eventClass)
+    override fun getSerializationId(eventDataClass: KClass<EventData<*>>): String = serdes.getSerializationId(eventDataClass)
 
-    override fun createSubscriber(subscriber: String, fromEvent: Long, onEvent: (EventWrapper<Event<*>>) -> Unit, onClose: (Exception) -> Unit, onLive: () -> Unit): TestEventSubscription {
+    override fun createSubscriber(subscriber: String, fromEvent: Long, onEvent: (EventWrapper<EventData<*>>) -> Unit, onClose: (Exception) -> Unit, onLive: () -> Unit): TestEventSubscription {
         return TestEventSubscription(factory = this, onEvent = onEvent) {
             testEventStream.removeListener(it)
         }.also { testEventStream.addListener(it) }
@@ -119,17 +121,17 @@ class TestEventSubscriberFactory(private val serdes: EventSerdes, private val te
 
 internal class TestAggregateRepository(private val eventSerdes: EventSerdes, private val testEventStream: TestEventStream) : AggregateRepository() {
 
-    override fun getSerializationId(eventClass: KClass<Event<*>>) = eventSerdes.getSerializationId(eventClass)
+    override fun getSerializationId(eventDataClass: KClass<EventData<*>>) = eventSerdes.getSerializationId(eventDataClass)
 
-    override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, events: List<Event<*>>) {
+    override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, eventWrappers: List<Event>) {
         AggregateKey(aggregateType, aggregateId).run {
-            addEvent(this, events)
+            addEvent(this, eventWrappers)
         }
     }
 
     override fun <A : Aggregate> read(aggregateId: UUID, aggregateType: String, applicator: (state: A?, event: EventWrapper<*>) -> A?): AggregateReadResult =
             testEventStream.get(AggregateKey(aggregateType, aggregateId))?.fold(null as A? to null as Long?, { a, e ->
-                applicator.invoke(a.first, EventWrapper(e, getEventIndex(), eventSerdes.getSerializationId(e::class))) to getEventIndex()
+                applicator.invoke(a.first, EventWrapper(aggregateId,e.eventData,null, getEventIndex(), eventSerdes.getSerializationId(e.eventData::class))) to getEventIndex()
             })?.let {
                 when {
                     //when the aggregate stream has events, but applying these did not lead to a initialized state
@@ -146,8 +148,8 @@ internal class TestAggregateRepository(private val eventSerdes: EventSerdes, pri
 
     private fun getEventIndex() = testEventStream.eventCount()
 
-    private fun addEvent(aggregateKey: AggregateKey, events: List<Event<*>>) {
-        testEventStream.add(aggregateKey, events)
+    private fun addEvent(aggregateKey: AggregateKey, eventWrappers: List<Event>) {
+        testEventStream.add(aggregateKey, eventWrappers)
     }
 
 }

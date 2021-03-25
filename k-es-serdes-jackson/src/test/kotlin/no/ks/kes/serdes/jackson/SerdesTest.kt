@@ -2,9 +2,7 @@ package no.ks.kes.serdes.jackson
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import no.ks.kes.lib.Aggregate
-import no.ks.kes.lib.Cmd
-import no.ks.kes.lib.Event
+import no.ks.kes.lib.*
 import java.time.Instant
 import java.util.*
 
@@ -29,19 +27,19 @@ class SerdesTest : StringSpec() {
         }
 
         @SerializationId("foo")
-        data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
+        data class SomeEventData(val aggregateId: UUID) : EventData<SomeAggregate>
 
         @SerializationId("bar")
-        data class SomeOtherEvent(override val aggregateId: UUID) : Event<SomeAggregate>
+        data class SomeOtherEventData(val aggregateId: UUID) : EventData<SomeAggregate>
 
         "test that we can serialize and deserialize events"{
-            val serdes = JacksonEventSerdes(setOf(SomeEvent::class, SomeOtherEvent::class))
+            val serdes = JacksonEventSerdes(setOf(SomeEventData::class, SomeOtherEventData::class))
 
-            val someEvent = SomeEvent(UUID.randomUUID())
-            val someOtherEvent = SomeOtherEvent(UUID.randomUUID())
+            val someEvent = SomeEventData(UUID.randomUUID())
+            val someOtherEvent = SomeOtherEventData(UUID.randomUUID())
 
-            serdes.serialize(someEvent).run { serdes.deserialize(this, "foo") } shouldBe someEvent
-            serdes.serialize(someOtherEvent).run { serdes.deserialize(this, "bar") } shouldBe someOtherEvent
+            serdes.serialize(someEvent).run { serdes.deserialize( this, "foo") } shouldBe someEvent
+            serdes.serialize(someOtherEvent).run { serdes.deserialize( this, "bar") } shouldBe someOtherEvent
         }
 
         data class SomeState(val aggregateId: UUID, val timestamp: Instant)
@@ -54,8 +52,8 @@ class SerdesTest : StringSpec() {
             val someState = SomeState(UUID.randomUUID(), Instant.now())
             val someOtherState = SomeOtherState(UUID.randomUUID(), Instant.now())
 
-            serdes.serialize(someState).run { serdes.deserialize(this, SomeState::class) } shouldBe someState
-            serdes.serialize(someOtherState).run { serdes.deserialize(this, SomeOtherState::class) } shouldBe someOtherState
+            serdes.serialize(someState).run { serdes.deserialize( this, SomeState::class) } shouldBe someState
+            serdes.serialize(someOtherState).run { serdes.deserialize( this, SomeOtherState::class) } shouldBe someOtherState
         }
     }
 }

@@ -13,7 +13,7 @@ internal class ProjectionsTest : StringSpec() {
 
     private data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
 
-    data class SomeEvent(override val aggregateId: UUID) : Event<SomeAggregate>
+    data class SomeEventData(val aggregateId: UUID) : EventData<SomeAggregate>
 
     init {
         "test that a projection can handle incoming events and mutate its state accordingly" {
@@ -25,7 +25,7 @@ internal class ProjectionsTest : StringSpec() {
                 }
 
                 init {
-                    on<SomeEvent> { startDates.add(it.aggregateId) }
+                    on<SomeEventData> { startDates.add(it.aggregateId) }
                 }
             }
 
@@ -40,7 +40,7 @@ internal class ProjectionsTest : StringSpec() {
                                 onClose = any(),
                                 onLive = any()
                         ) } returns SimpleEventSubscription(-1)
-                        every { getSerializationId(any()) } answers { firstArg<KClass<Event<*>>>().simpleName!! }
+                        every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
                     },
                     projections = setOf(startDates),
                     projectionRepository = object : ProjectionRepository {
@@ -58,12 +58,13 @@ internal class ProjectionsTest : StringSpec() {
                     subscriber = consumerName
             )
 
-            val hiredEvent = SomeEvent(
-                    aggregateId = UUID.randomUUID()
+            val aggregateId = UUID.randomUUID()
+            val hiredEvent = SomeEventData(
+                    aggregateId = aggregateId
             )
 
             //when we invoke the captured handler from the manager with the subscribed event
-            slot.invoke(EventWrapper(hiredEvent, 0, hiredEvent::class.simpleName!!))
+            slot.invoke(EventWrapper(aggregateId,hiredEvent,null, 0, hiredEvent::class.simpleName!!))
 
             //the projection should update
             startDates.hasBeenProjected(hiredEvent.aggregateId) shouldBe true
