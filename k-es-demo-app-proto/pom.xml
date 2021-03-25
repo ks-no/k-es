@@ -13,7 +13,7 @@
     <artifactId>k-es-demo-app-proto</artifactId>
     <properties>
         <spring-boot-version>2.2.5.RELEASE</spring-boot-version>
-        <flyway.version>7.6.0</flyway.version>
+        <flyway.version>7.7.1</flyway.version>
         <mssql-jdbc.version>7.4.1.jre11</mssql-jdbc.version>
         <awaitility.version>4.0.2</awaitility.version>
         <svarut-events.version>1.2.2</svarut-events.version>
