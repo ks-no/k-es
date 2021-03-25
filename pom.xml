@@ -298,7 +298,10 @@
                     <groupId>org.jetbrains.kotlin</groupId>
                     <artifactId>kotlin-maven-plugin</artifactId>
                     <version>${kotlin.version}</version>
-
+                    <configuration>
+                        <jvmTarget>${java.version}</jvmTarget>
+                        <languageVersion>1.4</languageVersion>
+                    </configuration>
                     <executions>
                         <execution>
                             <id>compile</id>
