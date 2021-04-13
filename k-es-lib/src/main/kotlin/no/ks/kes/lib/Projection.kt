@@ -46,7 +46,6 @@ abstract class Projection {
         }
 
         fun accept(wrapper: EventWrapper<*>) {
-            log.debug { "ACCEPT ${wrapper.serializationId}" }
             val projector = projectors[wrapper.serializationId]
 
             if (projector != null) {
