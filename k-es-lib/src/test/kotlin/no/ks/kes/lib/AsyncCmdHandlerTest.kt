@@ -34,7 +34,7 @@ internal class AsyncCmdHandlerTest : StringSpec() {
         "Test that a cmd can initialize an aggregate" {
             val someCmd = SomeCmd(UUID.randomUUID())
 
-            val slot = slot<List<Event>>()
+            val slot = slot<List<Event<*>>>()
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
@@ -58,7 +58,7 @@ internal class AsyncCmdHandlerTest : StringSpec() {
 
         "Test that a cmd can append a new event to an existing aggregate" {
             val someCmd = SomeCmd(UUID.randomUUID())
-            val slot = slot<List<Event>>()
+            val slot = slot<List<Event<*>>>()
 
             val repoMock = mockk<AggregateRepository>().apply {
                 every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }

@@ -51,9 +51,11 @@ class EsjcEventSubscriberFactory(
                                     val event = EventUpgrader.upgrade(serdes.deserialize(resolvedEvent.event.data, resolvedEvent.event.eventType))
                                     val aggregateId = UUID.fromString(resolvedEvent.event.eventStreamId.takeLast(36))
                                     onEvent.invoke(EventWrapper(
+                                        Event(
                                             aggregateId = aggregateId,
                                             metadata = eventMeta,
-                                            event = event,
+                                            eventData = event
+                                        ),
                                             eventNumber = resolvedEvent.originalEventNumber(),
                                             serializationId = serdes.getSerializationId(event::class)))
                                             .also {

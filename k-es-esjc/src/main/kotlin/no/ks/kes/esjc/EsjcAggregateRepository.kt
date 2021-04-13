@@ -22,7 +22,7 @@ class EsjcAggregateRepository(
         private val metadataSerdes: EventMetadataSerdes<out Metadata>? = null
 ) : AggregateRepository() {
 
-    override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, eventWrappers: List<no.ks.kes.lib.Event>) {
+    override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, eventWrappers: List<Event<*>>) {
         val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
         try {
             eventStore.appendToStream(
@@ -61,25 +61,31 @@ class EsjcAggregateRepository(
                         false
                 )
                         .asSequence()
-                        .fold(null as A? to null as Long?, { a, e ->
+                        .fold(null as A? to null as Long?) { a, e ->
                             if (EsjcEventUtil.isIgnorableEvent(e)) {
                                 a.first to e.event.eventNumber
                             } else {
-                                val eventMeta = if(e.event.metadata.isNotEmpty() && metadataSerdes != null) metadataSerdes.deserialize(e.event.metadata) else null
+                                val eventMeta =
+                                    if (e.event.metadata.isNotEmpty() && metadataSerdes != null) metadataSerdes.deserialize(
+                                        e.event.metadata
+                                    ) else null
                                 val event = serdes.deserialize(e.event.data, e.event.eventType)
                                 val deserialized = EventUpgrader.upgrade(event)
                                 applicator.invoke(
-                                        a.first,
-                                        EventWrapper(
+                                    a.first,
+                                    EventWrapper(
+                                        Event(
                                             aggregateId = aggregateId,
-                                            event = deserialized,
-                                            metadata= eventMeta,
-                                            eventNumber = e.event.eventNumber,
-                                            serializationId = serdes.getSerializationId(deserialized::class))
+                                            eventData = deserialized,
+                                            metadata = eventMeta
+                                        ),
+                                        eventNumber = e.event.eventNumber,
+                                        serializationId = serdes.getSerializationId(deserialized::class)
+                                    )
                                 ) to e.event.eventNumber
                             }
-                        })
-                        .let {
+                        }
+                    .let {
                             when {
                                 //when the aggregate stream has events, but applying these did not lead to a initialized state
                                 it.first == null && it.second != null -> AggregateReadResult.UninitializedAggregate(it.second!!)

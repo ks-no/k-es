@@ -11,11 +11,11 @@ abstract class AggregateConfiguration<STATE : Aggregate>(val aggregateType: Stri
     protected val initializers: MutableMap<KClass<EventData<*>>, (EventWrapper<*>) -> STATE> = mutableMapOf()
 
     protected inline fun <reified E : EventData<*>> apply(crossinline applicator: STATE.(E) -> STATE) {
-        applicators[E::class as KClass<EventData<*>>] = { s, e -> applicator(s, e.event as E) }
+        applicators[E::class as KClass<EventData<*>>] = { s, e -> applicator(s, e.event.eventData as E) }
     }
 
     protected inline fun <reified E : EventData<*>> init(crossinline initializer: (E, UUID) -> STATE) {
-        initializers[E::class as KClass<EventData<*>>] = { initializer(it.event as E, it.aggregateId) }
+        initializers[E::class as KClass<EventData<*>>] = { initializer(it.event.eventData as E, it.event.aggregateId) }
     }
 
     fun getConfiguration(serializationIdFunction: (KClass<EventData<*>>) -> String): ValidatedAggregateConfiguration<STATE> =
@@ -50,7 +50,7 @@ class ValidatedAggregateConfiguration<STATE : Aggregate>(
             val initializer = initializers[wrapper.serializationId]
 
             if(initializer == null && applicators.containsKey(wrapper.serializationId))
-                error("Error reading ${aggregateType}(${wrapper.aggregateId}): event #${wrapper.eventNumber}(${wrapper.serializationId}) is configured as an applicator in the $aggregateType configuration, but the aggregate state has not yet been initialized. Please verify that an init event precedes this event in the event stream, or update your configuration")
+                error("Error reading ${aggregateType}(${wrapper.event.aggregateId}): event #${wrapper.eventNumber}(${wrapper.serializationId}) is configured as an applicator in the $aggregateType configuration, but the aggregate state has not yet been initialized. Please verify that an init event precedes this event in the event stream, or update your configuration")
 
             initializer?.invoke(wrapper)
         } else {

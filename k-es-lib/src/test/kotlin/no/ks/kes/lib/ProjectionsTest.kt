@@ -64,7 +64,7 @@ internal class ProjectionsTest : StringSpec() {
             )
 
             //when we invoke the captured handler from the manager with the subscribed event
-            slot.invoke(EventWrapper(aggregateId,hiredEvent,null, 0, hiredEvent::class.simpleName!!))
+            slot.invoke(EventWrapper(Event(aggregateId,hiredEvent,null), 0, hiredEvent::class.simpleName!!))
 
             //the projection should update
             startDates.hasBeenProjected(hiredEvent.aggregateId) shouldBe true
