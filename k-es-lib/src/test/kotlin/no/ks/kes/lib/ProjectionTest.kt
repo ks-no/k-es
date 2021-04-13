@@ -24,7 +24,7 @@ internal class ProjectionTest : StringSpec() {
                 }
 
                 init {
-                    on<Hired> { startDates.put(it.aggregateId, it.startDate) }
+                    on<Hired> { startDates.put(it.aggregateId, it.event.startDate) }
                 }
             }
 

@@ -12,8 +12,8 @@ abstract class Projection {
         return
     }
 
-    protected inline fun <reified E : EventData<*>> on(crossinline consumer: (E) -> Any?) =
-            onWrapper<E> { consumer.invoke(it.event) }
+    protected inline fun <reified E : EventData<*>> on(crossinline consumer: (EventWrapper<E>) -> Any?) =
+            onWrapper<E> { consumer.invoke(it) }
 
     @Suppress("UNCHECKED_CAST")
     protected inline fun <reified E : EventData<*>> onWrapper(crossinline consumer: (EventWrapper<E>) -> Any?) {
@@ -46,6 +46,7 @@ abstract class Projection {
         }
 
         fun accept(wrapper: EventWrapper<*>) {
+            log.debug { "ACCEPT ${wrapper.serializationId}" }
             val projector = projectors[wrapper.serializationId]
 
             if (projector != null) {
