@@ -49,17 +49,17 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
                         when (readResult) {
                             is AggregateReadResult.InitializedAggregate<*> -> readResult.aggregateState as A
                             is AggregateReadResult.NonExistingAggregate, is AggregateReadResult.UninitializedAggregate -> null
-                        },
-                        { a, e ->
-                            validatedAggregateConfiguration.applyEvent(EventWrapper(
-                                    aggregateId = e.aggregateId,
-                                    event = e.eventData,
-                                    metadata = e.metadata,
-                                    eventNumber = -1,
-                                    serializationId = repository.getSerializationId(e.eventData::class as KClass<EventData<*>>)
-                            ), a)
-                        })
-                        ?: error("applying derived events to the aggregate resulted in a null-state!")
+                        }
+                ) { a, e ->
+                    validatedAggregateConfiguration.applyEvent(
+                        EventWrapper(
+                            event = e,
+                            eventNumber = -1,
+                            serializationId = repository.getSerializationId(e.eventData::class as KClass<EventData<*>>)
+                        ), a
+                    )
+                }
+                    ?: error("applying derived events to the aggregate resulted in a null-state!")
             }
         }
     }
@@ -97,7 +97,7 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
         }
     }
 
-    private fun appendDerivedEvents(aggregateType: String, readResult: AggregateReadResult, cmd: Cmd<A>, eventWrappers: List<Event>) {
+    private fun appendDerivedEvents(aggregateType: String, readResult: AggregateReadResult, cmd: Cmd<A>, eventWrappers: List<Event<EventData<A>>>) {
         if (eventWrappers.isNotEmpty())
             repository.append(aggregateType, cmd.aggregateId, resolveExpectedEventNumber(readResult, cmd.useOptimisticLocking()), eventWrappers)
     }
@@ -141,25 +141,25 @@ abstract class CmdHandler<A : Aggregate>(private val repository: AggregateReposi
 
     sealed class Result<A : Aggregate>(val exception: Exception?) {
 
-        class Fail<A : Aggregate> private constructor(exception: Exception, val eventWrappers: List<Event>) : Result<A>(exception) {
-            constructor(eventWrapper: Event, exception: Exception) : this(exception, listOf(eventWrapper))
-            constructor(eventWrappers: List<Event>, exception: Exception) : this(exception, eventWrappers)
+        class Fail<A : Aggregate> private constructor(exception: Exception, val eventWrappers: List<Event<EventData<A>>>) : Result<A>(exception) {
+            constructor(eventWrapper: Event<EventData<A>>, exception: Exception) : this(exception, listOf(eventWrapper))
+            constructor(eventWrappers: List<Event<EventData<A>>>, exception: Exception) : this(exception, eventWrappers)
             constructor(exception: Exception) : this(exception, emptyList())
         }
 
-        class RetryOrFail<A : Aggregate> private constructor(exception: Exception, val eventWrappers: List<Event>, val retryStrategy: (Int) -> Instant?) : Result<A>(exception) {
-            constructor(eventWrapper: Event, exception: Exception, retryStrategy: (Int) -> Instant?) : this(exception, listOf(eventWrapper), retryStrategy)
-            constructor(eventWrappers: List<Event>, exception: Exception, retryStrategy: (Int) -> Instant?) : this(exception, eventWrappers, retryStrategy)
+        class RetryOrFail<A : Aggregate> private constructor(exception: Exception, val eventWrappers: List<Event<EventData<A>>>, val retryStrategy: (Int) -> Instant?) : Result<A>(exception) {
+            constructor(eventWrapper: Event<EventData<A>>, exception: Exception, retryStrategy: (Int) -> Instant?) : this(exception, listOf(eventWrapper), retryStrategy)
+            constructor(eventWrappers: List<Event<EventData<A>>>, exception: Exception, retryStrategy: (Int) -> Instant?) : this(exception, eventWrappers, retryStrategy)
             constructor(exception: Exception, retryStrategy: (Int) -> Instant?) : this(exception, emptyList(), retryStrategy)
-            constructor(eventWrapper: Event, exception: Exception) : this(exception, listOf(eventWrapper), RetryStrategies.DEFAULT)
-            constructor(eventWrappers: List<Event>, exception: Exception) : this(exception, eventWrappers, RetryStrategies.DEFAULT)
+            constructor(eventWrapper: Event<EventData<A>>, exception: Exception) : this(exception, listOf(eventWrapper), RetryStrategies.DEFAULT)
+            constructor(eventWrappers: List<Event<EventData<A>>>, exception: Exception) : this(exception, eventWrappers, RetryStrategies.DEFAULT)
             constructor(exception: Exception) : this(exception, emptyList(), RetryStrategies.DEFAULT)
         }
 
         internal class Error<A : Aggregate>(exception: Exception) : Result<A>(exception)
 
-        class Succeed<A : Aggregate>(val derivedEventWrappers: List<Event>) : Result<A>(null) {
-            constructor(event: Event) : this(listOf(event))
+        class Succeed<A : Aggregate>(val derivedEventWrappers: List<Event<EventData<A>>>) : Result<A>(null) {
+            constructor(event: Event<EventData<A>>) : this(listOf(event))
             constructor() : this(emptyList())
         }
     }

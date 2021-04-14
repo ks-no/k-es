@@ -24,7 +24,7 @@ internal class ProjectionTest : StringSpec() {
                 }
 
                 init {
-                    on<Hired> { startDates.put(it.aggregateId, it.startDate) }
+                    on<Hired> {startDates.put(it.aggregateId, it.eventData.startDate) }
                 }
             }
 
@@ -35,7 +35,7 @@ internal class ProjectionTest : StringSpec() {
                     recruitedBy = UUID.randomUUID())
 
             StartDatesProjection().apply {
-                getConfiguration { it.simpleName!! }.accept(EventWrapper(aggregateId, hiredEvent, null, 0, hiredEvent::class.simpleName!!))
+                getConfiguration { it.simpleName!! }.accept(EventWrapper(Event(aggregateId, hiredEvent, null), 0, hiredEvent::class.simpleName!!))
 
                 getStartDate(hiredEvent.aggregateId) shouldBe LocalDate.now()
             }

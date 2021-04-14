@@ -27,7 +27,7 @@ internal class EsjcEventWriterTest : StringSpec() {
             val eventAggregateType = UUID.randomUUID().toString()
 
             val aggregateId = UUID.randomUUID()
-            val event: no.ks.kes.lib.Event =
+            val event: Event<SomeEventData> =
                 Event(aggregateId = aggregateId, eventData = SomeEventData(aggregateId))
 
             val capturedEventData = slot<List<EventData>>()

@@ -22,18 +22,18 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val seri
             )
 
     protected inline fun <reified E : EventData<*>> init(crossinline correlationId: (E, UUID) -> UUID = { _: EventData<*>, aggregateId: UUID -> aggregateId }, crossinline initializer: InitContext<STATE>.(E, UUID) -> Unit) =
-            initWrapped({ correlationId.invoke(it.event, it.aggregateId) }, { w: EventWrapper<E> -> initializer.invoke(this, w.event, w.aggregateId) })
+            initWrapped({ correlationId.invoke(it.event.eventData, it.event.aggregateId) }, { w: EventWrapper<E> -> initializer.invoke(this, w.event.eventData, w.event.aggregateId) })
 
     protected inline fun <reified E : EventData<*>> apply(crossinline correlationId: (E, UUID) -> UUID = { _: EventData<*>, aggregateId: UUID -> aggregateId }, crossinline handler: ApplyContext<STATE>.(E, UUID) -> Unit) =
-            applyWrapped({ correlationId.invoke(it.event, it.aggregateId) }, { w: EventWrapper<E> -> handler.invoke(this, w.event, w.aggregateId) })
+            applyWrapped({ correlationId.invoke(it.event.eventData, it.event.aggregateId) }, { w: EventWrapper<E> -> handler.invoke(this, w.event.eventData, w.event.aggregateId) })
 
     protected inline fun <reified E : EventData<*>> timeout(crossinline correlationId: (E, UUID) -> UUID = { _: EventData<*>, aggregateId: UUID -> aggregateId }, crossinline timeoutAt: (E) -> Instant, crossinline handler: ApplyContext<STATE>.() -> Unit) {
-        timeoutWrapped<E>({ correlationId.invoke(it.event, it.aggregateId) }, { timeoutAt.invoke(it.event) }, handler)
+        timeoutWrapped<E>({ correlationId.invoke(it.event.eventData, it.event.aggregateId) }, { timeoutAt.invoke(it.event.eventData) }, handler)
     }
 
     @Suppress("UNCHECKED_CAST")
     protected inline fun <reified E : EventData<*>> timeoutWrapped(
-            crossinline correlationId: (EventWrapper<E>) -> UUID = { it.aggregateId },
+            crossinline correlationId: (EventWrapper<E>) -> UUID = { it.event.aggregateId },
             crossinline timeoutAt: (EventWrapper<E>) -> Instant,
             crossinline handler: ApplyContext<STATE>.() -> Unit
     ) {
@@ -47,7 +47,7 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val seri
 
     @Suppress("UNCHECKED_CAST")
     protected inline fun <reified E : EventData<*>> initWrapped(
-            crossinline correlationId: (EventWrapper<E>) -> UUID = { it.aggregateId },
+            crossinline correlationId: (EventWrapper<E>) -> UUID = { it.event.aggregateId },
             noinline handler: InitContext<STATE>.(EventWrapper<E>) -> Unit
     ) {
         eventInitializers.add(E::class as KClass<EventData<*>> to EventHandler.Initializer(
@@ -58,7 +58,7 @@ abstract class Saga<STATE : Any>(private val stateClass: KClass<STATE>, val seri
 
     @Suppress("UNCHECKED_CAST")
     protected inline fun <reified E : EventData<*>> applyWrapped(
-            crossinline correlationId: (EventWrapper<E>) -> UUID = { it.aggregateId },
+            crossinline correlationId: (EventWrapper<E>) -> UUID = { it.event.aggregateId },
             crossinline handler: ApplyContext<STATE>.(EventWrapper<E>) -> Unit
     ) {
         eventApplicators.add(E::class as KClass<EventData<*>> to EventHandler.Applicator(

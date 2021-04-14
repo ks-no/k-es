@@ -27,7 +27,7 @@ class SagaEventHandlingTest : StringSpec() {
                     init({ _: SomeEventData, aggregateId: UUID -> aggregateId }) { _: SomeEventData, aggregateId: UUID -> setState(SomeState(aggregateId)) }
                 }
             }.getConfiguration { it.simpleName!! }
-                    .handleEvent(EventWrapper(aggregateId, event,null, -1, event::class.simpleName!!)) { _, _ -> null }
+                    .handleEvent(EventWrapper(Event(aggregateId, event,null), -1, event::class.simpleName!!)) { _, _ -> null }
                     .run {
                         with(this as SagaRepository.Operation.Insert) {
                             correlationId shouldBe event.aggregateId
@@ -47,7 +47,7 @@ class SagaEventHandlingTest : StringSpec() {
                     init({ _: SomeEventData, aggregateId: UUID -> aggregateId }) { _: SomeEventData, aggregateId: UUID -> setState(SomeState(aggregateId)) }
                 }
             }.getConfiguration { it.simpleName!! }
-                    .handleEvent(EventWrapper(aggregateId,event,null, -1, event::class.simpleName!!)) { id, _ -> SomeState(id) }.apply {
+                    .handleEvent(EventWrapper(Event(aggregateId,event,null), -1, event::class.simpleName!!)) { id, _ -> SomeState(id) }.apply {
                         this shouldBe null
                     }
         }
@@ -64,7 +64,7 @@ class SagaEventHandlingTest : StringSpec() {
                     }
                 }
             }.getConfiguration { it.simpleName!! }
-                    .handleEvent(EventWrapper(aggregateId,event,null, -1, event::class.simpleName!!)) { _, _ -> null }.apply {
+                    .handleEvent(EventWrapper(Event(aggregateId,event,null), -1, event::class.simpleName!!)) { _, _ -> null }.apply {
                         with(this as SagaRepository.Operation.Insert) {
                             correlationId shouldBe event.aggregateId
                             serializationId shouldBe sagaSerializationId
@@ -83,7 +83,7 @@ class SagaEventHandlingTest : StringSpec() {
                     apply({ _: SomeEventData, aggregateId: UUID -> aggregateId }) { _: SomeEventData, _: UUID -> setState(state.copy(updated = true)) }
                 }
             }.getConfiguration { it.simpleName!! }
-                    .handleEvent(EventWrapper(aggregateId,event,null, 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }.apply {
+                    .handleEvent(EventWrapper(Event(aggregateId,event,null), 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }.apply {
                         with(this as SagaRepository.Operation.SagaUpdate) {
                             correlationId shouldBe event.aggregateId
                             serializationId shouldBe sagaSerializationId
@@ -102,7 +102,7 @@ class SagaEventHandlingTest : StringSpec() {
                     apply({ _: SomeEventData, aggregateId: UUID -> aggregateId }) { _: SomeEventData, aggregateId: UUID -> dispatch(SomeCmd(aggregateId)) }
                 }
             }.getConfiguration { it.simpleName!! }
-                    .handleEvent(EventWrapper(aggregateId,event,null, 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }.apply {
+                    .handleEvent(EventWrapper(Event(aggregateId,event,null), 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }.apply {
                         with(this as SagaRepository.Operation.SagaUpdate) {
                             correlationId shouldBe event.aggregateId
                             serializationId shouldBe sagaSerializationId
@@ -125,7 +125,7 @@ class SagaEventHandlingTest : StringSpec() {
                     }
                 }
             }.getConfiguration { it.simpleName!! }
-                    .handleEvent(EventWrapper(aggregateId,event,null, 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }
+                    .handleEvent(EventWrapper(Event(aggregateId,event,null), 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }
                     .run {
                         with(this as SagaRepository.Operation.SagaUpdate) {
                             correlationId shouldBe event.aggregateId
@@ -174,7 +174,7 @@ class SagaEventHandlingTest : StringSpec() {
                     apply({ _: SomeEventData, aggregateId: UUID -> aggregateId }) { _: SomeEventData, _: UUID -> setState(state.copy(updated = true)) }
                 }
             }.getConfiguration { it.simpleName!! }
-                    .handleEvent(EventWrapper(aggregateId,event,null, 0, event::class.simpleName!!)) { _, _ -> null }
+                    .handleEvent(EventWrapper(Event(aggregateId,event,null), 0, event::class.simpleName!!)) { _, _ -> null }
                     .run {
                         with(this as SagaRepository.Operation.Insert) {
                             correlationId shouldBe event.aggregateId
@@ -195,7 +195,7 @@ class SagaEventHandlingTest : StringSpec() {
                     apply({ _: SomeEventData, aggregateId: UUID -> aggregateId }) { _: SomeEventData, _: UUID -> setState(state.copy(updated = true)) }
                 }
             }.getConfiguration { it.simpleName!! }
-                    .handleEvent(EventWrapper(aggregateId,event,null, 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }
+                    .handleEvent(EventWrapper(Event(aggregateId,event,null), 0, event::class.simpleName!!)) { id, _ -> SomeState(id) }
                     .run {
                         with(this as SagaRepository.Operation.SagaUpdate) {
                             correlationId shouldBe event.aggregateId

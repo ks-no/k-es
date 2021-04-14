@@ -12,7 +12,7 @@ abstract class Projection {
         return
     }
 
-    protected inline fun <reified E : EventData<*>> on(crossinline consumer: (E) -> Any?) =
+    protected inline fun <reified E : EventData<*>> on(crossinline consumer: (Event<E>) -> Any?) =
             onWrapper<E> { consumer.invoke(it.event) }
 
     @Suppress("UNCHECKED_CAST")
@@ -50,7 +50,7 @@ abstract class Projection {
 
             if (projector != null) {
                 projector.invoke(wrapper)
-                log.debug("Event ${wrapper.serializationId} on aggregate ${wrapper.aggregateId} " +
+                log.debug("Event ${wrapper.serializationId} on aggregate ${wrapper.event.aggregateId} " +
                         "applied to projection $name")
             }
 

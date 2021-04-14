@@ -27,8 +27,10 @@ internal class AggregateConfigurationTest : StringSpec() {
                     .getConfiguration { it.simpleName!! }
                     .applyEvent(
                             wrapper = EventWrapper(
+                                Event(
                                     aggregateId = UUID.randomUUID(),
-                                    event = SomeInitEventData(),
+                                    eventData = SomeInitEventData()
+                                ),
                                     eventNumber = -1,
                                     serializationId = SomeInitEventData::class.simpleName!!
                             ),
@@ -65,8 +67,10 @@ internal class AggregateConfigurationTest : StringSpec() {
                     .getConfiguration { it.simpleName!! }
                     .applyEvent(
                             wrapper = EventWrapper(
+                                Event(
                                     aggregateId = UUID.randomUUID(),
-                                    event = SomeInitEventData(),
+                                    eventData = SomeInitEventData())
+                                ,
                                     eventNumber = -1,
                                     serializationId = SomeInitEventData::class.simpleName!!
                             ),
@@ -76,8 +80,10 @@ internal class AggregateConfigurationTest : StringSpec() {
                     .getConfiguration { it.simpleName!! }
                     .applyEvent(
                             EventWrapper(
+                                Event(
                                     aggregateId = UUID.randomUUID(),
-                                    event = SomeLaterEventData(),
+                                    eventData = SomeLaterEventData()
+                                ),
                                     eventNumber = -1,
                                     serializationId = SomeLaterEventData::class.simpleName!!
                             ),
@@ -112,10 +118,10 @@ internal class AggregateConfigurationTest : StringSpec() {
 
             val initializedState0 = aggregateConfig
                     .getConfiguration { it.simpleName!! }
-                    .applyEvent(EventWrapper(UUID.randomUUID(),SomeInitEventData(),null, -1, SomeInitEventData::class.simpleName!!), null)
+                    .applyEvent(EventWrapper(Event(UUID.randomUUID(),SomeInitEventData(),null), -1, SomeInitEventData::class.simpleName!!), null)
             initializedState0!!.initializedWith shouldBe "SomeInitEvent"
 
-            val initializedState1 = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(UUID.randomUUID(),SomeOtherInitEventData(),null, -1, SomeOtherInitEventData::class.simpleName!!), null)
+            val initializedState1 = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(Event(UUID.randomUUID(),SomeOtherInitEventData(),null), -1, SomeOtherInitEventData::class.simpleName!!), null)
             initializedState1!!.initializedWith shouldBe "SomeOtherInitEvent"
 
         }
@@ -141,9 +147,9 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val initializedState = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(UUID.randomUUID(),SomeInitEventData(),null, -1, SomeInitEventData::class.simpleName!!), null)
+            val initializedState = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(Event(UUID.randomUUID(),SomeInitEventData(),null), -1, SomeInitEventData::class.simpleName!!), null)
             initializedState!!.stateInitialized shouldBe true
-            val updatedState = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(UUID.randomUUID(),SomeInitEventData(),null, -1, SomeInitEventData::class.simpleName!!), initializedState)
+            val updatedState = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(Event(UUID.randomUUID(),SomeInitEventData(),null), -1, SomeInitEventData::class.simpleName!!), initializedState)
             updatedState!!.stateUpdated shouldBe true
         }
 
@@ -162,7 +168,7 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            shouldThrow<IllegalStateException> { aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(UUID.randomUUID(),SomeEventData(),null, Random.nextLong(), SomeEventData::class.simpleName!!), null)}
+            shouldThrow<IllegalStateException> { aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(Event(UUID.randomUUID(),SomeEventData(),null), Random.nextLong(), SomeEventData::class.simpleName!!), null)}
                     .message shouldContain "aggregate state has not yet been initialized"
 
         }
@@ -190,10 +196,10 @@ internal class AggregateConfigurationTest : StringSpec() {
                 }
             }
 
-            val derivedState0 = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(UUID.randomUUID(),SomeInitEventData(),null, -1, SomeInitEventData::class.simpleName!!), null)
+            val derivedState0 = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(Event(UUID.randomUUID(),SomeInitEventData(),null), -1, SomeInitEventData::class.simpleName!!), null)
             derivedState0!!.initializedWith shouldBe "SomeInitEvent"
 
-            val derivedState1 = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(UUID.randomUUID(),SomeOtherInitEventData(),null, -1, SomeOtherInitEventData::class.simpleName!!), derivedState0)
+            val derivedState1 = aggregateConfig.getConfiguration { it.simpleName!! }.applyEvent(EventWrapper(Event(UUID.randomUUID(),SomeOtherInitEventData(),null), -1, SomeOtherInitEventData::class.simpleName!!), derivedState0)
             derivedState1!!.initializedWith shouldBe "SomeInitEvent"
 
         }
