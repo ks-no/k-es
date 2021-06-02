@@ -50,7 +50,7 @@
         <esjc.version>2.3.0</esjc.version>
         <spring.version>5.3.5</spring.version>
         <logback.version>1.2.3</logback.version>
-        <kotlin-logging.version>2.0.6</kotlin-logging.version>
+        <kotlin-logging.version>2.0.8</kotlin-logging.version>
         <mockk.version>1.11.0</mockk.version>
         <kotest.version>4.2.2</kotest.version>
         <jacoco-maven-plugin.version>0.8.6</jacoco-maven-plugin.version>
