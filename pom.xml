@@ -58,7 +58,7 @@
         <java.version>11</java.version>
         <testcontainers.version>1.15.2</testcontainers.version>
         <mssql-jdbc.version>8.4.1.jre11</mssql-jdbc.version>
-        <protobuf-java.version>3.15.6</protobuf-java.version>
+        <protobuf-java.version>3.17.3</protobuf-java.version>
         <testcontainers.version>1.15.2</testcontainers.version>
     </properties>
 
