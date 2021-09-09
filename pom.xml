@@ -53,7 +53,7 @@
         <kotlin-logging.version>2.0.11</kotlin-logging.version>
         <mockk.version>1.12.0</mockk.version>
         <kotest.version>4.2.2</kotest.version>
-        <jacoco-maven-plugin.version>0.8.6</jacoco-maven-plugin.version>
+        <jacoco-maven-plugin.version>0.8.7</jacoco-maven-plugin.version>
         <junit.jupiter.version>5.7.2</junit.jupiter.version>
         <java.version>11</java.version>
         <testcontainers.version>1.16.0</testcontainers.version>
