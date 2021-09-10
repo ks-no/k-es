@@ -16,7 +16,6 @@
         <flyway.version>7.15.0</flyway.version>
         <mssql-jdbc.version>7.4.1.jre11</mssql-jdbc.version>
         <awaitility.version>4.1.0</awaitility.version>
-        <svarut-events.version>1.4.0</svarut-events.version>
         <spring-boot-maven-plugin.version>2.5.4</spring-boot-maven-plugin.version>
         <kotlin-maven-plugin.version>1.5.0-M1</kotlin-maven-plugin.version>
     </properties>
@@ -34,6 +33,10 @@
         <dependency>
             <groupId>no.ks</groupId>
             <artifactId>k-es-serdes-jackson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>no.ks</groupId>
+            <artifactId>k-es-demo-app-proto-events</artifactId>
         </dependency>
 
         <!--external-->
@@ -62,13 +65,6 @@
         <dependency>
             <groupId>io.github.microutils</groupId>
             <artifactId>kotlin-logging-jvm</artifactId>
-        </dependency>
-
-
-        <dependency>
-            <groupId>no.ks.fiks.svarut</groupId>
-            <artifactId>events</artifactId>
-            <version>${svarut-events.version}</version>
         </dependency>
 
         <!--test-->

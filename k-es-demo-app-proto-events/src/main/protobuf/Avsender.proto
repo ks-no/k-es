@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package  no.ks.svarut.event;
+
+message AvsenderOpprettet {
+    string epost = 1;
+    string orgId = 2;
+}
+message AvsenderAktivert {
+}
+
+message AvsenderDeaktivert {
+}
