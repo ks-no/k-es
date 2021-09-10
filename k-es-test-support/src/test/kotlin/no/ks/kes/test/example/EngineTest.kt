@@ -167,7 +167,7 @@ class EngineTest : StringSpec({
                 failure("Failed during eventhandling in projection", e)
             }
             val aggregatesCreated = 10
-            checkAll(iterations = aggregatesCreated, Arb.uuid()) { aggregateId ->
+            checkAll(iterations = aggregatesCreated, Arb.uuid(UUIDVersion.V4, false)) { aggregateId ->
                 engineCmdHandler.handle(Cmds.Create(aggregateId)).asClue {
                     it.id shouldBe aggregateId
                     it.running shouldBe false
@@ -240,7 +240,7 @@ class EngineTest : StringSpec({
     "Test issuing commands that are not init commands before the aggregate has been created" {
         withKes(Events.serdes, Cmds.serdes) { kes ->
             val engineCmdHandler = EngineCmdHandler(kes.aggregateRepository)
-            checkAll(iterations = 100, Arb.uuid()) { aggregateId ->
+            checkAll(iterations = 100, Arb.uuid(UUIDVersion.V4, false)) { aggregateId ->
                 shouldThrowExactly<IllegalStateException> {
                     // The Start command is not declared a init command in EngineCmdHandler and thus this command should rejected as the aggregate does not exist
                     engineCmdHandler.handle(Cmds.Start(aggregateId))
