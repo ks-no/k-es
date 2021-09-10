@@ -21,18 +21,18 @@ data class EngineSagaState(val aggregateId: UUID, val startInitiated: Boolean, v
 
 object EngineSaga : Saga<EngineSagaState>(EngineSagaState::class, SAGA_SERILIZATION_ID) {
     init {
-        init { e: Events.Created, aggregateId: UUID ->
+        init { _: Events.Created, aggregateId: UUID ->
             LOG.debug { "Saga created: $aggregateId" }
             dispatch(Cmds.Start(aggregateId = aggregateId))
             setState(EngineSagaState(aggregateId = aggregateId, startInitiated = true))
         }
 
-        apply { e: Events.Stopped, aggregateId: UUID ->
+        apply { _: Events.Stopped, aggregateId: UUID ->
             LOG.debug { "Saga handles Stopped: $aggregateId" }
             setState(state.copy(startInitiated = false))
         }
 
-        timeout({ e: Events.Started, aggregateId: UUID -> aggregateId }, { Instant.now().plus(Duration.ofSeconds(5L)) }) {
+        timeout({ _: Events.Started, aggregateId: UUID -> aggregateId }, { Instant.now().plus(Duration.ofSeconds(5L)) }) {
             LOG.debug { "Saga timed: ${state.aggregateId}" }
             if (state.startInitiated) {
                 setState(state.copy(stoppedBySaga = true))
@@ -45,7 +45,7 @@ object EngineSaga : Saga<EngineSagaState>(EngineSagaState::class, SAGA_SERILIZAT
 object Engine : AggregateConfiguration<EngineProperties>(ENGINE_AGGREGATE_TYPE) {
 
     init {
-        init { e: Events.Created, aggregateId: UUID ->
+        init { _: Events.Created, aggregateId: UUID ->
             EngineProperties(id = aggregateId, running = false)
         }
 

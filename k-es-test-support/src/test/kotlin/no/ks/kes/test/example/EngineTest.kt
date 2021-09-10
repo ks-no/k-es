@@ -14,6 +14,7 @@ import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.throwable.shouldHaveMessage
 import io.kotest.property.Arb
+import io.kotest.property.arbitrary.UUIDVersion
 import io.kotest.property.arbitrary.uuid
 import io.kotest.property.checkAll
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -25,8 +26,7 @@ import no.ks.kes.test.AggregateKey
 import no.ks.kes.test.withKes
 import java.util.*
 import java.util.concurrent.Executors
-import kotlin.time.ExperimentalTime
-import kotlin.time.seconds
+import kotlin.time.*
 
 @ExperimentalTime
 class EngineTest : StringSpec({
@@ -40,7 +40,7 @@ class EngineTest : StringSpec({
                 it.running shouldBe false
                 it.startCount shouldBe 0
             }
-            eventually(3.seconds) {
+            eventually(3.toDuration(DurationUnit.SECONDS)) {
                 kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
                     events shouldHaveSize 1
                     events[0].eventData::class.java shouldBe Events.Created::class.java
@@ -58,7 +58,7 @@ class EngineTest : StringSpec({
                 it.running shouldBe false
                 it.startCount shouldBe 0
             }
-            eventually(3.seconds) {
+            eventually(3.toDuration(DurationUnit.SECONDS)) {
                 kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
                     events shouldHaveSize 1
                     events[0].eventData::class.java shouldBe Events.Created::class.java
@@ -80,7 +80,7 @@ class EngineTest : StringSpec({
                 )
 
             }
-            eventually(3.seconds) {
+            eventually(3.toDuration(DurationUnit.SECONDS)) {
                 kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { writeEventWrappers ->
                     writeEventWrappers shouldHaveAtLeastSize 2
                     val events = writeEventWrappers.map { it.eventData }.toList()
@@ -102,7 +102,7 @@ class EngineTest : StringSpec({
                 it.running shouldBe false
                 it.startCount shouldBe 0
             }
-            eventually(3.seconds) {
+            eventually(3.toDuration(DurationUnit.SECONDS)) {
                 kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { events ->
                     events shouldHaveSize 1
                     events[0].eventData::class.java shouldBe Events.Created::class.java
@@ -130,7 +130,7 @@ class EngineTest : StringSpec({
                 it.running shouldBe false
                 it.startCount shouldBe 0
             }
-            eventually(10.seconds) {
+            eventually(10.toDuration(DurationUnit.SECONDS)) {
                 kes.eventStream.get(AggregateKey(ENGINE_AGGREGATE_TYPE, aggregateId))?.asClue { wrappers ->
                     val events = wrappers.map { it.eventData }.toList()
                     events.filterIsInstance<Events.Created>() shouldHaveSize 1
@@ -175,7 +175,7 @@ class EngineTest : StringSpec({
                 }
             }
 
-            eventually(30.seconds) {
+            eventually(30.toDuration(DurationUnit.SECONDS)) {
                 engineProjection.all shouldHaveSize aggregatesCreated
                 engineProjection.allRunning should beEmpty()
                 engineProjection.allStopped shouldHaveSize aggregatesCreated
@@ -201,7 +201,7 @@ class EngineTest : StringSpec({
                 it.running shouldBe false
                 it.startCount shouldBe 0
             }
-            eventually(3.seconds) {
+            eventually(3.toDuration(DurationUnit.SECONDS)) {
                 engineProjection.all shouldContain aggregateId
             }
 
@@ -222,14 +222,14 @@ class EngineTest : StringSpec({
                 failure("Failed during projection event handling", e)
             }
             val aggregatesToCreate = 1000
-            checkAll(aggregatesToCreate, Arb.uuid()) { aggregateId ->
+            checkAll(aggregatesToCreate, Arb.uuid(UUIDVersion.V4, false)) { aggregateId ->
                 engineCmdHandler.handle(Cmds.Create(aggregateId)).asClue {
                     it.id shouldBe aggregateId
                     it.running shouldBe false
                     it.startCount shouldBe 0
                 }
             }
-            eventually(3.seconds) {
+            eventually(3.toDuration(DurationUnit.SECONDS)) {
                 engineProjection.all shouldHaveSize aggregatesToCreate
             }
 

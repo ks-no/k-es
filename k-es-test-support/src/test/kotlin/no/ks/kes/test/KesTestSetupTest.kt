@@ -11,6 +11,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import io.kotest.property.Arb
+import io.kotest.property.arbitrary.UUIDVersion
 import io.kotest.property.arbitrary.uuid
 import io.kotest.property.checkAll
 import no.ks.kes.lib.Projections
@@ -19,8 +20,9 @@ import no.ks.kes.serdes.jackson.JacksonCmdSerdes
 import no.ks.kes.serdes.jackson.JacksonEventSerdes
 import no.ks.kes.test.example.*
 import java.util.*
+import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
-import kotlin.time.seconds
+import kotlin.time.toDuration
 
 @ExperimentalTime
 class KesTestSetupTest : FunSpec({
@@ -63,7 +65,7 @@ class KesTestSetupTest : FunSpec({
             val cmdHandler = EngineCmdHandler(repository = it.aggregateRepository)
             val aggregateId = UUID.randomUUID()
             cmdHandler.handle(Cmds.Create(aggregateId))
-            eventually(5.seconds) {
+            eventually(5.toDuration(DurationUnit.SECONDS)) {
                 enginesProjection.all shouldContain aggregateId
             }
         }
@@ -80,10 +82,10 @@ class KesTestSetupTest : FunSpec({
             )
             val cmdHandler = EngineCmdHandler(repository = kes.aggregateRepository)
             val aggregatesToCreate = 10_000
-            checkAll(iterations = aggregatesToCreate, Arb.uuid()) { aggregationId ->
+            checkAll(iterations = aggregatesToCreate, Arb.uuid(UUIDVersion.V4, false)) { aggregationId ->
                 cmdHandler.handle(Cmds.Create(aggregationId))
             }
-            eventually(5.seconds) {
+            eventually(5.toDuration(DurationUnit.SECONDS)) {
                 enginesProjection.all shouldHaveSize aggregatesToCreate
                 kes.eventStream.eventCount() shouldBe aggregatesToCreate
             }
@@ -107,7 +109,7 @@ class KesTestSetupTest : FunSpec({
             cmdHandler.handle(Cmds.Create(aggregateId)).asClue {
                 it.id shouldBe aggregateId
             }
-            eventually(10.seconds) {
+            eventually(10.toDuration(DurationUnit.SECONDS)) {
                 sagaRepository.getSagaState(aggregateId, SAGA_SERILIZATION_ID, EngineSagaState::class)?.asClue {
                     it.stoppedBySaga shouldBe true
                 } ?: fail("EngineSaga did not change state of aggregate to be stopped")
