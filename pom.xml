@@ -52,7 +52,8 @@
         <logback.version>1.2.5</logback.version>
         <kotlin-logging.version>2.0.11</kotlin-logging.version>
         <mockk.version>1.12.0</mockk.version>
-        <kotest.version>4.2.2</kotest.version>
+        <kotest.version>4.6.2</kotest.version>
+        <kotest.testcontainers.version>4.4.3</kotest.testcontainers.version>
         <jacoco-maven-plugin.version>0.8.7</jacoco-maven-plugin.version>
         <junit.jupiter.version>5.7.2</junit.jupiter.version>
         <java.version>11</java.version>
@@ -180,7 +181,7 @@
             <dependency>
                 <groupId>io.kotest</groupId>
                 <artifactId>kotest-extensions-testcontainers-jvm</artifactId>
-                <version>${kotest.version}</version>
+                <version>${kotest.testcontainers.version}</version>
                 <scope>test</scope>
             </dependency>
             <!-- /kotest -->
