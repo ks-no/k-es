@@ -1,0 +1,25 @@
+version: '3'
+services:
+  mssql:
+    image: docker-all.artifactory.fiks.ks.no/fiks-mssql
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Test1234!
+      - DB_NAME=kesdemo
+    ports:
+      - 1433
+
+  eventstore:
+    image: eventstore/eventstore:21.6.0-buster-slim
+    environment:
+      - EVENTSTORE_CLUSTER_SIZE=1
+      - EVENTSTORE_RUN_PROJECTIONS=All
+      - EVENTSTORE_START_STANDARD_PROJECTIONS=true
+      - EVENTSTORE_EXT_TCP_PORT=1113
+      - EVENTSTORE_HTTP_PORT=2113
+      - EVENTSTORE_INSECURE=true
+      - EVENTSTORE_ENABLE_EXTERNAL_TCP=true
+      - EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP=true
+    ports:
+      - "1113"
+      - "2113"

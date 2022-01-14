@@ -1,8 +1,5 @@
 package no.ks.kes.grpc
 
-import com.eventstore.dbclient.Subscription
-import com.eventstore.dbclient.SubscriptionListener
-import com.github.msemys.esjc.CatchUpSubscription
 import no.ks.kes.lib.EventSubscription
 
 /**

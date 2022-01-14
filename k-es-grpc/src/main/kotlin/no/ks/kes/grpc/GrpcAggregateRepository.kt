@@ -2,12 +2,12 @@ package no.ks.kes.grpc
 
 import com.eventstore.dbclient.*
 import com.eventstore.dbclient.ExpectedRevision.expectedRevision
-import com.github.msemys.esjc.operation.StreamNotFoundException
 import mu.KotlinLogging
 import no.ks.kes.grpc.GrpcEventUtil.isIgnorable
 import no.ks.kes.lib.*
 import no.ks.kes.lib.EventData
 import java.util.*
+import java.util.concurrent.ExecutionException
 import kotlin.reflect.KClass
 
 private const val FIRST_EVENT = 0L
@@ -45,63 +45,70 @@ class GrpcAggregateRepository(
             EventDataBuilder.binary(serdes.getSerializationId(event.eventData::class), serdes.serialize(event.eventData))
         }.apply {
             if(metadataSerdes != null && event.metadata != null) {
-                metadataAsJson(metadataSerdes.serialize(event.metadata!!))
+                metadataAsBytes(metadataSerdes.serialize(event.metadata!!))
             }
         }.build()
 
     override fun getSerializationId(eventDataClass: KClass<EventData<*>>): String =
         serdes.getSerializationId(eventDataClass)
 
-    override fun <A : Aggregate> read(aggregateId: UUID, aggregateType: String, applicator: (state: A?, event: EventWrapper<*>) -> A?): AggregateReadResult =
-        try {
-            val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
-            val readOptions = ReadStreamOptions.get()
-                .forwards()
-                .fromStart()
-                .notResolveLinkTos()
-            eventStoreDBClient.readStream(streamId, BATCH_SIZE, readOptions)
-                .get().events
-                .fold(null as A? to null as Long?) { a, e ->
-                    if (e.isIgnorable()) {
-                        a.first to e.event.streamRevision.valueUnsigned
-                    } else {
-                        val eventMeta =
-                            if (e.event.userMetadata.isNotEmpty() && metadataSerdes != null) metadataSerdes.deserialize(
-                                e.event.userMetadata
-                            ) else null
-                        val event = serdes.deserialize(e.event.eventData, e.event.eventType)
-                        val deserialized = EventUpgrader.upgrade(event)
-                        applicator.invoke(
-                            a.first,
-                            EventWrapper(
-                                Event(
-                                    aggregateId = aggregateId,
-                                    eventData = deserialized,
-                                    metadata = eventMeta
-                                ),
-                                eventNumber = e.event.streamRevision.valueUnsigned,
-                                serializationId = serdes.getSerializationId(deserialized::class)
-                            )
-                        ) to e.event.streamRevision.valueUnsigned
+    override fun <A : Aggregate> read(aggregateId: UUID, aggregateType: String, applicator: (state: A?, event: EventWrapper<*>) -> A?): AggregateReadResult {
+        val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
+        val readOptions = ReadStreamOptions.get()
+            .forwards()
+            .fromStart()
+            .notResolveLinkTos()
+        return eventStoreDBClient.readStream(streamId, BATCH_SIZE, readOptions)
+            .handle { result, throwable ->
+                if (throwable == null) {
+                    result.events
+                        .fold(null as A? to null as Long?) { a, e ->
+                            if (e.isIgnorable()) {
+                                a.first to e.event.streamRevision.valueUnsigned
+                            } else {
+                                val eventMeta =
+                                    if (e.event.userMetadata.isNotEmpty() && metadataSerdes != null) metadataSerdes.deserialize(
+                                        e.event.userMetadata
+                                    ) else null
+                                val event = serdes.deserialize(e.event.eventData, e.event.eventType)
+                                val deserialized = EventUpgrader.upgrade(event)
+                                applicator.invoke(
+                                    a.first,
+                                    EventWrapper(
+                                        Event(
+                                            aggregateId = aggregateId,
+                                            eventData = deserialized,
+                                            metadata = eventMeta
+                                        ),
+                                        eventNumber = e.event.streamRevision.valueUnsigned,
+                                        serializationId = serdes.getSerializationId(deserialized::class)
+                                    )
+                                ) to e.event.streamRevision.valueUnsigned
+                            }
+                        }
+                        .let {
+                            when {
+                                //when the aggregate stream has events, but applying these did not lead to a initialized state
+                                it.first == null && it.second != null -> AggregateReadResult.UninitializedAggregate(it.second!!)
+
+                                //when the aggregate stream has events, and applying these has lead to a initialized state
+                                it.first != null && it.second != null -> AggregateReadResult.InitializedAggregate(
+                                    it.first!!,
+                                    it.second!!
+                                )
+
+                                //when the aggregate stream has no events
+                                else -> error("Error reading $streamId, the stream exists but does not contain any events")
+                            }
+                        }
+                } else {
+                    when (throwable) {
+                        is StreamNotFoundException -> AggregateReadResult.NonExistingAggregate
+                        else -> throw throwable
                     }
                 }
-                .let {
-                    when {
-                        //when the aggregate stream has events, but applying these did not lead to a initialized state
-                        it.first == null && it.second != null -> AggregateReadResult.UninitializedAggregate(it.second!!)
-
-                        //when the aggregate stream has events, and applying these has lead to a initialized state
-                        it.first != null && it.second != null -> AggregateReadResult.InitializedAggregate(it.first!!, it.second!!)
-
-                        //when the aggregate stream has no events
-                        else -> error("Error reading $streamId, the stream exists but does not contain any events")
-                    }
-                }
-        } catch (e: StreamNotFoundException) {
-            AggregateReadResult.NonExistingAggregate
-        }
-
-
+            }.get()
+    }
 
     private fun resolveExpectedRevision(expectedEventNumber: ExpectedEventNumber): ExpectedRevision =
         when (expectedEventNumber) {

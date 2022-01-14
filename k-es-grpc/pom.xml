@@ -13,8 +13,8 @@
     <artifactId>k-es-grpc</artifactId>
 
     <properties>
-        <spring-boot-version>2.5.4</spring-boot-version>
         <awaitility.version>4.1.0</awaitility.version>
+        <spring-boot-version>2.5.4</spring-boot-version>
     </properties>
 
     <dependencies>
@@ -40,10 +40,6 @@
         <dependency>
             <groupId>io.github.microutils</groupId>
             <artifactId>kotlin-logging-jvm</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.github.msemys</groupId>
-            <artifactId>esjc</artifactId>
         </dependency>
         <dependency>
             <groupId>com.eventstore</groupId>
@@ -109,7 +105,8 @@
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -121,6 +118,11 @@
             <groupId>no.ks</groupId>
             <artifactId>k-es-demo-app-proto-events</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-api</artifactId>
+            <version>1.31.1</version>
         </dependency>
     </dependencies>
 

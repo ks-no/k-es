@@ -87,8 +87,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.kotest</groupId>
-            <artifactId>kotest-extensions-testcontainers-jvm</artifactId>
+            <groupId>io.kotest.extensions</groupId>
+            <artifactId>kotest-extensions-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
         <!-- /Kotest -->

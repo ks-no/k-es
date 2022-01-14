@@ -4,6 +4,7 @@ import com.github.msemys.esjc.*
 import mu.KotlinLogging
 import no.ks.kes.lib.*
 import no.ks.kes.lib.EventData
+import no.ks.kes.lib.StreamPosition
 import java.util.*
 import kotlin.reflect.KClass
 import java.lang.Exception as JavaException

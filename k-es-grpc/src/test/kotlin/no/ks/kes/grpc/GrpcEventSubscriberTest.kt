@@ -3,7 +3,6 @@ package no.ks.kes.grpc
 import com.eventstore.dbclient.*
 import com.eventstore.dbclient.Subscription
 import com.eventstore.dbclient.SubscriptionListener
-import com.github.msemys.esjc.*
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.data.forAll
@@ -12,6 +11,7 @@ import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.beInstanceOf
 import io.mockk.*
+import no.ks.kes.grpc.GrpcSubscriptionDroppedReason.ConnectionShutDown
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
@@ -33,11 +33,13 @@ internal class GrpcEventSubscriberTest : StringSpec() {
 
         }
 
-        "On close propagetes reason" {
+        "On close propagates reason" {
             val category = UUID.randomUUID().toString()
             val eventnumber: Long = 1
             val subscriptionListener = slot<SubscriptionListener>()
-            val subscription: CompletableFuture<Subscription> = CompletableFuture.completedFuture(mockk())
+            val subscription: CompletableFuture<Subscription> = CompletableFuture.completedFuture(mockk<Subscription> {
+                every { subscriptionId } returns UUID.randomUUID().toString()
+            })
             val eventStoreMock = mockk<EventStoreDBClient> {
                 every { subscribeToStream("\$ce-$category", capture(subscriptionListener), any()) } returns subscription
             }
@@ -49,16 +51,16 @@ internal class GrpcEventSubscriberTest : StringSpec() {
             ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = 1, onClose = {
                 catchedException = it
             })
-            val subscriptionDropReason = SubscriptionDropReason.ConnectionClosed
+            val reason = "connection closed"
             subscriptionListener.captured.onError(subscription.get(), ConnectionShutdownException())
             (catchedException!! as GrpcSubscriptionDroppedException).run {
-                reason shouldBe subscriptionDropReason
-                message shouldBe "Subscription was dropped. Reason: $subscriptionDropReason"
+                reason shouldBe reason
+                message shouldBe "Subscription was dropped. Reason: $ConnectionShutDown"
                 cause should beInstanceOf<ConnectionShutdownException>()
             }
             verify(exactly = 1) { eventStoreMock.subscribeToStream("\$ce-$category", any(), any()) }
+            verify(exactly = 1) { subscription.get().subscriptionId }
             confirmVerified(subscription.get())
-
         }
 
         "Create event subsription starting on MIN_VALUE" {
@@ -77,8 +79,8 @@ internal class GrpcEventSubscriberTest : StringSpec() {
 
         "Create event subscriptions using different borderline highwater marks" {
             forAll(
-                row(-1L, StreamRevision.END),
-                row(0L, StreamRevision.START),
+                row(-1L, StreamRevision.START),
+                row(0L, StreamRevision(0L)),
                 row(1L, StreamRevision(1L)),
                 row(37999L, StreamRevision(37999L)),
                 row(Long.MAX_VALUE, StreamRevision(Long.MAX_VALUE)))

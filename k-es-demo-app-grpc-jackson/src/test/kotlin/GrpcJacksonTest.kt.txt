@@ -1,0 +1,79 @@
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.core.test.TestCase
+import io.kotest.extensions.spring.SpringExtension
+import mu.KotlinLogging
+import no.ks.kes.demoapp.Application
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Configuration
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
+import kotlin.time.ExperimentalTime
+
+private val log = KotlinLogging.logger {}
+
+//private fun forbidSystemExitCall() {
+//    val securityManager: SecurityManager = object : SecurityManager() {
+//        override fun checkPermission(permission: Permission) {
+//            if (permission.getName().startsWith("exitVM")) {
+//                log.info { "Exit was called." }
+//                //throw RuntimeException("Something called exit ")
+//            }
+//        }
+//    }
+//    System.setSecurityManager(securityManager)
+//}
+
+@Configuration
+class MyConfig {}
+
+//@Testcontainers
+//@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+//@SpringBootTest(classes = [Application::class])
+//@SpringBootTest(classes = [Application::class])
+//@ExperimentalTime
+class GrpcJacksonTest() : FunSpec() {
+
+    override fun extensions() = listOf(
+        SpringExtension,
+    )
+
+
+
+//    @Autowired
+//    lateinit var registry: DynamicPropertyRegistry
+
+    override fun beforeAny(testCase: TestCase) {
+
+//        eventStoreContainer.start()
+//        System.setProperty("eventstore.host", eventStoreContainer.host)
+//        System.setProperty("eventstore.port", eventStoreContainer.getMappedPort(2113).toString())
+//        registry.add("eventstore.host") { eventStoreContainer.host }
+//        registry.add("eventstore.port") { eventStoreContainer.getMappedPort(2113) }
+//        registry.add("mssql.host") { mssqlContainer.host }
+//        registry.add("mssql.port") { mssqlContainer.getMappedPort(1433) }
+    }
+
+    companion object {
+
+        //@OptIn(ExperimentalTime::class)
+        @JvmStatic
+        @DynamicPropertySource
+        fun registerEventstoreProperties(registry: DynamicPropertyRegistry) {
+            registry.add("eventstore.host") { ProjectConfig.eventStoreContainer.host }
+//            registry.add("eventstore.port") { ProjectConfig.eventStoreContainer.getMappedPort(2113) }
+            registry.add("eventstore.port") { 2113 }
+            registry.add("mssql.host") { ProjectConfig.mssqlContainer.host }
+//            registry.add("mssql.port") { ProjectConfig.mssqlContainer.getMappedPort(1433) }
+            registry.add("mssql.port") { 1433 }
+        }
+    }
+
+    init {
+
+        test("test") {
+            log.debug { "Hello!" }
+        }
+    }
+
+
+}

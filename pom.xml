@@ -20,7 +20,8 @@
         <module>k-es-test-support</module>
         <module>k-es-demo-app-proto-events</module>
         <module>k-es-demo-app-proto</module>
-        <!-- <module>k-es-demo-app-jackson</module> -->
+        <module>k-es-demo-app-grpc-jackson</module>
+<!--        <module>k-es-demo-app-jackson</module>-->
     </modules>
 
     <distributionManagement>
@@ -40,7 +41,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kotlin.version>1.5.30</kotlin.version>
+        <kotlin.version>1.6.0</kotlin.version>
         <jackson.version>2.12.2</jackson.version>
         <jackson.version>2.12.5</jackson.version>
         <slf4j.version>1.7.32</slf4j.version>
@@ -54,15 +55,15 @@
         <logback.version>1.2.6</logback.version>
         <kotlin-logging.version>2.0.11</kotlin-logging.version>
         <mockk.version>1.12.0</mockk.version>
-        <kotest.version>4.6.2</kotest.version>
-        <kotest.testcontainers.version>4.4.3</kotest.testcontainers.version>
+        <kotest.version>5.0.0</kotest.version>
+        <kotest.testcontainers.version>1.0.1</kotest.testcontainers.version>
+        <kotest.spring.version>1.1.0</kotest.spring.version>
         <jacoco-maven-plugin.version>0.8.7</jacoco-maven-plugin.version>
         <junit.jupiter.version>5.7.2</junit.jupiter.version>
         <java.version>11</java.version>
         <testcontainers.version>1.16.0</testcontainers.version>
         <mssql-jdbc.version>9.4.0.jre11</mssql-jdbc.version>
         <protobuf-java.version>3.17.3</protobuf-java.version>
-        <testcontainers.version>1.15.2</testcontainers.version>
     </properties>
 
     <dependencyManagement>
@@ -85,6 +86,11 @@
             <dependency>
                 <groupId>no.ks</groupId>
                 <artifactId>k-es-esjc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>no.ks</groupId>
+                <artifactId>k-es-grpc</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -166,7 +172,6 @@
                 <version>${kotest.version}</version>
                 <scope>test</scope>
             </dependency>
-
             <dependency>
                 <groupId>io.kotest</groupId>
                 <artifactId>kotest-property-jvm</artifactId>
@@ -186,9 +191,15 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>io.kotest</groupId>
-                <artifactId>kotest-extensions-testcontainers-jvm</artifactId>
+                <groupId>io.kotest.extensions</groupId>
+                <artifactId>kotest-extensions-testcontainers</artifactId>
                 <version>${kotest.testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.kotest.extensions</groupId>
+                <artifactId>kotest-extensions-spring</artifactId>
+                <version>${kotest.spring.version}</version>
                 <scope>test</scope>
             </dependency>
             <!-- /kotest -->
@@ -299,7 +310,8 @@
                     <version>${kotlin.version}</version>
                     <configuration>
                         <jvmTarget>${java.version}</jvmTarget>
-                        <languageVersion>1.4</languageVersion>
+                        <languageVersion>1.6</languageVersion>
+                        <apiVersion>1.6</apiVersion>
                     </configuration>
                     <executions>
                         <execution>
