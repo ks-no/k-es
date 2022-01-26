@@ -17,7 +17,6 @@
         <mssql-jdbc.version>7.4.1.jre11</mssql-jdbc.version>
         <awaitility.version>4.1.0</awaitility.version>
         <spring-boot-maven-plugin.version>2.6.3</spring-boot-maven-plugin.version>
-        <kotlin-maven-plugin.version>1.5.0-M1</kotlin-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -127,7 +126,7 @@
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
-                <version>${kotlin-maven-plugin.version}</version>
+                <version>${kotlin.version}</version>
                 <configuration>
                     <compilerPlugins>
                         <plugin>spring</plugin>
