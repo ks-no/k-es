@@ -48,7 +48,7 @@
         <maven-versions-plugin.version>2.9.0</maven-versions-plugin.version>
         <maven-enforcer-plugin.version>3.0.0</maven-enforcer-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
-        <esjc.version>2.3.0</esjc.version>
+        <esjc.version>2.7.0</esjc.version>
         <spring.version>5.3.15</spring.version>
         <logback.version>1.2.10</logback.version>
         <kotlin-logging.version>2.0.11</kotlin-logging.version>
@@ -121,8 +121,8 @@
             </dependency>
 
             <dependency>
-                <groupId>com.github.msemys</groupId>
-                <artifactId>esjc</artifactId>
+                <groupId>no.ks.fiks</groupId>
+                <artifactId>fiks-esjc</artifactId>
                 <version>${esjc.version}</version>
             </dependency>
             <dependency>

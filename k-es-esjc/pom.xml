@@ -37,8 +37,8 @@
             <artifactId>kotlin-logging-jvm</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.msemys</groupId>
-            <artifactId>esjc</artifactId>
+            <groupId>no.ks.fiks</groupId>
+            <artifactId>fiks-esjc</artifactId>
         </dependency>
 
         <!--test-->
