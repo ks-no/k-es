@@ -6,7 +6,7 @@
 
     <groupId>no.ks</groupId>
     <artifactId>k-es</artifactId>
-    <version>2.3.1-SNAPSHOT</version>
+    <version>2.4.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
