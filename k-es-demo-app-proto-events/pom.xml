@@ -33,6 +33,7 @@
                             <goal>run</goal>
                         </goals>
                         <configuration>
+                            <protocArtifact>com.google.protobuf:protoc:3.19.4</protocArtifact>
                             <includeStdTypes>true</includeStdTypes>
                             <protocVersion>3.1.0</protocVersion>
                             <inputDirectories>

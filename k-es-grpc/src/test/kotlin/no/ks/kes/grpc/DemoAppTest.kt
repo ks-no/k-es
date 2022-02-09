@@ -41,13 +41,6 @@ class DemoAppTest : StringSpec() {
     lateinit var repo: AggregateRepository
     lateinit var subscriberFactory: GrpcEventSubscriberFactory
 
-    //        val dockerImageName = DockerImageName.parse("eventstore/eventstore:release-5.0.11")
-    //        val eventStoreContainer = GenericContainer<GenericContainer<*>>(dockerImageName)
-    //            .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")
-    //            .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
-    //            .withExposedPorts(1113, 2113)
-    //            .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4))
-
     val dockerImageName = DockerImageName.parse("eventstore/eventstore:21.6.0-buster-slim")
     val eventStoreContainer = GenericContainer<GenericContainer<*>>(dockerImageName)
         .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")

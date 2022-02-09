@@ -17,10 +17,3 @@ enum class GrpcSubscriptionDroppedReason {
     GrpcStatusException,
     Unknown
 }
-
-//sealed class GrpcSubscriptionDroppedReason {
-//    object SubscriptionCancelled : GrpcSubscriptionDroppedReason()
-//    object ConnectionShutDown : GrpcSubscriptionDroppedReason()
-//    object Unknown : GrpcSubscriptionDroppedReason()
-//    data class GrpcStatusException(val grpcStatus : Status) : GrpcSubscriptionDroppedReason()
-//}
