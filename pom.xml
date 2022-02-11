@@ -51,7 +51,7 @@
 
         <kotlin.version>1.6.10</kotlin.version>
         <jackson.version>2.13.1</jackson.version>
-        <slf4j.version>1.7.35</slf4j.version>
+        <slf4j.version>1.7.36</slf4j.version>
         <esjc.version>2.7.0</esjc.version>
         <spring.version>5.3.15</spring.version>
         <logback.version>1.2.10</logback.version>
