@@ -12,6 +12,8 @@ import java.time.Duration
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import kotlin.reflect.KClass
 
 private val log = KotlinLogging.logger {}
@@ -123,6 +125,8 @@ class GrpcEventSubscriberFactory(
 
 class SubscriptionLiveCheckpoint(private val eventStoreDBClient: EventStoreDBClient, private val streamId: String) {
 
+    private val lock = ReentrantLock()
+
     private val liveCheckpointTimeout = Duration.ofSeconds(10)
 
     private var timestamp: Instant = Instant.now()
@@ -133,16 +137,17 @@ class SubscriptionLiveCheckpoint(private val eventStoreDBClient: EventStoreDBCli
 
     fun isLive() = isLive
 
-    fun triggerOnceIfSubscriptionIsLive(eventNumber: Long, onceWhenLive: () -> Unit): Unit {
+    fun triggerOnceIfSubscriptionIsLive(eventNumber: Long, onceWhenLive: () -> Unit): Unit = lock.withLock {
 
         if (!isLive) {
             if (eventNumber >= lastEvent) {
-                if (Instant.now().minus(liveCheckpointTimeout).isAfter(timestamp)) {
+                if (Instant.now().minus(liveCheckpointTimeout).isBefore(timestamp)) {
                     log.debug { "Subscription to stream $streamId became live at event number $eventNumber" }
                     isLive = true
                     onceWhenLive.invoke()
                 } else {
                     lastEvent = eventStoreDBClient.getSubscriptionLiveCheckpoint(streamId)
+                    timestamp = Instant.now()
                     log.debug { "Subscription reached expired live checkpoint. Setting new checkpoint for $streamId at $lastEvent" }
                     if (eventNumber >= lastEvent) {
                         log.debug { "Subscription to stream $streamId is live at event number $eventNumber" }
