@@ -105,7 +105,13 @@ internal class GrpcEventSubscriberTest : StringSpec() {
 
         "onLive should be called before events received if stream is empty" {
             val category = UUID.randomUUID().toString()
-            val eventStoreMock = mockk<EventStoreDBClient>(relaxed = true)
+            val streamId = "\$ce-$category"
+            val eventStoreMock = mockk<EventStoreDBClient>(relaxed = true) {
+                every {
+                    hint(CompletableFuture::class)
+                    subscribeToStream(streamId, any(), any())
+                } returns CompletableFuture.completedFuture(mockk<Subscription>(relaxed = true))
+            }
             val subscriberFactory = GrpcEventSubscriberFactory(
                 eventStoreDBClient = eventStoreMock,
                 category = category,
@@ -131,6 +137,11 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                         get().events.first().originalEvent.streamRevision.valueUnsigned
                     } returns 42
                 }
+
+                every {
+                    hint(CompletableFuture::class)
+                    subscribeToStream(streamId, any(), any())
+                } returns CompletableFuture.completedFuture(mockk<Subscription>(relaxed = true))
             }
             val subscriberFactory = GrpcEventSubscriberFactory(
                 eventStoreDBClient = eventStoreMock,
@@ -164,7 +175,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                 every {
                     hint(CompletableFuture::class)
                     subscribeToStream(streamId, capture(listener), match { it.startingRevision.valueUnsigned == subscribeFrom })
-                } returns mockk(relaxed = true)
+                } returns CompletableFuture.completedFuture(mockk<Subscription>(relaxed = true))
             }
             val subscriberFactory = GrpcEventSubscriberFactory(
                 eventStoreDBClient = eventStoreMock,

@@ -12,12 +12,12 @@ class GrpcSubscriptionWrapperTest : StringSpec() {
     init {
 
         "isSubscribedToAll" {
-            val subscription: GrpcSubscriptionWrapper = GrpcSubscriptionWrapper("\$all") { 0 }
+            val subscription: GrpcSubscriptionWrapper = GrpcSubscriptionWrapper("\$all", mockk()) { 0 }
             subscription.isSubscribedToAll shouldBe true
         }
 
         "lastProcessedEvent" {
-            val subscription: GrpcSubscriptionWrapper = GrpcSubscriptionWrapper("stream-id") { 42 }
+            val subscription: GrpcSubscriptionWrapper = GrpcSubscriptionWrapper("stream-id", mockk()) { 42 }
             subscription.lastProcessedEvent() shouldBe 42
         }
     }
