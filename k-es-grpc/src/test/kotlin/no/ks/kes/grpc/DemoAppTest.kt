@@ -1,59 +1,66 @@
-import com.github.msemys.esjc.EventStoreBuilder
+package no.ks.kes.grpc
+
+import com.eventstore.dbclient.ConnectionSettingsBuilder
+import com.eventstore.dbclient.Endpoint
+import com.eventstore.dbclient.EventStoreDBClient
+import com.eventstore.dbclient.StreamRevision
 import com.google.protobuf.Message
 import io.kotest.assertions.timing.eventually
 import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.core.test.TestCase
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import mu.KotlinLogging
-import no.ks.kes.demoapp.Konto
-import no.ks.kes.demoapp.KontoAggregate
-import no.ks.kes.demoapp.KontoCmds
-import no.ks.kes.esjc.EsjcAggregateRepository
-import no.ks.kes.esjc.EsjcEventSubscriberFactory
-import no.ks.kes.esjc.EsjcEventUtil
-import no.ks.kes.lib.AggregateReadResult
-import no.ks.kes.lib.AggregateRepository
+import no.ks.kes.demoapp.*
+import no.ks.kes.lib.*
 import no.ks.kes.serdes.jackson.JacksonEventMetadataSerdes
 import no.ks.kes.serdes.proto.ProtoEventData
 import no.ks.kes.serdes.proto.ProtoEventDeserializer
 import no.ks.kes.serdes.proto.ProtoEventSerdes
 import no.ks.svarut.event.Avsender
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
-import java.util.*
+import java.lang.Thread.sleep
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.time.DurationUnit
-import kotlin.time.ExperimentalTime
-import kotlin.time.toDuration
+import kotlin.time.*
 
 
 private val log = KotlinLogging.logger {}
 
 @ExperimentalTime
-class Test : StringSpec() {
+class DemoAppTest : StringSpec() {
 
     lateinit var kontoCmds: KontoCmds
     lateinit var repo: AggregateRepository
-    lateinit var subscriberFactory: EsjcEventSubscriberFactory
+    lateinit var subscriberFactory: GrpcEventSubscriberFactory
 
-    val dockerImageName = DockerImageName.parse("eventstore/eventstore:release-5.0.9")
+    val dockerImageName = DockerImageName.parse("eventstore/eventstore:21.6.0-buster-slim")
     val eventStoreContainer = GenericContainer<GenericContainer<*>>(dockerImageName)
         .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")
         .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
+        .withEnv("EVENTSTORE_CLUSTER_SIZE","1")
+        .withEnv("EVENTSTORE_INSECURE", "True")
+        .withEnv("EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP", "True")
+        .withEnv("EVENTSTORE_ENABLE_EXTERNAL_TCP", "True")
         .withEnv("EVENTSTORE_LOG_LEVEL", "Verbose")
-        .withExposedPorts(1113)
-        .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4));
-
+        .withExposedPorts(1113, 2113)
+        .withReuse(true)
+        .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4))
 
     override fun beforeSpec(spec: Spec) {
         eventStoreContainer.start()
 
-        val eventStore = EventStoreBuilder.newBuilder()
-            .singleNodeAddress("localhost", eventStoreContainer.getMappedPort(1113))
-            .userCredentials("admin", "changeit")
-            .build()
+        val eventStoreClient = EventStoreDBClient.create(ConnectionSettingsBuilder()
+            .addHost(Endpoint("localhost", eventStoreContainer.getMappedPort(2113)))
+            .defaultCredentials("admin", "changeit").tls(false).dnsDiscover(false)
+            .buildConnectionSettings())
 
         val eventSerdes = ProtoEventSerdes(
             mapOf(
@@ -70,18 +77,16 @@ class Test : StringSpec() {
                         else -> throw RuntimeException("Event ${msg::class.java} mangler konvertering")
                     }
                 }
-
             }
         )
 
         val jacksonEventMetadataSerdes = JacksonEventMetadataSerdes(Konto.DemoMetadata::class)
 
-        repo = EsjcAggregateRepository(eventStore, eventSerdes, EsjcEventUtil.defaultStreamName("no.ks.kes.proto.demo"),jacksonEventMetadataSerdes)
+        repo = GrpcAggregateRepository(eventStoreClient, eventSerdes, GrpcEventUtil.defaultStreamName("no.ks.kes.proto.demo"),jacksonEventMetadataSerdes)
+
+        subscriberFactory = GrpcEventSubscriberFactory(eventStoreClient, eventSerdes, "no.ks.kes.proto.demo")
 
         kontoCmds = KontoCmds(repo)
-
-        subscriberFactory = EsjcEventSubscriberFactory(eventStore, eventSerdes, "no.ks.kes.proto.demo")
-
     }
 
     override fun afterSpec(spec: Spec) {
@@ -90,17 +95,17 @@ class Test : StringSpec() {
 
     init {
         "Test at vi kan opprette konto" {
+
             val validatedAggregateConfiguration = Konto.getConfiguration { repo.getSerializationId(it) }
+
+            val receivedEvents = AtomicInteger(0)
+            val receivedCatchupEvents = AtomicInteger(0)
 
             val kontoId = UUID.randomUUID()
             val orgId = UUID.randomUUID().toString()
             log.info { "AggregateId $kontoId, OrgId $orgId" }
 
-            val receivedEvents = AtomicInteger(0)
-            val receivedCatchupEvents = AtomicInteger(0)
-
             subscriberFactory.createSubscriber("subscriber", -1, {
-                log.info { "Got event: ${it.eventNumber} - ${it.event.aggregateId} - ${it.event.eventData}" }
                 receivedEvents.incrementAndGet()
             })
 
@@ -121,7 +126,7 @@ class Test : StringSpec() {
             aggregateResult.aggregateState.aggregateId shouldBe kontoId
 
             val subscriber = subscriberFactory.createSubscriber("catchup subscriber", 1, {
-                receivedCatchupEvents.incrementAndGet()
+                    receivedCatchupEvents.incrementAndGet()
             })
 
             eventually(5.toDuration(DurationUnit.SECONDS)) {

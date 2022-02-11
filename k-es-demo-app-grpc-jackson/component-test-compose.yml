@@ -1,0 +1,14 @@
+version: '3'
+services:
+  component-test:
+    image: maven:3.6-jdk-11
+    volumes:
+    - "../:/project"
+    - "~/.m2:/root/.m2"
+#    ports:
+#      - "9000:8000"
+    working_dir: /project/k-es-demo-app
+    command: "mvn -U clean test"
+    links:
+      - eventstore
+      - mssql
