@@ -95,7 +95,6 @@ class GrpcEventSubscriberFactory(
             }
 
             override fun onError(subscription: Subscription?, throwable: Throwable?) {
-                // TODO: Figure out which exceptions we get and how to map to reason
                 log.error { "error on subscription. subscriptionId=${subscription?.subscriptionId}, subscriber=$subscriber, streamId=$streamId, lastEvent=$lastEventProcessed, exception=$throwable" }
                 when (throwable) {
                     is ConnectionShutdownException -> onClose.invoke(GrpcSubscriptionDroppedException(ConnectionShutDown, throwable))
@@ -105,7 +104,7 @@ class GrpcEventSubscriberFactory(
             }
         }
 
-        eventStoreDBClient.subscribeToStream(
+        val subscription = eventStoreDBClient.subscribeToStream(
             streamId,
             listener,
             SubscribeToStreamOptions.get()
@@ -118,7 +117,7 @@ class GrpcEventSubscriberFactory(
             onLive.invoke()
         }
 
-        return GrpcSubscriptionWrapper(streamId) { listener.lastEventProcessed.get() }
+        return GrpcSubscriptionWrapper(streamId, subscription) { listener.lastEventProcessed.get() }
     }
 
 }
