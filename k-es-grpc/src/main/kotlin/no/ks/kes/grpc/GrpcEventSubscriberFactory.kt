@@ -8,8 +8,9 @@ import no.ks.kes.grpc.GrpcEventUtil.isResolved
 import no.ks.kes.grpc.GrpcSubscriptionDroppedReason.*
 import no.ks.kes.lib.*
 import no.ks.kes.lib.EventData
+import java.time.Duration
+import java.time.Instant
 import java.util.*
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.reflect.KClass
 
@@ -34,23 +35,27 @@ class GrpcEventSubscriberFactory(
     ): GrpcSubscriptionWrapper {
 
         val streamId = "\$ce-$category"
-        //val revision = StreamRevision(fromEvent)
-        // TODO: No way to start subscription from StreamRevision.END without knowing the number of events (same as for Esjc based client)
         val revision = when {
             fromEvent == -1L -> StreamRevision.START
             fromEvent > -1L -> StreamRevision(fromEvent)
             else -> error("the from-event $fromEvent is invalid, must be a number equal to or larger than -1")
         }
 
+        val subscriptionLiveCheckpoint = SubscriptionLiveCheckpoint(eventStoreDBClient, streamId)
+
         val listener = object : SubscriptionListener() {
 
             var lastEventProcessed = AtomicLong(-1)
 
             override fun onEvent(subscription: Subscription, resolvedEvent: ResolvedEvent) {
-                //if (event.getEvent().position == Position.END)
-                // TODO: No way to say if we're live and should call onLive
 
                 log.debug { "$subscriber: received event \"$resolvedEvent\"" }
+
+                val eventNumber = resolvedEvent.originalEvent.streamRevision.valueUnsigned
+
+                subscriptionLiveCheckpoint.triggerOnceIfSubscriptionIsLive(eventNumber) {
+                    onLive.invoke()
+                }
 
                 when {
                     !resolvedEvent.isResolved() ->
@@ -67,10 +72,10 @@ class GrpcEventSubscriberFactory(
                                 metadata = eventMeta,
                                 eventData = event
                             ),
-                            eventNumber = resolvedEvent.originalEvent.streamRevision.valueUnsigned,
+                            eventNumber = eventNumber,
                             serializationId = serdes.getSerializationId(event::class)))
                             .also {
-                                log.info("$subscriber: event ${resolvedEvent.originalEvent.streamRevision.valueUnsigned}@${resolvedEvent.originalEvent.streamId}: " +
+                                log.info("$subscriber: event ${eventNumber}@${resolvedEvent.originalEvent.streamId}: " +
                                         "${resolvedEvent.event.eventType}(${resolvedEvent.event.eventId}) received")
                             }
                     } catch (e: java.lang.Exception) {
@@ -79,7 +84,7 @@ class GrpcEventSubscriberFactory(
                     }
                 }
 
-                lastEventProcessed.set(resolvedEvent.originalEvent.streamRevision.valueUnsigned)
+                lastEventProcessed.set(eventNumber)
             }
 
             override fun onCancelled(subscription: Subscription?) {
@@ -105,8 +110,64 @@ class GrpcEventSubscriberFactory(
                 .resolveLinkTos()
                 .fromRevision(revision)
         ).get()
+
+        // In case we are already live before we start receiving events.
+        subscriptionLiveCheckpoint.triggerOnceIfSubscriptionIsLive(revision.valueUnsigned) {
+            onLive.invoke()
+        }
+
         return GrpcSubscriptionWrapper(streamId) { listener.lastEventProcessed.get() }
     }
 
+}
+
+class SubscriptionLiveCheckpoint(private val eventStoreDBClient: EventStoreDBClient, private val streamId: String) {
+
+    private val liveCheckpointTimeout = Duration.ofSeconds(10)
+
+    private var timestamp: Instant = Instant.now()
+    private var lastEvent: Long = eventStoreDBClient.getSubscriptionLiveCheckpoint(streamId).also {
+        log.debug { "Setting live checkpoint for $streamId at $it" }
+    }
+    private var isLive: Boolean = false
+
+    fun isLive() = isLive
+
+    fun triggerOnceIfSubscriptionIsLive(eventNumber: Long, onceWhenLive: () -> Unit): Unit {
+
+        if (!isLive) {
+            if (eventNumber >= lastEvent) {
+                if (Instant.now().minus(liveCheckpointTimeout).isAfter(timestamp)) {
+                    log.debug { "Subscription to stream $streamId became live at event number $eventNumber" }
+                    isLive = true
+                    onceWhenLive.invoke()
+                } else {
+                    lastEvent = eventStoreDBClient.getSubscriptionLiveCheckpoint(streamId)
+                    log.debug { "Subscription reached expired live checkpoint. Setting new checkpoint for $streamId at $lastEvent" }
+                    if (eventNumber >= lastEvent) {
+                        log.debug { "Subscription to stream $streamId is live at event number $eventNumber" }
+                        isLive = true
+                        onceWhenLive.invoke()
+                    }
+                }
+            }
+        }
+    }
+
+}
+
+private fun EventStoreDBClient.getSubscriptionLiveCheckpoint(streamId: String): Long {
+    return try {
+        readStream(
+            streamId, 1,
+            ReadStreamOptions.get().backwards().fromEnd().notResolveLinkTos()
+        ).get().events.first().originalEvent.streamRevision.valueUnsigned
+    } catch (e: StreamNotFoundException) {
+        log.debug(e) { "Stream does not exist, returning -1 as last event number in $streamId" }
+        return -1L
+    } catch (e: Throwable) {
+        log.error(e) { "Failed to retrieve last event number for stream $streamId" }
+        return -1L
+    }
 }
 
