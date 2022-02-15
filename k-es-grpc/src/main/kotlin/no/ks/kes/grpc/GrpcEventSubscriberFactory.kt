@@ -47,7 +47,7 @@ class GrpcEventSubscriberFactory(
 
         val listener = object : SubscriptionListener() {
 
-            var lastEventProcessed = AtomicLong(-1)
+            var lastEventProcessed = AtomicLong(fromEvent)
 
             override fun onEvent(subscription: Subscription, resolvedEvent: ResolvedEvent) {
 
