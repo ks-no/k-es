@@ -3,10 +3,11 @@ import no.ks.kes.demoapp.*
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.matches
 import org.awaitility.kotlin.untilCallTo
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.GenericContainer
@@ -14,14 +15,13 @@ import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
-import java.security.Permission
 import java.util.*
 
 private val log = KotlinLogging.logger {}
 
 @Testcontainers
 @SpringBootTest(classes = [Application::class])
-class GrpcJacksonIT {
+class GrpcJacksonITest {
 
     companion object {
 
@@ -150,5 +150,19 @@ class GrpcJacksonIT {
         basketCmds.handle(BasketCmds.CheckOut(basketId))
 
         await untilCallTo { shipments.isMissingShipment(basketId) } matches { it == true }
+    }
+
+    @Test
+    @DisplayName("Test that we can create a basket, add 1000 items to it, and check it out")
+    internal fun testAdd1000Items(@Autowired basketCmds: BasketCmds, @Autowired shipments: Shipments) {
+        val basketId = UUID.randomUUID()
+
+        basketCmds.handle(BasketCmds.Create(basketId))
+        repeat(1000) {
+            basketCmds.handle(BasketCmds.AddItem(basketId, UUID.randomUUID()))
+        }
+        basketCmds.handle(BasketCmds.CheckOut(basketId))
+
+        await untilCallTo { shipments.getShipments(basketId) } matches { it?.size == 1000 }
     }
 }

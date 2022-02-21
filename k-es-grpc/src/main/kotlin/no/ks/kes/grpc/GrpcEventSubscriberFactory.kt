@@ -1,7 +1,6 @@
 package no.ks.kes.grpc
 
 import com.eventstore.dbclient.*
-import io.grpc.StatusRuntimeException
 import mu.KotlinLogging
 import no.ks.kes.grpc.GrpcEventUtil.isIgnorable
 import no.ks.kes.grpc.GrpcEventUtil.isResolved
@@ -98,7 +97,6 @@ class GrpcEventSubscriberFactory(
                 log.error { "error on subscription. subscriptionId=${subscription?.subscriptionId}, subscriber=$subscriber, streamId=$streamId, lastEvent=$lastEventProcessed, exception=$throwable" }
                 when (throwable) {
                     is ConnectionShutdownException -> onClose.invoke(GrpcSubscriptionDroppedException(ConnectionShutDown, throwable))
-                    is StatusRuntimeException -> onClose.invoke(GrpcSubscriptionDroppedException(GrpcStatusException, throwable))
                     else -> onClose.invoke(GrpcSubscriptionDroppedException(Unknown, RuntimeException(throwable)))
                 }
             }

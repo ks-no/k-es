@@ -10,9 +10,6 @@ import java.util.*
 import java.util.concurrent.ExecutionException
 import kotlin.reflect.KClass
 
-private const val FIRST_EVENT = 0L
-private const val BATCH_SIZE = 100L
-
 private val log = KotlinLogging.logger {}
 
 class GrpcAggregateRepository(
@@ -33,8 +30,13 @@ class GrpcAggregateRepository(
                 .get().also {
                     log.info("wrote ${eventWrappers.size} events to stream ${streamId}, next expected version for this stream is ${it.nextExpectedRevision}")
                 }
-        } catch (e: Exception) {
-            throw RuntimeException("Error while appending events to stream $streamId", e)
+        } catch (e: ExecutionException) {
+            val cause = e.cause
+            if (cause is WrongExpectedVersionException) {
+                throw RuntimeException("Actual version did not match expected! streamName: ${cause.streamName}, nextExpectedRevision: ${cause.nextExpectedRevision}, actualVersion: ${cause.actualVersion}", e)
+            } else {
+                throw RuntimeException("Error while appending events to stream $streamId", cause)
+            }
         }
     }
 
@@ -58,7 +60,7 @@ class GrpcAggregateRepository(
             .forwards()
             .fromStart()
             .notResolveLinkTos()
-        return eventStoreDBClient.readStream(streamId, BATCH_SIZE, readOptions)
+        return eventStoreDBClient.readStream(streamId, readOptions)
             .handle { result, throwable ->
                 if (throwable == null) {
                     result.events

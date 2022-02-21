@@ -125,8 +125,8 @@ class Application {
                     sagas = setOf(ShipmentSaga),
                     commandQueue = SqlServerCommandQueue(dataSource, cmdSerdes, setOf(basketCmds, shipmentCmds)),
                     pollInterval = 500,
-                    onClose = { log.error(it) { "Event subscription for Sagas was closed. Shutting down." }
-                        exitProcess(0)
+                    onClose = {
+                        log.error(it) { "Event subscription for Sagas was closed." }
                     }
             )
         }
