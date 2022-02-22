@@ -111,8 +111,8 @@ class Application {
                     projections = setOf(shipments),
                     projectionRepository = SqlServerProjectionRepository(dataSource),
                     subscriber = "ProjectionManager",
-                    onClose = { log.error(it) { "Event subscription for Projections was closed. Shutting down." }
-                        exitProcess(0)
+                    onClose = {
+                        log.error(it) { "Event subscription for Projections was closed." }
                     }
             )
 
