@@ -1,5 +1,9 @@
+import io.kotest.assertions.asClue
+import io.kotest.matchers.types.shouldBeSameInstanceAs
 import mu.KotlinLogging
 import no.ks.kes.demoapp.*
+import no.ks.kes.lib.AggregateReadResult
+import no.ks.kes.lib.AggregateRepository
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.matches
 import org.awaitility.kotlin.untilCallTo
@@ -164,5 +168,15 @@ class GrpcJacksonITest {
         basketCmds.handle(BasketCmds.CheckOut(basketId))
 
         await untilCallTo { shipments.getShipments(basketId) } matches { it?.size == 1000 }
+    }
+
+    @Test
+    @DisplayName("Test that reading from a stream without events returns a NonExistingAggregate")
+    internal fun testReadAggregateNonExisting(@Autowired basketCmds: BasketCmds, @Autowired aggregateRepository: AggregateRepository) {
+        val basketId = UUID.randomUUID()
+
+        aggregateRepository.read(basketId, Basket.getConfiguration { aggregateRepository.getSerializationId(it) }).asClue {
+            it shouldBeSameInstanceAs AggregateReadResult.NonExistingAggregate
+        }
     }
 }
