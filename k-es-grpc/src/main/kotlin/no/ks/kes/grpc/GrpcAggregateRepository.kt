@@ -140,14 +140,14 @@ private class AggregateSubscriber<A : Aggregate>(
     override fun onComplete() {
         when {
             //when the aggregate stream has events, but applying these did not lead to a initialized state
-            state == null && lastEventNumber != null -> AggregateReadResult.UninitializedAggregate(lastEventNumber!!)
+            state == null && lastEventNumber != null -> future.complete(AggregateReadResult.UninitializedAggregate(lastEventNumber!!))
 
             //when the aggregate stream has events, and applying these has lead to a initialized state
-            state != null && lastEventNumber != null -> AggregateReadResult.InitializedAggregate(state!!, lastEventNumber!!)
+            state != null && lastEventNumber != null -> future.complete(AggregateReadResult.InitializedAggregate(state!!, lastEventNumber!!))
 
             //when the aggregate stream has no events
-            else -> error("Error reading $streamId, the stream exists but does not contain any events")
-        }.apply { future.complete(this) }
+            else -> future.completeExceptionally(RuntimeException("Error reading $streamId, the stream exists but does not contain any events"))
+        }
     }
 
 }
