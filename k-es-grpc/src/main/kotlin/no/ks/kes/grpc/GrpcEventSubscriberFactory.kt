@@ -1,7 +1,6 @@
 package no.ks.kes.grpc
 
 import com.eventstore.dbclient.*
-import io.grpc.StatusRuntimeException
 import mu.KotlinLogging
 import no.ks.kes.grpc.GrpcEventUtil.isIgnorable
 import no.ks.kes.grpc.GrpcEventUtil.isResolved
@@ -11,6 +10,7 @@ import no.ks.kes.lib.EventData
 import java.time.Duration
 import java.time.Instant
 import java.util.*
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -98,7 +98,6 @@ class GrpcEventSubscriberFactory(
                 log.error { "error on subscription. subscriptionId=${subscription?.subscriptionId}, subscriber=$subscriber, streamId=$streamId, lastEvent=$lastEventProcessed, exception=$throwable" }
                 when (throwable) {
                     is ConnectionShutdownException -> onClose.invoke(GrpcSubscriptionDroppedException(ConnectionShutDown, throwable))
-                    is StatusRuntimeException -> onClose.invoke(GrpcSubscriptionDroppedException(GrpcStatusException, throwable))
                     else -> onClose.invoke(GrpcSubscriptionDroppedException(Unknown, RuntimeException(throwable)))
                 }
             }
@@ -165,13 +164,12 @@ private fun EventStoreDBClient.getSubscriptionLiveCheckpoint(streamId: String): 
         readStream(
             streamId, 1,
             ReadStreamOptions.get().backwards().fromEnd().notResolveLinkTos()
-        ).get().events.first().originalEvent.streamRevision.valueUnsigned
-    } catch (e: StreamNotFoundException) {
-        log.debug(e) { "Stream does not exist, returning -1 as last event number in $streamId" }
-        return -1L
-    } catch (e: Throwable) {
-        log.error(e) { "Failed to retrieve last event number for stream $streamId" }
-        return -1L
+        ).get().events.firstOrNull()?.originalEvent?.streamRevision?.valueUnsigned ?: -1L
+    } catch (e: ExecutionException) {
+        when (e.cause) {
+            is StreamNotFoundException -> (-1L).also { log.debug(e.cause) { "Stream does not exist, returning -1 as last event number in $streamId" } }
+            else -> throw e.cause!!
+        }
     }
 }
 

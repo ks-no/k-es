@@ -114,11 +114,6 @@
             <artifactId>k-es-demo-app-proto-events</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-api</artifactId>
-            <version>1.44.0</version>
-        </dependency>
     </dependencies>
 
     <build>

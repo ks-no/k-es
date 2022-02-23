@@ -16,7 +16,7 @@
         <mssql-jdbc.version>7.4.1.jre11</mssql-jdbc.version>
         <awaitility.version>4.1.1</awaitility.version>
         <spring-boot-version>2.6.3</spring-boot-version>
-        <spring-boot-maven-plugin.version>2.5.4</spring-boot-maven-plugin.version>
+        <spring-boot-maven-plugin.version>2.6.3</spring-boot-maven-plugin.version>
         <spring-service-configuration.version>2.6.4</spring-service-configuration.version>
         <kotlin.version>1.6.0</kotlin.version>
     </properties>
@@ -94,45 +94,13 @@
             <artifactId>mockk</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- kotest -->
-        <dependency>
-            <groupId>io.kotest</groupId>
-            <artifactId>kotest-runner-junit5-jvm</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kotest</groupId>
-            <artifactId>kotest-property-jvm</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kotest</groupId>
-            <artifactId>kotest-assertions-core-jvm</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kotest</groupId>
-            <artifactId>kotest-assertions-json-jvm</artifactId>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
             <scope>test</scope>
             <version>${testcontainers.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.github.docker-java</groupId>
-            <artifactId>docker-java</artifactId>
-            <version>3.2.12</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.docker-java</groupId>
-            <artifactId>docker-java-transport-httpclient5</artifactId>
-            <version>3.2.12</version>
-            <scope>test</scope>
-        </dependency>
+
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
