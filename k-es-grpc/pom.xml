@@ -14,7 +14,7 @@
 
     <properties>
         <awaitility.version>4.1.1</awaitility.version>
-        <spring-boot-version>2.6.3</spring-boot-version>
+        <spring-boot-version>2.6.5</spring-boot-version>
     </properties>
 
     <dependencies>
