@@ -50,7 +50,7 @@
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
 
         <kotlin.version>1.6.10</kotlin.version>
-        <jackson.version>2.13.1</jackson.version>
+        <jackson.version>2.13.2.20220324</jackson.version>
         <slf4j.version>1.7.36</slf4j.version>
         <esjc.version>2.7.0</esjc.version>
         <spring.version>5.3.16</spring.version>
