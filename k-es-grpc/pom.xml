@@ -13,7 +13,7 @@
     <artifactId>k-es-grpc</artifactId>
 
     <properties>
-        <awaitility.version>4.1.1</awaitility.version>
+        <awaitility.version>4.2.0</awaitility.version>
         <spring-boot-version>2.6.5</spring-boot-version>
     </properties>
 
