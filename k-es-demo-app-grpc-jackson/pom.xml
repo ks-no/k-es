@@ -18,7 +18,7 @@
         <spring-boot-version>2.6.5</spring-boot-version>
         <spring-boot-maven-plugin.version>2.6.5</spring-boot-maven-plugin.version>
         <spring-service-configuration.version>2.6.4</spring-service-configuration.version>
-        <kotlin.version>1.6.0</kotlin.version>
+        <kotlin.version>1.6.20</kotlin.version>
     </properties>
 
     <dependencyManagement>
