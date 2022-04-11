@@ -16,8 +16,19 @@
         <flyway.version>8.5.7</flyway.version>
         <mssql-jdbc.version>7.4.1.jre11</mssql-jdbc.version>
         <awaitility.version>4.2.0</awaitility.version>
-        <spring-boot-maven-plugin.version>2.6.5</spring-boot-maven-plugin.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot-version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!--internal-->
@@ -50,7 +61,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
-            <version>${spring-boot-version}</version>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
@@ -86,7 +96,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <version>${spring-boot-version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -121,7 +130,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring-boot-maven-plugin.version}</version>
+                <version>${spring-boot-version}</version>
             </plugin>
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>

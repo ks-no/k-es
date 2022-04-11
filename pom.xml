@@ -66,6 +66,7 @@
         <mssql-jdbc.version>9.4.1.jre11</mssql-jdbc.version>
         <protobuf-java.version>3.20.0</protobuf-java.version>
         <testcontainers.version>1.15.2</testcontainers.version>
+        <spring-boot-version>2.6.6</spring-boot-version>
     </properties>
 
     <dependencyManagement>

@@ -14,7 +14,6 @@
 
     <properties>
         <awaitility.version>4.2.0</awaitility.version>
-        <spring-boot-version>2.6.5</spring-boot-version>
     </properties>
 
     <dependencies>
@@ -95,7 +94,7 @@
         <dependency>
             <groupId>no.ks</groupId>
             <artifactId>k-es-demo-app-proto</artifactId>
-            <version>3.0.4-SNAPSHOT</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
