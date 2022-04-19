@@ -62,7 +62,7 @@
         <kotest.spring.version>1.1.0</kotest.spring.version>
         <jacoco-maven-plugin.version>0.8.8</jacoco-maven-plugin.version>
         <junit.jupiter.version>5.8.2</junit.jupiter.version>
-        <testcontainers.version>1.16.3</testcontainers.version>
+        <testcontainers.version>1.17.1</testcontainers.version>
         <mssql-jdbc.version>10.2.0.jre11</mssql-jdbc.version>
         <protobuf-java.version>3.20.0</protobuf-java.version>
         <testcontainers.version>1.15.2</testcontainers.version>
