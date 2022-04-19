@@ -43,7 +43,7 @@ class Application {
     fun datasource(@Value("\${mssql.host}") host: String, @Value("\${mssql.port}") port: String): DataSource =
             DataSourceBuilder.create().apply {
                 driverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver")
-                url("jdbc:sqlserver://$host:$port;databaseName=kesdemo")
+                url("jdbc:sqlserver://$host:$port;databaseName=kesdemo;encrypt=false")
                 username("SA")
                 password("Test1234!")
             }.build()
