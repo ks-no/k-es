@@ -13,7 +13,7 @@
     <artifactId>k-es-demo-app-grpc-jackson</artifactId>
     <properties>
         <flyway.version>7.15.0</flyway.version>
-        <mssql-jdbc.version>7.4.1.jre11</mssql-jdbc.version>
+        <mssql-jdbc.version>10.2.0.jre11</mssql-jdbc.version>
         <awaitility.version>4.2.0</awaitility.version>
         <spring-service-configuration.version>2.6.4</spring-service-configuration.version>
     </properties>
