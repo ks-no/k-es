@@ -21,7 +21,8 @@
         <module>k-es-demo-app-proto-events</module>
         <module>k-es-demo-app-proto</module>
         <module>k-es-demo-app-grpc-jackson</module>
-<!--        <module>k-es-demo-app-jackson</module>-->
+        <module>k-es-mongodb</module>
+        <!--        <module>k-es-demo-app-jackson</module>-->
     </modules>
 
     <distributionManagement>
@@ -67,6 +68,7 @@
         <protobuf-java.version>3.20.0</protobuf-java.version>
         <testcontainers.version>1.15.2</testcontainers.version>
         <spring-boot-version>2.6.6</spring-boot-version>
+        <mongodb-driver-version>4.6.0</mongodb-driver-version>
     </properties>
 
     <dependencyManagement>
