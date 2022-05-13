@@ -11,7 +11,9 @@
     </parent>
 
     <artifactId>k-es-demo-app-proto-events</artifactId>
-
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>com.google.protobuf</groupId>

@@ -14,6 +14,8 @@
     <artifactId>k-es</artifactId>
     <version>3.0.5-SNAPSHOT</version>
     <packaging>pom</packaging>
+    <description>${project.artifactId}: An eventsourcing framework for Kotlin, with adapters for EventStore</description>
+    <url>https://github.com/ks-no/k-es</url>
 
     <modules>
         <module>k-es-bom</module>
@@ -29,6 +31,11 @@
         <module>k-es-demo-app-grpc-jackson</module>
 <!--        <module>k-es-demo-app-jackson</module>-->
     </modules>
+    <scm>
+        <connection>scm:git:git@github.com:ks-no/k-es.git</connection>
+        <developerConnection>scm:git:git@github.com:ks-no/k-es.git</developerConnection>
+        <url>https://github.com/ks-no/k-es</url>
+    </scm>
 
 
     <properties>
