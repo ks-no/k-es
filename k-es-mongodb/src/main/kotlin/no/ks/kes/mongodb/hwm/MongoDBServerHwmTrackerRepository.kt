@@ -26,7 +26,6 @@ class MongoDBServerHwmTrackerRepository(mongoClient: MongoClient, hwmDatabaseNam
     override fun update(subscriber: String, hwm: Long) {
 
         hwmCollection.updateOne(Filters.eq(subscriber), Updates.set(HWVM_VALUE_KEY, hwm), UpdateOptions().upsert(true))
-            .also { log.debug { "Updating hwm for $subscriber to $hwm" } }
     }
 
     private fun initHwm(subscriber: String) : Long {
