@@ -14,6 +14,7 @@ import no.ks.kes.mongodb.hwm.MongoDBServerHwmTrackerRepository
 import org.bson.Document
 import org.springframework.data.mongodb.MongoDatabaseFactory
 import org.springframework.data.mongodb.MongoTransactionManager
+import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -24,10 +25,10 @@ private val log = KotlinLogging.logger {  }
 
 class MongoDBServerSagaRepository(mongoClient: MongoClient, sagaDatabaseName: String, private val sagaStateSerdes: SagaStateSerdes, private val cmdSerdes: CmdSerdes, initialHwm: Long = -1) : SagaRepository {
 
-    private val database = mongoClient.getDatabase(sagaDatabaseName)
+    private val dbFactory = SimpleMongoClientDatabaseFactory(mongoClient, sagaDatabaseName)
+    private val database = dbFactory.mongoDatabase
     override val hwmTracker = MongoDBServerHwmTrackerRepository(mongoClient, HwmCollection.name, initialHwm)
-    private val transactionManager = MongoTransactionManager(database as MongoDatabaseFactory)
-    private val session = mongoClient.startSession()
+    private val transactionManager = MongoTransactionManager(dbFactory)
 
     private val timeoutCollection = database.getCollection(TimeoutCollection.name)
     private val sagaCollection = database.getCollection(SagaCollection.name)
@@ -44,12 +45,8 @@ class MongoDBServerSagaRepository(mongoClient: MongoClient, sagaDatabaseName: St
 
     override fun transactionally(runnable: () -> Unit) {
         TransactionTemplate(transactionManager).execute {
-            session.startTransaction(
-                TransactionOptions.builder()
-                    .writeConcern(WriteConcern.MAJORITY).build())
             try {
                 runnable.invoke()
-                session.close()
             } catch (e: Exception) {
                 log.error("An error was encountered while retrieving and executing saga-timeouts, transaction will be rolled back", e)
                 throw e
@@ -91,7 +88,6 @@ class MongoDBServerSagaRepository(mongoClient: MongoClient, sagaDatabaseName: St
         }
     }
 
-    // Denne bør pakkes inn i en transaction. Finn ut hvordan man gjør det
     override fun update(states: Set<SagaRepository.Operation>) {
         log.info { "updating sagas: $states" }
 
