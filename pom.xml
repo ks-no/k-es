@@ -4,6 +4,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>no.ks.fiks.pom</groupId>
+        <artifactId>fiks-ekstern-kotlin-superpom</artifactId>
+        <version>1.0.7</version>
+    </parent>
+
     <groupId>no.ks</groupId>
     <artifactId>k-es</artifactId>
     <version>3.0.5-SNAPSHOT</version>
@@ -24,20 +30,6 @@
 <!--        <module>k-es-demo-app-jackson</module>-->
     </modules>
 
-    <distributionManagement>
-        <repository>
-            <uniqueVersion>false</uniqueVersion>
-            <id>central</id>
-            <name>KS Repository</name>
-            <url>https://artifactory.fiks.ks.no/artifactory/ks-maven/</url>
-        </repository>
-        <snapshotRepository>
-            <uniqueVersion>true</uniqueVersion>
-            <id>snapshots</id>
-            <name>KS Snapshots</name>
-            <url>https://artifactory.fiks.ks.no/artifactory/maven-all/</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <properties>
         <java.version>11</java.version>
