@@ -18,16 +18,19 @@ import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.reflect.KClass
 
 private val log = KotlinLogging.logger {  }
 
+val DATEFORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+
 class MongoDBServerSagaRepository(mongoClient: MongoClient, sagaDatabaseName: String, private val sagaStateSerdes: SagaStateSerdes, private val cmdSerdes: CmdSerdes, initialHwm: Long = -1) : SagaRepository {
 
     private val dbFactory = SimpleMongoClientDatabaseFactory(mongoClient, sagaDatabaseName)
     private val database = dbFactory.mongoDatabase
-    override val hwmTracker = MongoDBServerHwmTrackerRepository(mongoClient, HwmCollection.name, initialHwm)
+    override val hwmTracker = MongoDBServerHwmTrackerRepository(database, HwmCollection.name, initialHwm)
     private val transactionManager = MongoTransactionManager(dbFactory)
 
     private val timeoutCollection = database.getCollection(TimeoutCollection.name)
@@ -40,7 +43,7 @@ class MongoDBServerSagaRepository(mongoClient: MongoClient, sagaDatabaseName: St
         return cmdCounterCollection.findOneAndUpdate(
             Filters.eq(CmdCounterCollection.id, CmdCounterCollection.name),
             Updates.inc(CmdCounterCollection.cmdCounter, 1),
-            FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER).upsert(true))?.getLong(CmdCounterCollection.cmdCounter) ?: 1
+            FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER).upsert(true))?.get(CmdCounterCollection.cmdCounter, Number::class.java)?.toLong() ?: 1
     }
 
     override fun transactionally(runnable: () -> Unit) {
@@ -58,7 +61,7 @@ class MongoDBServerSagaRepository(mongoClient: MongoClient, sagaDatabaseName: St
         return timeoutCollection.find(
             Filters.and(
                 Filters.eq(TimeoutCollection.error, false),
-                Filters.lt(TimeoutCollection.timeout, OffsetDateTime.now(ZoneOffset.UTC))
+                Filters.lt(TimeoutCollection.timeout, DATEFORMAT.format(OffsetDateTime.now(ZoneOffset.UTC)))
             )).limit(1).singleOrNull()?.let {
             SagaRepository.Timeout(
                 sagaSerializationId = it.getString(TimeoutCollection.sagaSerializationId),
@@ -96,8 +99,9 @@ class MongoDBServerSagaRepository(mongoClient: MongoClient, sagaDatabaseName: St
                      Document()
                         .append(SagaCollection.correlationId, it.correlationId.toString())
                         .append(SagaCollection.serializationId, it.serializationId)
-                        .append(SagaCollection.data, String(sagaStateSerdes.serialize(it.newState)))))
-        }.let { inserts -> sagaCollection.bulkWrite(inserts) }
+                        .append(SagaCollection.data, String(sagaStateSerdes.serialize(it.newState)))
+            ))
+        }.let { inserts -> if (inserts.isNotEmpty()) sagaCollection.bulkWrite(inserts) }
 
         states.filterIsInstance<SagaRepository.Operation.SagaUpdate>()
             .filter { it.newState != null }
@@ -110,17 +114,22 @@ class MongoDBServerSagaRepository(mongoClient: MongoClient, sagaDatabaseName: St
                         "\$set", Document()
                             .append(SagaCollection.correlationId, it.correlationId.toString())
                             .append(SagaCollection.serializationId, it.serializationId)
-                            .append(SagaCollection.data, String(sagaStateSerdes.serialize(it.newState!!)))))
-            }.let { updates -> sagaCollection.bulkWrite(updates) }
+                            .append(SagaCollection.data, String(sagaStateSerdes.serialize(it.newState!!)))
+                    )
+                )
+            }.let { updates -> if (updates.isNotEmpty()) sagaCollection.bulkWrite(updates) }
 
-        timeoutCollection.bulkWrite(timeoutsToBulkWrite(states))
+        timeoutsToBulkWrite(states).let {
+            if (it.isNotEmpty()) timeoutCollection.bulkWrite(it)
+        }
 
-        cmdCollection.bulkWrite(cmdsToBulkWrite(states))
+        cmdsToBulkWrite(states).let {
+            if (it.isNotEmpty()) cmdCollection.bulkWrite(it)
+        }
     }
 
     private fun cmdsToBulkWrite(states: Set<SagaRepository.Operation> ): List<InsertOneModel<Document>> {
-        return states.filterIsInstance<SagaRepository.Operation.SagaUpdate>()
-            .flatMap { saga ->
+        return states.flatMap { saga ->
                 saga.commands.map {
                     InsertOneModel(
                         Document()
@@ -128,7 +137,7 @@ class MongoDBServerSagaRepository(mongoClient: MongoClient, sagaDatabaseName: St
                             .append(CmdCollection.id, generateSequence())
                             .append(CmdCollection.aggregateId, it.aggregateId)
                             .append(CmdCollection.retries, 0)
-                            .append(CmdCollection.nextExecution, OffsetDateTime.now(ZoneOffset.UTC))
+                            .append(CmdCollection.nextExecution, DATEFORMAT.format(OffsetDateTime.now(ZoneOffset.UTC)))
                             .append(CmdCollection.error, false)
                             .append(CmdCollection.data, String(cmdSerdes.serialize(it)))
                     )
@@ -143,10 +152,10 @@ class MongoDBServerSagaRepository(mongoClient: MongoClient, sagaDatabaseName: St
                         InsertOneModel(
                             Document()
                                 .append(TimeoutCollection.sagaCorrelationId, saga.correlationId.toString())
-                                .append(TimeoutCollection.sagaSerializationId, saga.correlationId)
+                                .append(TimeoutCollection.sagaSerializationId, saga.serializationId)
                                 .append(TimeoutCollection.timeoutId, it.timeoutId)
-                                .append(TimeoutCollection.timeout, false)
-                                .append(TimeoutCollection.timeout, OffsetDateTime.ofInstant(it.triggerAt, ZoneOffset.UTC))
+                                .append(TimeoutCollection.error, false)
+                                .append(TimeoutCollection.timeout, DATEFORMAT.format(OffsetDateTime.ofInstant(it.triggerAt, ZoneOffset.UTC)))
                         )
                 }
             }

@@ -1,3 +1,4 @@
+/*
 package no.ks.kes.mongodb
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
@@ -48,4 +49,4 @@ class MongoDBHwmTrackerRepositoryTest: StringSpec({
 
         }
 
-}
+}*/

@@ -6,18 +6,26 @@ import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Sorts
 import com.mongodb.client.model.Updates
+import mu.KotlinLogging
 import no.ks.kes.lib.*
 import no.ks.kes.mongodb.CmdCollection
 import org.bson.Document
+import org.springframework.data.mongodb.MongoTransactionManager
+import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory
+import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.*
 
+private val log = KotlinLogging.logger {  }
 
 class MongoDBServerCommandQueue(mongoClient: MongoClient, cmdDatabaseName: String,  private val cmdSerdes: CmdSerdes, cmdHandlers: Set<CmdHandler<*>>) : CommandQueue(cmdHandlers) {
     private val database = mongoClient.getDatabase(cmdDatabaseName)
     private val cmdCollection = database.getCollection(CmdCollection.name)
+
+    private val dbFactory = SimpleMongoClientDatabaseFactory(mongoClient, cmdDatabaseName)
+    private val transactionManager = TransactionTemplate(MongoTransactionManager(dbFactory))
 
     override fun delete(cmdId: Long) {
         cmdCollection.deleteOne(
@@ -35,7 +43,7 @@ class MongoDBServerCommandQueue(mongoClient: MongoClient, cmdDatabaseName: Strin
     override fun incrementAndSetNextExecution(cmdId: Long, nextExecution: Instant) {
         cmdCollection.updateOne(
             Filters.eq(CmdCollection.id, cmdId),
-            Updates.combine(Updates.set(CmdCollection.nextExecution, OffsetDateTime.ofInstant(nextExecution, ZoneOffset.UTC)), Updates.inc(CmdCollection.retries, 1))
+            Updates.combine(Updates.set(CmdCollection.nextExecution, DATEFORMAT.format(OffsetDateTime.ofInstant(nextExecution, ZoneOffset.UTC))), Updates.inc(CmdCollection.retries, 1))
         )
     }
 
@@ -52,7 +60,7 @@ class MongoDBServerCommandQueue(mongoClient: MongoClient, cmdDatabaseName: Strin
                 .append("error", Document("\$first", "\$error"))
                 .append("nextExecution", Document("\$first", "\$nextExecution")))
 
-        val match = Aggregates.match(Filters.and(Filters.lt("nextExecution", OffsetDateTime.now(ZoneOffset.UTC)), Filters.eq("error", false)))
+        val match = Aggregates.match(Filters.and(Filters.lt("nextExecution", DATEFORMAT.format(OffsetDateTime.now(ZoneOffset.UTC))), Filters.eq("error", false)))
         val sample = Aggregates.sample(1)
 
         return cmdCollection.aggregate(
@@ -65,7 +73,9 @@ class MongoDBServerCommandQueue(mongoClient: MongoClient, cmdDatabaseName: Strin
     }
 
     override fun transactionally(runnable: () -> Unit) {
-        runnable.invoke()
+        transactionManager.execute {
+            runnable.invoke()
+        }
     }
 
 }

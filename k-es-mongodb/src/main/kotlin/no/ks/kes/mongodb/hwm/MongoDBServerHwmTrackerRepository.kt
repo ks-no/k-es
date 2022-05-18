@@ -1,6 +1,7 @@
 package no.ks.kes.mongodb.hwm
 
 import com.mongodb.client.MongoClient
+import com.mongodb.client.MongoDatabase
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.UpdateOptions
 import com.mongodb.client.model.Updates
@@ -10,9 +11,9 @@ import no.ks.kes.mongodb.HwmCollection
 
 private val log = KotlinLogging.logger {}
 
-class MongoDBServerHwmTrackerRepository(mongoClient: MongoClient, hwmDatabaseName: String, private val initialHwm: Long) : HwmTrackerRepository {
+class MongoDBServerHwmTrackerRepository(database: MongoDatabase, hwmDatabaseName: String, private val initialHwm: Long) : HwmTrackerRepository {
 
-    private val database = mongoClient.getDatabase(hwmDatabaseName)
+    //private val database = mongoClient.getDatabase(hwmDatabaseName)
     private val hwmCollection = database.getCollection(HwmCollection.name)
 
     companion object {
