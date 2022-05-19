@@ -1,6 +1,5 @@
 package no.ks.kes.mongodb.saga
 
-import com.mongodb.client.AggregateIterable
 import com.mongodb.client.MongoClient
 import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters

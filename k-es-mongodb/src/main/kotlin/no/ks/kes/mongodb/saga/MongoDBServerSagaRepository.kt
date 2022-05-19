@@ -1,8 +1,5 @@
 package no.ks.kes.mongodb.saga
 
-import com.mongodb.TransactionOptions
-import com.mongodb.WriteConcern
-import com.mongodb.client.MongoClient
 import com.mongodb.client.model.*
 import mu.KotlinLogging
 import no.ks.kes.lib.Cmd
@@ -12,10 +9,6 @@ import no.ks.kes.lib.SagaStateSerdes
 import no.ks.kes.mongodb.*
 import no.ks.kes.mongodb.hwm.MongoDBServerHwmTrackerRepository
 import org.bson.Document
-import org.springframework.data.mongodb.MongoDatabaseFactory
-import org.springframework.data.mongodb.MongoTransactionManager
-import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory
-import org.springframework.transaction.support.TransactionTemplate
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -24,19 +17,17 @@ import kotlin.reflect.KClass
 
 private val log = KotlinLogging.logger {  }
 
-val DATEFORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+val DATEFORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
-class MongoDBServerSagaRepository(mongoClient: MongoClient, sagaDatabaseName: String, private val sagaStateSerdes: SagaStateSerdes, private val cmdSerdes: CmdSerdes, initialHwm: Long = -1) : SagaRepository {
+class MongoDBServerSagaRepository(private val factory: MongoDBTransactionAwareCollectionFactory, private val sagaStateSerdes: SagaStateSerdes, private val cmdSerdes: CmdSerdes, initialHwm: Long = -1) : SagaRepository {
 
-    private val dbFactory = SimpleMongoClientDatabaseFactory(mongoClient, sagaDatabaseName)
-    private val database = dbFactory.mongoDatabase
-    override val hwmTracker = MongoDBServerHwmTrackerRepository(database, HwmCollection.name, initialHwm)
-    private val transactionManager = MongoTransactionManager(dbFactory)
+    override val hwmTracker = MongoDBServerHwmTrackerRepository(factory, initialHwm)
+    private val transactionTemplate = factory.getTransactionTemplate()
 
-    private val timeoutCollection = database.getCollection(TimeoutCollection.name)
-    private val sagaCollection = database.getCollection(SagaCollection.name)
-    private val cmdCollection = database.getCollection(CmdCollection.name)
-    private val cmdCounterCollection = database.getCollection(CmdCounterCollection.name)
+    private val timeoutCollection get() = factory.getCollection(TimeoutCollection.name)
+    private val sagaCollection get() = factory.getCollection(SagaCollection.name)
+    private val cmdCollection get() = factory.getCollection(CmdCollection.name)
+    private val cmdCounterCollection get() = factory.getCollection(CmdCounterCollection.name)
 
 
     private fun generateSequence(): Long {
@@ -47,7 +38,7 @@ class MongoDBServerSagaRepository(mongoClient: MongoClient, sagaDatabaseName: St
     }
 
     override fun transactionally(runnable: () -> Unit) {
-        TransactionTemplate(transactionManager).execute {
+        transactionTemplate.execute {
             try {
                 runnable.invoke()
             } catch (e: Exception) {

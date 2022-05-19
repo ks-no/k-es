@@ -33,9 +33,9 @@ private const val INITIAL_HWM = -1L
 class MongoDBContainerTest: StringSpec({
 
 
-    /*"Testing ProjectionRepository backed by Mongo" {
+    "Testing ProjectionRepository backed by Mongo" {
         val subscriber = testCase.name.testName
-        val projectionRepository = MongoDBProjectionRepository(mongoClient, "database")
+        val projectionRepository = MongoDBProjectionRepository(MongoDBTransactionAwareCollectionFactory(SimpleMongoClientDatabaseFactory(mongoClient, "database")))
 
         projectionRepository.hwmTracker.current(subscriber) shouldBe null
 
@@ -45,10 +45,9 @@ class MongoDBContainerTest: StringSpec({
                 throw RuntimeException("Woops!")
             }
         }
-        eventually(10.seconds) {
-            projectionRepository.hwmTracker.current(subscriber) shouldBe null
-        }
-    }*/
+
+        projectionRepository.hwmTracker.current(subscriber) shouldBe null
+    }
 
     "Test using SagaRepository and CommandQueue backed by Mongo" {
         mongoClient.use { client ->
@@ -57,9 +56,8 @@ class MongoDBContainerTest: StringSpec({
                 cmdSerdes = Cmds.serdes
             ) { kesTest ->
                 val sagaRepository = MongoDBServerSagaRepository(
-                    mongoClient = client,
+                    factory = MongoDBTransactionAwareCollectionFactory(SimpleMongoClientDatabaseFactory(mongoClient, "database")),
                     sagaStateSerdes = JacksonSagaStateSerdes(),
-                    sagaDatabaseName = "database",
                     cmdSerdes = kesTest.cmdSerdes
                 )
                 val cmdHandler = EngineCmdHandler(repository = kesTest.aggregateRepository)
