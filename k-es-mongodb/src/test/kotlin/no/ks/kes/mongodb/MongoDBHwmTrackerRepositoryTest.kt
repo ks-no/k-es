@@ -1,4 +1,3 @@
-/*
 package no.ks.kes.mongodb
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
@@ -8,6 +7,7 @@ import io.kotest.core.test.TestCase
 import io.kotest.matchers.shouldBe
 import no.ks.kes.mongodb.hwm.MongoDBServerHwmTrackerRepository
 import org.bson.UuidRepresentation
+import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory
 import org.testcontainers.containers.MongoDBContainer
 import kotlin.random.Random
 
@@ -45,8 +45,8 @@ class MongoDBHwmTrackerRepositoryTest: StringSpec({
                     .build()
             )
 
-            hwmTrackerRepository = MongoDBServerHwmTrackerRepository(mongoClient, "database", initialHwm)
+            hwmTrackerRepository = MongoDBServerHwmTrackerRepository(MongoDBTransactionAwareCollectionFactory(SimpleMongoClientDatabaseFactory(mongoClient, "database")), initialHwm)
 
         }
 
-}*/
+}

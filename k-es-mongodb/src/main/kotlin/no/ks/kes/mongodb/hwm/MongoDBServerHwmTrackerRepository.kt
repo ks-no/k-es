@@ -8,6 +8,7 @@ import no.ks.kes.lib.HwmTrackerRepository
 import no.ks.kes.mongodb.HwmCollection
 import no.ks.kes.mongodb.MongoDBTransactionAwareCollectionFactory
 
+
 private val log = KotlinLogging.logger {}
 
 class MongoDBServerHwmTrackerRepository(private val factory: MongoDBTransactionAwareCollectionFactory, private val initialHwm: Long) : HwmTrackerRepository {

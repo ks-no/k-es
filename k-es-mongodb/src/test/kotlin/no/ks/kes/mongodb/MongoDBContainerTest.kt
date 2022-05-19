@@ -50,49 +50,47 @@ class MongoDBContainerTest: StringSpec({
     }
 
     "Test using SagaRepository and CommandQueue backed by Mongo" {
-        mongoClient.use { client ->
-            withKes(
-                eventSerdes = Events.serdes,
-                cmdSerdes = Cmds.serdes
-            ) { kesTest ->
-                val sagaRepository = MongoDBServerSagaRepository(
-                    factory = MongoDBTransactionAwareCollectionFactory(SimpleMongoClientDatabaseFactory(mongoClient, "database")),
-                    sagaStateSerdes = JacksonSagaStateSerdes(),
-                    cmdSerdes = kesTest.cmdSerdes
-                )
-                val cmdHandler = EngineCmdHandler(repository = kesTest.aggregateRepository)
-                val commandQueue = MongoDBServerCommandQueue(
-                    mongoClient = client,
-                    cmdDatabaseName = "database",
-                    cmdSerdes = kesTest.cmdSerdes,
-                    cmdHandlers = setOf(cmdHandler)
-                )
-                Sagas.initialize(eventSubscriberFactory = kesTest.subscriberFactory,
-                    sagaRepository = sagaRepository,
-                    sagas = setOf(EngineSaga),
-                    commandQueue = commandQueue,
-                    pollInterval = 1000,
-                    onClose = {
-                        fail(it)
-                    }
-                )
-                val aggregateId = UUID.randomUUID()
-                TransactionTemplate(MongoTransactionManager(SimpleMongoClientDatabaseFactory(client, "database"))).execute {
-                    cmdHandler.handle(Cmds.Create(aggregateId))
+        withKes(
+            eventSerdes = Events.serdes,
+            cmdSerdes = Cmds.serdes
+        ) { kesTest ->
+            val sagaRepository = MongoDBServerSagaRepository(
+                factory = MongoDBTransactionAwareCollectionFactory(SimpleMongoClientDatabaseFactory(mongoClient, "database")),
+                sagaStateSerdes = JacksonSagaStateSerdes(),
+                cmdSerdes = kesTest.cmdSerdes
+            )
+            val cmdHandler = EngineCmdHandler(repository = kesTest.aggregateRepository)
+            val commandQueue = MongoDBServerCommandQueue(
+                factory = MongoDBTransactionAwareCollectionFactory(SimpleMongoClientDatabaseFactory(mongoClient, "database")),
+                cmdSerdes = kesTest.cmdSerdes,
+                cmdHandlers = setOf(cmdHandler)
+            )
+            Sagas.initialize(eventSubscriberFactory = kesTest.subscriberFactory,
+                sagaRepository = sagaRepository,
+                sagas = setOf(EngineSaga),
+                commandQueue = commandQueue,
+                pollInterval = 1000,
+                onClose = {
+                    fail(it)
                 }
-                eventually(10.seconds) {
-                    cmdHandler.handle(Cmds.Check(aggregateId)).asClue {
-                        it.startCount shouldBe 1
-                        it.running shouldBe false
-                    }
-                    sagaRepository.getSagaState(aggregateId, SAGA_SERILIZATION_ID, EngineSagaState::class)?.asClue {
-                        it.stoppedBySaga shouldBe true
-                    } ?: fail { "Ingen saga state funnet for aggregat $aggregateId" }
-
+            )
+            val aggregateId = UUID.randomUUID()
+            TransactionTemplate(MongoTransactionManager(SimpleMongoClientDatabaseFactory(mongoClient, "database"))).execute {
+                cmdHandler.handle(Cmds.Create(aggregateId))
+            }
+            eventually(10.seconds) {
+                cmdHandler.handle(Cmds.Check(aggregateId)).asClue {
+                    it.startCount shouldBe 1
+                    it.running shouldBe false
                 }
+                sagaRepository.getSagaState(aggregateId, SAGA_SERILIZATION_ID, EngineSagaState::class)?.asClue {
+                    it.stoppedBySaga shouldBe true
+                } ?: fail { "Ingen saga state funnet for aggregat $aggregateId" }
 
             }
+
         }
+
     }
 
 }) {

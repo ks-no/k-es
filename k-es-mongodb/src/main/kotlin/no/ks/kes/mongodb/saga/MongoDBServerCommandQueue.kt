@@ -8,6 +8,7 @@ import com.mongodb.client.model.Updates
 import mu.KotlinLogging
 import no.ks.kes.lib.*
 import no.ks.kes.mongodb.CmdCollection
+import no.ks.kes.mongodb.MongoDBTransactionAwareCollectionFactory
 import org.bson.Document
 import org.springframework.data.mongodb.MongoTransactionManager
 import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory
@@ -19,12 +20,10 @@ import java.util.*
 
 private val log = KotlinLogging.logger {  }
 
-class MongoDBServerCommandQueue(mongoClient: MongoClient, cmdDatabaseName: String,  private val cmdSerdes: CmdSerdes, cmdHandlers: Set<CmdHandler<*>>) : CommandQueue(cmdHandlers) {
-    private val database = mongoClient.getDatabase(cmdDatabaseName)
-    private val cmdCollection = database.getCollection(CmdCollection.name)
+class MongoDBServerCommandQueue(private val factory: MongoDBTransactionAwareCollectionFactory, private val cmdSerdes: CmdSerdes, cmdHandlers: Set<CmdHandler<*>>) : CommandQueue(cmdHandlers) {
+    private val cmdCollection get() = factory.getCollection(CmdCollection.name)
 
-    private val dbFactory = SimpleMongoClientDatabaseFactory(mongoClient, cmdDatabaseName)
-    private val transactionManager = TransactionTemplate(MongoTransactionManager(dbFactory))
+    private val transactionTemplate = factory.getTransactionTemplate()
 
     override fun delete(cmdId: Long) {
         cmdCollection.deleteOne(
@@ -72,7 +71,7 @@ class MongoDBServerCommandQueue(mongoClient: MongoClient, cmdDatabaseName: Strin
     }
 
     override fun transactionally(runnable: () -> Unit) {
-        transactionManager.execute {
+        transactionTemplate.execute {
             runnable.invoke()
         }
     }
