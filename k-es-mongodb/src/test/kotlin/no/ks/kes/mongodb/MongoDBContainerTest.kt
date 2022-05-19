@@ -18,12 +18,12 @@ import no.ks.kes.serdes.jackson.JacksonSagaStateSerdes
 import no.ks.kes.test.example.*
 import no.ks.kes.test.withKes
 import org.bson.UuidRepresentation
-import org.testcontainers.containers.MongoDBContainer
-import java.util.*
 import org.junit.jupiter.api.fail
 import org.springframework.data.mongodb.MongoTransactionManager
 import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory
 import org.springframework.transaction.support.TransactionTemplate
+import org.testcontainers.containers.MongoDBContainer
+import java.util.*
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 

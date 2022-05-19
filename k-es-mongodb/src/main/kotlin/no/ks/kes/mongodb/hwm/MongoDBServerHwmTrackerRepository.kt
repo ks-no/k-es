@@ -1,27 +1,12 @@
 package no.ks.kes.mongodb.hwm
 
-import com.mongodb.client.MongoClient
-import com.mongodb.client.MongoDatabase
-import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Filters.eq
 import com.mongodb.client.model.UpdateOptions
-import com.mongodb.client.model.Updates
 import com.mongodb.client.model.Updates.set
 import mu.KotlinLogging
 import no.ks.kes.lib.HwmTrackerRepository
 import no.ks.kes.mongodb.HwmCollection
 import no.ks.kes.mongodb.MongoDBTransactionAwareCollectionFactory
-import org.bson.Document
-import org.springframework.data.mongodb.MongoDatabaseFactory
-import org.springframework.data.mongodb.MongoDatabaseUtils
-import org.springframework.data.mongodb.SessionSynchronization
-import org.springframework.data.mongodb.core.MongoOperations
-import org.springframework.data.mongodb.core.MongoTemplate
-import org.springframework.data.mongodb.core.query.Criteria
-import org.springframework.data.mongodb.core.query.Criteria.where
-import org.springframework.data.mongodb.core.query.Query
-import org.springframework.data.mongodb.core.query.Query.query
-import org.springframework.data.mongodb.core.query.Update
 
 private val log = KotlinLogging.logger {}
 
