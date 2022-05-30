@@ -63,7 +63,7 @@
         <junit.jupiter.version>5.8.2</junit.jupiter.version>
         <testcontainers.version>1.17.1</testcontainers.version>
         <mssql-jdbc.version>10.2.0.jre11</mssql-jdbc.version>
-        <protobuf-java.version>3.20.1</protobuf-java.version>
+        <protobuf-java.version>3.21.1</protobuf-java.version>
         <testcontainers.version>1.15.2</testcontainers.version>
         <spring-boot-version>2.6.7</spring-boot-version>
     </properties>
