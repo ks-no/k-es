@@ -13,7 +13,7 @@
     <artifactId>k-es-demo-app-proto</artifactId>
     <properties>
         <spring-boot-version>2.6.7</spring-boot-version>
-        <flyway.version>8.5.11</flyway.version>
+        <flyway.version>8.5.12</flyway.version>
         <awaitility.version>4.2.0</awaitility.version>
         <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
