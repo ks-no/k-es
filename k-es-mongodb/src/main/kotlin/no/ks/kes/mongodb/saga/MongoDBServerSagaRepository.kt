@@ -29,6 +29,13 @@ class MongoDBServerSagaRepository(private val factory: MongoDBTransactionAwareCo
     private val cmdCollection get() = factory.getCollection(CmdCollection.name)
     private val cmdCounterCollection get() = factory.getCollection(CmdCounterCollection.name)
 
+    init {
+        factory.initCollection(TimeoutCollection.name)
+        factory.initCollection(SagaCollection.name)
+        factory.initCollection(CmdCollection.name)
+        factory.initCollection(CmdCounterCollection.name)
+    }
+
 
     private fun generateSequence(): Long {
         return cmdCounterCollection.findOneAndUpdate(

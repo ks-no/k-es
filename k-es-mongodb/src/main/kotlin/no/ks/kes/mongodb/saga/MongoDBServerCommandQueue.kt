@@ -1,6 +1,5 @@
 package no.ks.kes.mongodb.saga
 
-import com.mongodb.client.MongoClient
 import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Sorts
@@ -10,20 +9,20 @@ import no.ks.kes.lib.*
 import no.ks.kes.mongodb.CmdCollection
 import no.ks.kes.mongodb.MongoDBTransactionAwareCollectionFactory
 import org.bson.Document
-import org.springframework.data.mongodb.MongoTransactionManager
-import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory
-import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.*
 
-private val log = KotlinLogging.logger {  }
 
 class MongoDBServerCommandQueue(private val factory: MongoDBTransactionAwareCollectionFactory, private val cmdSerdes: CmdSerdes, cmdHandlers: Set<CmdHandler<*>>) : CommandQueue(cmdHandlers) {
     private val cmdCollection get() = factory.getCollection(CmdCollection.name)
 
     private val transactionTemplate = factory.getTransactionTemplate()
+
+    init {
+        factory.initCollection(CmdCollection.name)
+    }
 
     override fun delete(cmdId: Long) {
         cmdCollection.deleteOne(

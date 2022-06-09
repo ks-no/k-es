@@ -21,4 +21,10 @@ class MongoDBTransactionAwareCollectionFactory(private val factory: MongoDatabas
     fun getCollection(collectionName: String, databaseName: String): MongoCollection<Document> =
         MongoDatabaseUtils.getDatabase(databaseName, factory, SessionSynchronization.ON_ACTUAL_TRANSACTION)
             .getCollection(collectionName)
+
+    fun initCollection(collectionName: String) {
+        if (!factory.mongoDatabase.listCollectionNames().contains(collectionName)) {
+            factory.mongoDatabase.createCollection(collectionName)
+        }
+    }
 }
