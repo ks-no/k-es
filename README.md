@@ -1,4 +1,8 @@
 # k-es
+[![MIT Licens](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/ks-no/k-es/blob/master/LICENSE)
+![GitHub last commit](https://img.shields.io/github/last-commit/ks-no/k-es)
+[![Maven Central](https://img.shields.io/maven-central/v/no.ks/k-es.svg)](https://search.maven.org/search?q=g:no.ks%20a:k-es)
+![GitHub Release Date](https://img.shields.io/github/release-date/ks-no/k-es.svg)
 
 Kotlin library for persistance through [event-sourced](https://martinfowler.com/eaaDev/EventSourcing.html) aggregates. Support for projections and sagas included, check out the demo-app to see how it all fits together. One extended demo app with Jackson (k-es-demo-app-jackson), and one light demo app with Proto (k-es-demo-app-proto)
 

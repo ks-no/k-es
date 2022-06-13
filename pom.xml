@@ -4,10 +4,18 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>no.ks.fiks.pom</groupId>
+        <artifactId>fiks-ekstern-kotlin-superpom</artifactId>
+        <version>1.0.10</version>
+    </parent>
+
     <groupId>no.ks</groupId>
     <artifactId>k-es</artifactId>
-    <version>3.0.5-SNAPSHOT</version>
+    <version>3.0.6-SNAPSHOT</version>
     <packaging>pom</packaging>
+    <description>${project.artifactId}: An eventsourcing framework for Kotlin, with adapters for EventStore</description>
+    <url>https://github.com/ks-no/k-es</url>
 
     <modules>
         <module>k-es-bom</module>
@@ -24,21 +32,12 @@
         <module>k-es-mongodb</module>
         <!--        <module>k-es-demo-app-jackson</module>-->
     </modules>
+    <scm>
+        <connection>scm:git:git@github.com:ks-no/k-es.git</connection>
+        <developerConnection>scm:git:git@github.com:ks-no/k-es.git</developerConnection>
+        <url>https://github.com/ks-no/k-es</url>
+    </scm>
 
-    <distributionManagement>
-        <repository>
-            <uniqueVersion>false</uniqueVersion>
-            <id>central</id>
-            <name>KS Repository</name>
-            <url>https://artifactory.fiks.ks.no/artifactory/ks-maven/</url>
-        </repository>
-        <snapshotRepository>
-            <uniqueVersion>true</uniqueVersion>
-            <id>snapshots</id>
-            <name>KS Snapshots</name>
-            <url>https://artifactory.fiks.ks.no/artifactory/maven-all/</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <properties>
         <java.version>11</java.version>
@@ -50,25 +49,26 @@
         <maven-enforcer-plugin.version>3.0.0</maven-enforcer-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M6</maven-surefire-plugin.version>
 
-        <kotlin.version>1.6.20</kotlin.version>
-        <jackson.version>2.13.2.20220328</jackson.version>
+        <kotlin.version>1.6.21</kotlin.version>
+        <jackson.version>2.13.3</jackson.version>
         <slf4j.version>1.7.36</slf4j.version>
         <esjc.version>2.7.0</esjc.version>
-        <spring.version>5.3.19</spring.version>
+        <spring.version>5.3.20</spring.version>
         <logback.version>1.2.11</logback.version>
         <kotlin-logging.version>2.1.21</kotlin-logging.version>
-        <mockk.version>1.12.3</mockk.version>
+        <mockk.version>1.12.4</mockk.version>
         <kotest.version>5.0.0</kotest.version>
-        <kotest.testcontainers.version>1.3.1</kotest.testcontainers.version>
-        <kotest.spring.version>1.1.0</kotest.spring.version>
+        <kotest.testcontainers.version>1.3.3</kotest.testcontainers.version>
+        <kotest.spring.version>1.1.1</kotest.spring.version>
         <jacoco-maven-plugin.version>0.8.8</jacoco-maven-plugin.version>
         <junit.jupiter.version>5.8.2</junit.jupiter.version>
         <testcontainers.version>1.17.1</testcontainers.version>
         <mssql-jdbc.version>10.2.0.jre11</mssql-jdbc.version>
-        <protobuf-java.version>3.20.0</protobuf-java.version>
+        <protobuf-java.version>3.20.1</protobuf-java.version>
         <testcontainers.version>1.15.2</testcontainers.version>
         <spring-boot-version>2.6.6</spring-boot-version>
         <mongodb-driver-version>4.6.0</mongodb-driver-version>
+        <spring-boot-version>2.6.7</spring-boot-version>
     </properties>
 
     <dependencyManagement>

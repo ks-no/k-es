@@ -7,14 +7,15 @@
     <parent>
         <groupId>no.ks</groupId>
         <artifactId>k-es</artifactId>
-        <version>3.0.5-SNAPSHOT</version>
+        <version>3.0.6-SNAPSHOT</version>
     </parent>
 
     <artifactId>k-es-demo-app-proto</artifactId>
     <properties>
-        <spring-boot-version>2.6.5</spring-boot-version>
-        <flyway.version>8.5.8</flyway.version>
+        <spring-boot-version>2.6.7</spring-boot-version>
+        <flyway.version>8.5.11</flyway.version>
         <awaitility.version>4.2.0</awaitility.version>
+        <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
 
     <dependencyManagement>
