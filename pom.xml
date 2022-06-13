@@ -29,7 +29,8 @@
         <module>k-es-demo-app-proto-events</module>
         <module>k-es-demo-app-proto</module>
         <module>k-es-demo-app-grpc-jackson</module>
-<!--        <module>k-es-demo-app-jackson</module>-->
+        <module>k-es-mongodb</module>
+        <!--        <module>k-es-demo-app-jackson</module>-->
     </modules>
     <scm>
         <connection>scm:git:git@github.com:ks-no/k-es.git</connection>
@@ -65,6 +66,8 @@
         <mssql-jdbc.version>10.2.0.jre11</mssql-jdbc.version>
         <protobuf-java.version>3.20.1</protobuf-java.version>
         <testcontainers.version>1.15.2</testcontainers.version>
+        <spring-boot-version>2.6.6</spring-boot-version>
+        <mongodb-driver-version>4.6.0</mongodb-driver-version>
         <spring-boot-version>2.6.7</spring-boot-version>
     </properties>
 
@@ -93,6 +96,11 @@
             <dependency>
                 <groupId>no.ks</groupId>
                 <artifactId>k-es-grpc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>no.ks</groupId>
+                <artifactId>k-es-mongodb</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
