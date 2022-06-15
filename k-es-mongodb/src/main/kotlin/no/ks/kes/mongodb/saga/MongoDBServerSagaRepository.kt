@@ -90,7 +90,7 @@ class MongoDBServerSagaRepository(private val factory: MongoDBTransactionAwareCo
     }
 
     override fun update(states: Set<SagaRepository.Operation>) {
-        log.info { "updating sagas: $states" }
+        log.info { "updating sagas: ${states.map { it.newState }.toList()}" }
 
         states.filterIsInstance<SagaRepository.Operation.Insert>().map {
             InsertOneModel(Document(

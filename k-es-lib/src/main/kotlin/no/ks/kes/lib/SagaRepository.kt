@@ -13,12 +13,13 @@ interface SagaRepository : TransactionalRepository, HighWaterMarkedRepository {
     data class Timeout(val sagaCorrelationId: UUID, val sagaSerializationId: String, val timeoutId: String)
     sealed class Operation {
 
+        abstract val newState: Any?
         abstract val commands: List<Cmd<*>>
 
         data class SagaUpdate(
                 val correlationId: UUID,
                 val serializationId: String,
-                val newState: Any?,
+                override val newState: Any?,
                 val timeouts: Set<Saga.Timeout>,
                 override val commands: List<Cmd<*>>
         ) : Operation()
@@ -26,7 +27,7 @@ interface SagaRepository : TransactionalRepository, HighWaterMarkedRepository {
         data class Insert(
                 val correlationId: UUID,
                 val serializationId: String,
-                val newState: Any,
+                override val newState: Any,
                 override val commands: List<Cmd<*>>
         ) : Operation()
     }
