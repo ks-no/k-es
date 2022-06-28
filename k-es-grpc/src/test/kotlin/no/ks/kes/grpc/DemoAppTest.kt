@@ -54,7 +54,7 @@ class DemoAppTest : StringSpec() {
         .withReuse(true)
         .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4))
 
-    override fun beforeSpec(spec: Spec) {
+    override suspend fun beforeSpec(spec: Spec) {
         eventStoreContainer.start()
 
         val eventStoreClient = EventStoreDBClient.create(ConnectionSettingsBuilder()
@@ -89,7 +89,7 @@ class DemoAppTest : StringSpec() {
         kontoCmds = KontoCmds(repo)
     }
 
-    override fun afterSpec(spec: Spec) {
+    override suspend fun afterSpec(spec: Spec) {
         eventStoreContainer.stop()
     }
 
