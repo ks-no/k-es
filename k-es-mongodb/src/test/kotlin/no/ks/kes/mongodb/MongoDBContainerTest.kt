@@ -9,6 +9,7 @@ import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.assertions.timing.eventually
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.core.test.TestCase
+import io.kotest.extensions.testcontainers.perSpec
 import io.kotest.matchers.shouldBe
 import no.ks.kes.lib.Sagas
 import no.ks.kes.mongodb.projection.MongoDBProjectionRepository
@@ -30,86 +31,85 @@ import kotlin.time.ExperimentalTime
 private const val INITIAL_HWM = -1L
 
 @ExperimentalTime
-class MongoDBContainerTest: StringSpec({
-
-
-    "Testing ProjectionRepository backed by Mongo" {
-        val subscriber = testCase.name.testName
-        val projectionRepository = MongoDBProjectionRepository(MongoDBTransactionAwareCollectionFactory(SimpleMongoClientDatabaseFactory(mongoClient, "database")))
-
-        projectionRepository.hwmTracker.current(subscriber) shouldBe null
-
-        shouldThrowExactly<RuntimeException> {
-            projectionRepository.transactionally {
-                projectionRepository.hwmTracker.getOrInit(subscriber) shouldBe INITIAL_HWM
-                throw RuntimeException("Woops!")
-            }
-        }
-
-        projectionRepository.hwmTracker.current(subscriber) shouldBe null
-    }
-
-    "Test using SagaRepository and CommandQueue backed by Mongo" {
-        withKes(
-            eventSerdes = Events.serdes,
-            cmdSerdes = Cmds.serdes
-        ) { kesTest ->
-            val sagaRepository = MongoDBServerSagaRepository(
-                factory = MongoDBTransactionAwareCollectionFactory(SimpleMongoClientDatabaseFactory(mongoClient, "database")),
-                sagaStateSerdes = JacksonSagaStateSerdes(),
-                cmdSerdes = kesTest.cmdSerdes
-            )
-            val cmdHandler = EngineCmdHandler(repository = kesTest.aggregateRepository)
-            val commandQueue = MongoDBServerCommandQueue(
-                factory = MongoDBTransactionAwareCollectionFactory(SimpleMongoClientDatabaseFactory(mongoClient, "database")),
-                cmdSerdes = kesTest.cmdSerdes,
-                cmdHandlers = setOf(cmdHandler)
-            )
-            Sagas.initialize(eventSubscriberFactory = kesTest.subscriberFactory,
-                sagaRepository = sagaRepository,
-                sagas = setOf(EngineSaga),
-                commandQueue = commandQueue,
-                pollInterval = 1000,
-                onClose = {
-                    fail(it)
-                }
-            )
-            val aggregateId = UUID.randomUUID()
-            TransactionTemplate(MongoTransactionManager(SimpleMongoClientDatabaseFactory(mongoClient, "database"))).execute {
-                cmdHandler.handle(Cmds.Create(aggregateId))
-            }
-            eventually(10.seconds) {
-                cmdHandler.handle(Cmds.Check(aggregateId)).asClue {
-                    it.startCount shouldBe 1
-                    it.running shouldBe false
-                }
-                sagaRepository.getSagaState(aggregateId, SAGA_SERILIZATION_ID, EngineSagaState::class)?.asClue {
-                    it.stoppedBySaga shouldBe true
-                } ?: fail { "Ingen saga state funnet for aggregat $aggregateId" }
-
-            }
-
-        }
-
-    }
-
-}) {
-
-    companion object {
-        private lateinit var mongoClient: MongoClient
-    }
-
-    override fun beforeTest(testCase: TestCase) {
-        super.beforeTest(testCase)
-        val mongoDBContainer = MongoDBContainer("mongo:4.4.3")
-        mongoDBContainer.start()
-
-        mongoClient = MongoClients.create(
+class MongoDBContainerTest: StringSpec() {
+    private val mongoDBContainer = MongoDBContainer("mongo:4.4.3")
+    private val mongoClient: MongoClient by lazy {
+        MongoClients.create(
             MongoClientSettings.builder()
                 .applyConnectionString(ConnectionString(mongoDBContainer.replicaSetUrl))
                 .uuidRepresentation(UuidRepresentation.JAVA_LEGACY)
                 .build()
-
         )
     }
+    init {
+        listener(mongoDBContainer.perSpec())
+
+        "Testing ProjectionRepository backed by Mongo" {
+            val subscriber = testCase.name.testName
+            val projectionRepository = MongoDBProjectionRepository(
+                MongoDBTransactionAwareCollectionFactory(
+                    SimpleMongoClientDatabaseFactory(
+                        mongoClient,
+                        "database"
+                    )
+                )
+            )
+
+            projectionRepository.hwmTracker.current(subscriber) shouldBe null
+
+            shouldThrowExactly<RuntimeException> {
+                projectionRepository.transactionally {
+                    projectionRepository.hwmTracker.getOrInit(subscriber) shouldBe INITIAL_HWM
+                    throw RuntimeException("Woops!")
+                }
+            }
+
+            projectionRepository.hwmTracker.current(subscriber) shouldBe null
+        }
+
+        "Test using SagaRepository and CommandQueue backed by Mongo" {
+            withKes(
+                eventSerdes = Events.serdes,
+                cmdSerdes = Cmds.serdes
+            ) { kesTest ->
+                val sagaRepository = MongoDBServerSagaRepository(
+                    factory = MongoDBTransactionAwareCollectionFactory(SimpleMongoClientDatabaseFactory(mongoClient, "database")),
+                    sagaStateSerdes = JacksonSagaStateSerdes(),
+                    cmdSerdes = kesTest.cmdSerdes
+                )
+                val cmdHandler = EngineCmdHandler(repository = kesTest.aggregateRepository)
+                val commandQueue = MongoDBServerCommandQueue(
+                    factory = MongoDBTransactionAwareCollectionFactory(SimpleMongoClientDatabaseFactory(mongoClient, "database")),
+                    cmdSerdes = kesTest.cmdSerdes,
+                    cmdHandlers = setOf(cmdHandler)
+                )
+                Sagas.initialize(eventSubscriberFactory = kesTest.subscriberFactory,
+                    sagaRepository = sagaRepository,
+                    sagas = setOf(EngineSaga),
+                    commandQueue = commandQueue,
+                    pollInterval = 1000,
+                    onClose = {
+                        fail(it)
+                    }
+                )
+                val aggregateId = UUID.randomUUID()
+                TransactionTemplate(MongoTransactionManager(SimpleMongoClientDatabaseFactory(mongoClient, "database"))).execute {
+                    cmdHandler.handle(Cmds.Create(aggregateId))
+                }
+                eventually(10.seconds) {
+                    cmdHandler.handle(Cmds.Check(aggregateId)).asClue {
+                        it.startCount shouldBe 1
+                        it.running shouldBe false
+                    }
+                    sagaRepository.getSagaState(aggregateId, SAGA_SERILIZATION_ID, EngineSagaState::class)?.asClue {
+                        it.stoppedBySaga shouldBe true
+                    } ?: fail { "Ingen saga state funnet for aggregat $aggregateId" }
+
+                }
+
+            }
+
+        }
+    }
+
 }
