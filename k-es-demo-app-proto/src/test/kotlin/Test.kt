@@ -41,9 +41,7 @@ class Test : StringSpec() {
 
     val dockerImageName = DockerImageName.parse("eventstore/eventstore:21.10.1-buster-slim")
     val eventStoreContainer = GenericContainer<GenericContainer<*>>(dockerImageName)
-        .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")
-        .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
-        .withEnv("EVENTSTORE_LOG_LEVEL", "Verbose")
+        .withCommand("--insecure", "--run-projections=All")
         .withExposedPorts(PORT)
         .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4));
 
