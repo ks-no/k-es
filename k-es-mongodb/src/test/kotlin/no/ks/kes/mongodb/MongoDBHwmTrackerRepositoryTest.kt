@@ -33,7 +33,7 @@ class MongoDBHwmTrackerRepositoryTest: StringSpec({
             private val initialHwm = Random.nextLong(-1, 1)
         }
 
-        override fun beforeTest(testCase: TestCase) {
+        override suspend fun beforeTest(testCase: TestCase) {
             super.beforeTest(testCase)
             val mongoDBContainer = MongoDBContainer("mongo:4.4.3")
             mongoDBContainer.start()
