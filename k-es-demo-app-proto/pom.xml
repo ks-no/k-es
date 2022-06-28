@@ -114,6 +114,11 @@
             <artifactId>kotest-assertions-core-jvm</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.kotest.extensions</groupId>
+            <artifactId>kotest-extensions-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.testcontainers</groupId>
