@@ -39,11 +39,13 @@ private const val PORT = 1113
 @ExperimentalTime
 class Test : StringSpec() {
 
-    val dockerImageName = DockerImageName.parse("eventstore/eventstore:21.10.1-buster-slim")
+    val dockerImageName = DockerImageName.parse("eventstore/eventstore:release-5.0.9")
     val eventStoreContainer = GenericContainer<GenericContainer<*>>(dockerImageName)
-        .withCommand("--insecure", "--run-projections=All")
-        .withExposedPorts(PORT)
-        .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4));
+        .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")
+        .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
+        .withEnv("EVENTSTORE_LOG_LEVEL", "Verbose")
+        .withExposedPorts(1113)
+        .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4))
 
     init {
         val klient = EventStoreTestKlientListener(portProvider = { eventStoreContainer.getMappedPort(PORT)})
