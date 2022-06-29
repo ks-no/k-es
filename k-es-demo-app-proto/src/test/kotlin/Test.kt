@@ -1,8 +1,11 @@
 import com.github.msemys.esjc.EventStoreBuilder
 import com.google.protobuf.Message
 import io.kotest.assertions.timing.eventually
+import io.kotest.core.listeners.TestListener
 import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.core.test.TestCase
+import io.kotest.extensions.testcontainers.perSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import mu.KotlinLogging
@@ -31,12 +34,10 @@ import kotlin.time.toDuration
 
 private val log = KotlinLogging.logger {}
 
+private const val PORT = 1113
+
 @ExperimentalTime
 class Test : StringSpec() {
-
-    lateinit var kontoCmds: KontoCmds
-    lateinit var repo: AggregateRepository
-    lateinit var subscriberFactory: EsjcEventSubscriberFactory
 
     val dockerImageName = DockerImageName.parse("eventstore/eventstore:release-5.0.9")
     val eventStoreContainer = GenericContainer<GenericContainer<*>>(dockerImageName)
@@ -44,14 +45,62 @@ class Test : StringSpec() {
         .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
         .withEnv("EVENTSTORE_LOG_LEVEL", "Verbose")
         .withExposedPorts(1113)
-        .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4));
+        .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4))
 
+    init {
+        val klient = EventStoreTestKlientListener(portProvider = { eventStoreContainer.getMappedPort(PORT)})
+        listeners(eventStoreContainer.perSpec(), klient)
+        "Test at vi kan opprette konto" {
+            val validatedAggregateConfiguration = Konto.getConfiguration { klient.repo.getSerializationId(it) }
 
-    override fun beforeSpec(spec: Spec) {
-        eventStoreContainer.start()
+            val kontoId = UUID.randomUUID()
+            val orgId = UUID.randomUUID().toString()
+            log.info { "AggregateId $kontoId, OrgId $orgId" }
 
+            val receivedEvents = AtomicInteger(0)
+            val receivedCatchupEvents = AtomicInteger(0)
+
+            klient.subscriberFactory.createSubscriber("subscriber", -1, {
+                log.info { "Got event: ${it.eventNumber} - ${it.event.aggregateId} - ${it.event.eventData}" }
+                receivedEvents.incrementAndGet()
+            })
+
+            klient.kontoCmds.handle(KontoCmds.Opprett(kontoId, orgId))
+            klient.kontoCmds.handle(KontoCmds.Aktiver(kontoId))
+
+            var aggregateResult = klient.repo.read(kontoId, validatedAggregateConfiguration)
+
+            aggregateResult.shouldBeInstanceOf<AggregateReadResult.InitializedAggregate<KontoAggregate>>()
+            aggregateResult.aggregateState.aktivert shouldBe true
+
+            klient.kontoCmds.handle(KontoCmds.Deaktiver(kontoId))
+
+            aggregateResult = klient.repo.read(kontoId, validatedAggregateConfiguration)
+            aggregateResult.shouldBeInstanceOf<AggregateReadResult.InitializedAggregate<KontoAggregate>>()
+            aggregateResult.aggregateState.aktivert shouldBe false
+
+            aggregateResult.aggregateState.aggregateId shouldBe kontoId
+
+            val subscriber = klient.subscriberFactory.createSubscriber("catchup subscriber", 1, {
+                receivedCatchupEvents.incrementAndGet()
+            })
+
+            eventually(5.toDuration(DurationUnit.SECONDS)) {
+                receivedEvents.get() shouldBe 3
+                receivedCatchupEvents.get() shouldBe 1
+                subscriber.lastProcessedEvent() shouldBe 2
+            }
+        }
+    }
+}
+
+internal class EventStoreTestKlientListener(private val portProvider: () -> Int): TestListener {
+    lateinit var kontoCmds: KontoCmds
+    lateinit var repo: AggregateRepository
+    lateinit var subscriberFactory: EsjcEventSubscriberFactory
+    override suspend fun beforeSpec(spec: Spec) {
         val eventStore = EventStoreBuilder.newBuilder()
-            .singleNodeAddress("localhost", eventStoreContainer.getMappedPort(1113))
+            .singleNodeAddress("localhost", portProvider.invoke())
             .userCredentials("admin", "changeit")
             .build()
 
@@ -81,54 +130,5 @@ class Test : StringSpec() {
         kontoCmds = KontoCmds(repo)
 
         subscriberFactory = EsjcEventSubscriberFactory(eventStore, eventSerdes, "no.ks.kes.proto.demo")
-
-    }
-
-    override fun afterSpec(spec: Spec) {
-        eventStoreContainer.stop()
-    }
-
-    init {
-        "Test at vi kan opprette konto" {
-            val validatedAggregateConfiguration = Konto.getConfiguration { repo.getSerializationId(it) }
-
-            val kontoId = UUID.randomUUID()
-            val orgId = UUID.randomUUID().toString()
-            log.info { "AggregateId $kontoId, OrgId $orgId" }
-
-            val receivedEvents = AtomicInteger(0)
-            val receivedCatchupEvents = AtomicInteger(0)
-
-            subscriberFactory.createSubscriber("subscriber", -1, {
-                log.info { "Got event: ${it.eventNumber} - ${it.event.aggregateId} - ${it.event.eventData}" }
-                receivedEvents.incrementAndGet()
-            })
-
-            kontoCmds.handle(KontoCmds.Opprett(kontoId, orgId))
-            kontoCmds.handle(KontoCmds.Aktiver(kontoId))
-
-            var aggregateResult = repo.read(kontoId, validatedAggregateConfiguration)
-
-            aggregateResult.shouldBeInstanceOf<AggregateReadResult.InitializedAggregate<KontoAggregate>>()
-            aggregateResult.aggregateState.aktivert shouldBe true
-
-            kontoCmds.handle(KontoCmds.Deaktiver(kontoId))
-
-            aggregateResult = repo.read(kontoId, validatedAggregateConfiguration)
-            aggregateResult.shouldBeInstanceOf<AggregateReadResult.InitializedAggregate<KontoAggregate>>()
-            aggregateResult.aggregateState.aktivert shouldBe false
-
-            aggregateResult.aggregateState.aggregateId shouldBe kontoId
-
-            val subscriber = subscriberFactory.createSubscriber("catchup subscriber", 1, {
-                receivedCatchupEvents.incrementAndGet()
-            })
-
-            eventually(5.toDuration(DurationUnit.SECONDS)) {
-                receivedEvents.get() shouldBe 3
-                receivedCatchupEvents.get() shouldBe 1
-                subscriber.lastProcessedEvent() shouldBe 2
-            }
-        }
     }
 }
