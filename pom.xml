@@ -64,7 +64,7 @@
         <junit.jupiter.version>5.8.2</junit.jupiter.version>
         <testcontainers.version>1.17.2</testcontainers.version>
         <mssql-jdbc.version>11.1.2.jre11-preview</mssql-jdbc.version>
-        <protobuf-java.version>3.21.2</protobuf-java.version>
+        <protobuf-java.version>3.21.5</protobuf-java.version>
         <testcontainers.version>1.15.2</testcontainers.version>
         <spring-boot-version>2.7.1</spring-boot-version>
         <mongodb-driver-version>4.6.1</mongodb-driver-version>
