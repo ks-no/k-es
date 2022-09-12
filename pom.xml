@@ -69,7 +69,7 @@
         <spring-boot-version>2.7.1</spring-boot-version>
         <mongodb-driver-version>4.6.1</mongodb-driver-version>
         <spring-boot-version>2.7.1</spring-boot-version>
-        <kotlinx-coroutines.version>1.6.3</kotlinx-coroutines.version>
+        <kotlinx-coroutines.version>1.6.4</kotlinx-coroutines.version>
     </properties>
 
     <dependencyManagement>
