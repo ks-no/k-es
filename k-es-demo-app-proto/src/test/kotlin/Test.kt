@@ -9,6 +9,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.extensions.testcontainers.perSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import kotlinx.coroutines.withTimeout
 import mu.KotlinLogging
 import no.ks.kes.demoapp.Konto
 import no.ks.kes.demoapp.KontoAggregate
@@ -29,6 +30,7 @@ import org.testcontainers.utility.DockerImageName
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KClass
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 import kotlin.time.toDuration
@@ -38,16 +40,26 @@ private val log = KotlinLogging.logger {}
 
 private const val PORT = 1113
 
+private val EVENTSTORE_AMD64_IMAGE_NAME = DockerImageName.parse("eventstore/eventstore").withTag("21.6.0-buster-slim")
+private val EVENTSTORE_ARM64_IMAGE_NAME = DockerImageName.parse("ghcr.io/eventstore/eventstore").withTag("21.10.0-alpha-arm64v8")
+private fun eventstoreImageName() = when(System.getProperty("os.arch")) {
+    "aarch64" -> EVENTSTORE_ARM64_IMAGE_NAME.asCompatibleSubstituteFor(EVENTSTORE_AMD64_IMAGE_NAME)
+    else -> EVENTSTORE_AMD64_IMAGE_NAME
+}
+
 @ExperimentalTime
-@EnabledIf(enabledIf = DisableOnArm64::class)
+@EnabledIf(DisableOnArm64::class)
 class Test : StringSpec() {
 
-    val dockerImageName = DockerImageName.parse("eventstore/eventstore:release-5.0.9")
-    val eventStoreContainer = GenericContainer<GenericContainer<*>>(dockerImageName)
+    val eventStoreContainer = GenericContainer<GenericContainer<*>>(eventstoreImageName())
         .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")
         .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
+        .withEnv("EVENTSTORE_CLUSTER_SIZE","1")
+        .withEnv("EVENTSTORE_INSECURE", "True")
+        .withEnv("EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP", "True")
+        .withEnv("EVENTSTORE_ENABLE_EXTERNAL_TCP", "True")
         .withEnv("EVENTSTORE_LOG_LEVEL", "Verbose")
-        .withExposedPorts(1113)
+        .withExposedPorts(PORT)
         .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4))
 
     init {
@@ -102,8 +114,20 @@ internal class EventStoreTestKlientListener(private val portProvider: () -> Int)
     lateinit var repo: AggregateRepository
     lateinit var subscriberFactory: EsjcEventSubscriberFactory
     override suspend fun beforeSpec(spec: Spec) {
+
+        val port = withTimeout(3.minutes) {
+            var port: Int? = null
+            do {
+                try {
+                    port = portProvider.invoke()
+                } catch (e: IllegalStateException) {
+
+                }
+            } while (port == null)
+            port ?: error("Kunne ikke slå opp port")
+        }
         val eventStore = EventStoreBuilder.newBuilder()
-            .singleNodeAddress("localhost", portProvider.invoke())
+            .singleNodeAddress("localhost", port)
             .userCredentials("admin", "changeit")
             .build()
 
