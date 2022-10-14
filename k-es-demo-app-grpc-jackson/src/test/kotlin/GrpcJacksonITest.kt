@@ -10,6 +10,7 @@ import org.awaitility.kotlin.untilCallTo
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -25,6 +26,7 @@ private val log = KotlinLogging.logger {}
 
 @Testcontainers
 @SpringBootTest(classes = [Application::class])
+@DisabledIfSystemProperty(named = "os.arch", matches = "aarch64", disabledReason = "Ikke støttet på arm arkitektur")
 class GrpcJacksonITest {
 
     companion object {

@@ -126,14 +126,15 @@ class MSSQLContainerTest : StringSpec() {
 
 }
 
-private val IMAGE_NAME = DockerImageName.parse("mcr.microsoft.com/mssql/server").withTag("2017-latest")
+private val IMAGE_NAME = DockerImageName.parse("mcr.microsoft.com/azure-sql-edge").withTag("latest")
+    .asCompatibleSubstituteFor(DockerImageName.parse("mcr.microsoft.com/mssql/server").withTag("latest-2017"))
 
 class KMSSQLContainer(password: String = "123K-es-password") : MSSQLServerContainer<KMSSQLContainer>(IMAGE_NAME) {
 
     init {
         LOG.debug { "Setting up Docker container \"${IMAGE_NAME.asCanonicalNameString()}\"" }
         acceptLicense()
-            .withPassword(password)
+            .withEnv("MSSQL_SA_PASSWORD", password)
             .withInitScript("init/kes-ddl.sql")
             .withStartupTimeout(Duration.ofMinutes(2L))
             .withUrlParam("encrypt", "false")

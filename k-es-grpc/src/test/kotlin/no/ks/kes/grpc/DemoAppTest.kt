@@ -6,6 +6,7 @@ import com.eventstore.dbclient.EventStoreDBClient
 import com.eventstore.dbclient.StreamRevision
 import com.google.protobuf.Message
 import io.kotest.assertions.timing.eventually
+import io.kotest.core.annotation.EnabledIf
 import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.core.test.TestCase
@@ -35,6 +36,7 @@ import kotlin.time.*
 private val log = KotlinLogging.logger {}
 
 @ExperimentalTime
+@EnabledIf(enabledIf = DisableOnArm64::class)
 class DemoAppTest : StringSpec() {
 
     lateinit var kontoCmds: KontoCmds

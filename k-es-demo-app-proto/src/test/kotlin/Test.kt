@@ -1,10 +1,11 @@
 import com.github.msemys.esjc.EventStoreBuilder
 import com.google.protobuf.Message
 import io.kotest.assertions.timing.eventually
+import io.kotest.core.annotation.EnabledCondition
+import io.kotest.core.annotation.EnabledIf
 import io.kotest.core.listeners.TestListener
 import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.core.test.TestCase
 import io.kotest.extensions.testcontainers.perSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -27,6 +28,7 @@ import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.reflect.KClass
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 import kotlin.time.toDuration
@@ -37,6 +39,7 @@ private val log = KotlinLogging.logger {}
 private const val PORT = 1113
 
 @ExperimentalTime
+@EnabledIf(enabledIf = DisableOnArm64::class)
 class Test : StringSpec() {
 
     val dockerImageName = DockerImageName.parse("eventstore/eventstore:release-5.0.9")
@@ -131,4 +134,8 @@ internal class EventStoreTestKlientListener(private val portProvider: () -> Int)
 
         subscriberFactory = EsjcEventSubscriberFactory(eventStore, eventSerdes, "no.ks.kes.proto.demo")
     }
+}
+
+internal class DisableOnArm64: EnabledCondition {
+    override fun enabled(kclass: KClass<out Spec>): Boolean = System.getProperty("os.arch") != "aarch64"
 }
