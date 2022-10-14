@@ -70,7 +70,7 @@
         <mongodb-driver-version>4.7.2</mongodb-driver-version>
         <spring-boot-version>2.7.1</spring-boot-version>
         <kotlinx-coroutines.version>1.6.4</kotlinx-coroutines.version>
-        <io-grpc.version>1.49.2</io-grpc.version>
+        <io-grpc.version>1.50.0</io-grpc.version>
     </properties>
 
     <dependencyManagement>
