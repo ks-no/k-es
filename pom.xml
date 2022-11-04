@@ -44,23 +44,22 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <kotlin.version>1.7.20</kotlin.version>
+        <kotlinx-coroutines.version>1.6.4</kotlinx-coroutines.version>
         <jackson.version>2.13.4.20221013</jackson.version>
         <esjc.version>2.7.0</esjc.version>
+        <db-client-java.version>4.0.0</db-client-java.version>
+        <spring-boot-version>2.7.4</spring-boot-version>
         <spring.version>5.3.23</spring.version>
-        <mockk.version>1.13.2</mockk.version>
-        <kotest.version>5.3.2</kotest.version>
-        <kotest.testcontainers.version>1.3.4</kotest.testcontainers.version>
-        <kotest.spring.version>1.1.2</kotest.spring.version>
-        <junit.jupiter.version>5.9.1</junit.jupiter.version>
-        <testcontainers.version>1.17.5</testcontainers.version>
         <mssql-jdbc.version>11.2.1.jre11</mssql-jdbc.version>
         <protobuf-java.version>3.21.8</protobuf-java.version>
-        <testcontainers.version>1.15.2</testcontainers.version>
-        <spring-boot-version>2.7.4</spring-boot-version>
         <mongodb-driver-version>4.7.2</mongodb-driver-version>
-        <spring-boot-version>2.7.1</spring-boot-version>
-        <kotlinx-coroutines.version>1.6.4</kotlinx-coroutines.version>
-        <io-grpc.version>1.50.2</io-grpc.version>
+
+        <junit.jupiter.version>5.9.1</junit.jupiter.version>
+        <mockk.version>1.13.2</mockk.version>
+        <kotest.version>5.3.2</kotest.version>
+        <kotest.spring.version>1.1.2</kotest.spring.version>
+        <kotest.testcontainers.version>1.3.4</kotest.testcontainers.version>
+        <testcontainers.version>1.17.5</testcontainers.version>
     </properties>
 
     <dependencyManagement>
@@ -138,11 +137,9 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-bom</artifactId>
-                <version>${io-grpc.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
+                <groupId>com.eventstore</groupId>
+                <artifactId>db-client-java</artifactId>
+                <version>${db-client-java.version}</version>
             </dependency>
 
             <dependency>

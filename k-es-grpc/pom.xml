@@ -14,7 +14,6 @@
 
     <properties>
         <awaitility.version>4.2.0</awaitility.version>
-        <db-client-java.version>4.0.0</db-client-java.version>
     </properties>
 
     <dependencies>
@@ -44,7 +43,6 @@
         <dependency>
             <groupId>com.eventstore</groupId>
             <artifactId>db-client-java</artifactId>
-            <version>${db-client-java.version}</version>
         </dependency>
 
         <!--test-->
