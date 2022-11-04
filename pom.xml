@@ -48,10 +48,10 @@
         <jackson.version>2.13.4.20221013</jackson.version>
         <esjc.version>2.7.0</esjc.version>
         <db-client-java.version>4.0.0</db-client-java.version>
-        <spring-boot-version>2.7.4</spring-boot-version>
+        <spring-boot-version>2.7.5</spring-boot-version>
         <spring.version>5.3.23</spring.version>
         <mssql-jdbc.version>11.2.1.jre11</mssql-jdbc.version>
-        <protobuf-java.version>3.21.8</protobuf-java.version>
+        <protobuf-java.version>3.21.9</protobuf-java.version>
         <mongodb-driver-version>4.7.2</mongodb-driver-version>
 
         <junit.jupiter.version>5.9.1</junit.jupiter.version>
