@@ -12,7 +12,7 @@
 
     <artifactId>k-es-demo-app-proto</artifactId>
     <properties>
-        <flyway.version>9.5.1</flyway.version>
+        <flyway.version>9.7.0</flyway.version>
         <awaitility.version>4.2.0</awaitility.version>
         <maven.deploy.skip>true</maven.deploy.skip>
     </properties>

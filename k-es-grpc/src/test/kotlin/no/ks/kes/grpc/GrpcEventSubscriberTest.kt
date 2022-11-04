@@ -1,11 +1,8 @@
 package no.ks.kes.grpc
 
 import com.eventstore.dbclient.*
-import com.eventstore.dbclient.Subscription
-import com.eventstore.dbclient.SubscriptionListener
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.data.Row2
 import io.kotest.data.row
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
@@ -15,8 +12,7 @@ import io.kotest.property.arbitrary.long
 import io.kotest.property.forAll
 import io.mockk.*
 import no.ks.kes.grpc.GrpcSubscriptionDroppedReason.ConnectionShutDown
-import no.ks.kes.lib.EventData
-import no.ks.kes.lib.EventWrapper
+import org.springframework.util.ReflectionUtils
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
@@ -27,7 +23,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                 val category = UUID.randomUUID().toString()
 
                 val eventStoreMock = mockk<EventStoreDBClient>(relaxed = true) {
-                    every { readStream(any(), any(), any())} returns CompletableFuture.completedFuture(ReadResult(listOf()))
+                    every { readStream(any(), any(), )} returns CompletableFuture.completedFuture(mockk { every { events } returns emptyList() })
                     every { subscribeToStream(any(), any(), any()) } returns CompletableFuture.completedFuture(mockk())
                 }
 
@@ -49,7 +45,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                 every { subscriptionId } returns UUID.randomUUID().toString()
             })
             val eventStoreMock = mockk<EventStoreDBClient> {
-                every { readStream(any(), any(), any())} returns CompletableFuture.completedFuture(ReadResult(listOf()))
+                every { readStream(any(), any())} returns CompletableFuture.completedFuture(mockk { every { events } returns emptyList() })
                 every { subscribeToStream("\$ce-$category", capture(subscriptionListener), any()) } returns subscription
             }
             var catchedException: Exception? = null
@@ -61,7 +57,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                 catchedException = it
             })
             val reason = "connection closed"
-            subscriptionListener.captured.onError(subscription.get(), ConnectionShutdownException())
+            subscriptionListener.captured.onError(subscription.get(), mockk<ConnectionShutdownException>())
             (catchedException!! as GrpcSubscriptionDroppedException).run {
                 reason shouldBe reason
                 message shouldBe "Subscription was dropped. Reason: $ConnectionShutDown"
@@ -88,17 +84,17 @@ internal class GrpcEventSubscriberTest : StringSpec() {
 
         "Create event subscriptions using different borderline highwater marks" {
             io.kotest.data.forAll(
-                row(-1L, StreamRevision.START),
-                row(0L, StreamRevision(0L)),
-                row(1L, StreamRevision(1L)),
-                row(37999L, StreamRevision(37999L)),
-                row(Long.MAX_VALUE, StreamRevision(Long.MAX_VALUE)))
+                row(-1L, StreamPosition.start()),
+                row(0L, StreamPosition.position(0L)),
+                row(1L, StreamPosition.position(1L)),
+                row(37999L, StreamPosition.position(37999L)),
+                row(Long.MAX_VALUE, StreamPosition.position(Long.MAX_VALUE)))
             { hwm, revision ->
                 val category = UUID.randomUUID().toString()
                 val streamName = "\$ce-$category"
 
                 val eventStoreMock = mockk<EventStoreDBClient> {
-                    every { readStream(any(), any(), any())} returns CompletableFuture.completedFuture(ReadResult(listOf()))
+                    every { readStream(any(), any())} returns CompletableFuture.completedFuture(mockk { every { events } returns emptyList() })
                     every { subscribeToStream(streamName, any(), any()) } returns CompletableFuture.completedFuture(mockk())
                 }
 
@@ -107,7 +103,18 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                         category = category,
                         serdes = mockk()
                 ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
-                verify(exactly = 1) { eventStoreMock.subscribeToStream("\$ce-$category", any(), withArg { it.startingRevision shouldBe revision }) }
+                verify(exactly = 1) { eventStoreMock.subscribeToStream(
+                    "\$ce-$category",
+                    any(),
+                    withArg {
+                        val field = ReflectionUtils.findField(SubscribeToStreamOptions::class.java, "startRevision")!!
+                        field.isAccessible = true
+                        val subscribeRevision = field.get(it) as StreamPosition<*>
+                        subscribeRevision.isStart shouldBe revision.isStart
+                        subscribeRevision.isEnd shouldBe revision.isEnd
+                        subscribeRevision.position shouldBe revision.position
+                    })
+                }
             }
         }
 
@@ -115,7 +122,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
             val category = UUID.randomUUID().toString()
             val streamId = "\$ce-$category"
             val eventStoreMock = mockk<EventStoreDBClient>(relaxed = true) {
-                every { readStream(any(), any(), any())} returns CompletableFuture.completedFuture(ReadResult(listOf()))
+                every { readStream(any(), any())} returns CompletableFuture.completedFuture(mockk { every { events } returns emptyList() })
                 every {
                     hint(CompletableFuture::class)
                     subscribeToStream(streamId, any(), any())
@@ -138,13 +145,13 @@ internal class GrpcEventSubscriberTest : StringSpec() {
             val category = UUID.randomUUID().toString()
             val streamId = "\$ce-$category"
             val eventStoreMock = mockk<EventStoreDBClient>(relaxed = true) {
-                every { readStream(any(), any(), any())} returns CompletableFuture.completedFuture(ReadResult(listOf()))
+                every { readStream(any(), any())} returns CompletableFuture.completedFuture(mockk { every { events } returns emptyList() })
                 every {
                     hint(CompletableFuture::class)
-                    readStream(streamId, 1, ReadStreamOptions.get().backwards().fromEnd().notResolveLinkTos())
+                    readStream(streamId, ReadStreamOptions.get().maxCount(1).backwards().fromEnd().notResolveLinkTos())
                 } returns mockk<CompletableFuture<ReadResult>>(relaxed = true) {
                     every {
-                        get().events.first().originalEvent.streamRevision.valueUnsigned
+                        get().events.first().originalEvent.revision
                     } returns 42
                 }
 
@@ -175,16 +182,16 @@ internal class GrpcEventSubscriberTest : StringSpec() {
             val eventStoreMock = mockk<EventStoreDBClient>(relaxed = true) {
                 every {
                     hint(CompletableFuture::class)
-                    readStream(streamId, 1, match { it.direction == Direction.Backwards })
+                    readStream(streamId, any())
                 } returns mockk<CompletableFuture<ReadResult>>(relaxed = true) {
                     every {
-                        get().events.first().originalEvent.streamRevision.valueUnsigned
+                        get().events.first().originalEvent.revision
                     } returns lastEvent
                 }
 
                 every {
                     hint(CompletableFuture::class)
-                    subscribeToStream(streamId, capture(listener), match { it.startingRevision.valueUnsigned == subscribeFrom })
+                    subscribeToStream(streamId, capture(listener), any())
                 } returns CompletableFuture.completedFuture(mockk<Subscription>(relaxed = true))
             }
             val subscriberFactory = GrpcEventSubscriberFactory(
@@ -193,7 +200,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                 serdes = mockk(relaxed = true) {
                     every {
                         deserialize(any(), any())
-                    } returns mockk() { every { upgrade() } returns null }
+                    } returns mockk { every { upgrade() } returns null }
                 }
             )
             var onLiveCalled = 0
@@ -203,7 +210,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                 onEvent = { onEventCalled += 1},
                 onLive = { onLiveCalled += 1 })
 
-            verify { eventStoreMock.readStream(streamId, 1, match { option -> option.direction == Direction.Backwards }) }
+            verify { eventStoreMock.readStream(streamId, any()) }
 
             onLiveCalled shouldBe 0
             onEventCalled shouldBe 0
@@ -217,16 +224,16 @@ internal class GrpcEventSubscriberTest : StringSpec() {
     }
 
     private fun eventMock(streamId: String, eventNumber: Long): ResolvedEvent {
-        return mockk<ResolvedEvent>() {
+        return mockk() {
             every { link } returns mockk()
-            every { event } returns mockk() {
+            every { event } returns mockk {
                 every { eventType } returns "eventType"
                 every { userMetadata } returns ByteArray(0)
                 every { eventData } returns ByteArray(0)
                 every { getStreamId() } returns streamId
                 every { eventId } returns UUID.randomUUID()
             }
-            every { originalEvent.streamRevision.valueUnsigned } returns eventNumber
+            every { originalEvent.revision } returns eventNumber
             every { originalEvent.streamId } returns streamId
         }
     }

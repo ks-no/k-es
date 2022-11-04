@@ -43,34 +43,23 @@
         <java.version>11</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
-        <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
-        <maven-versions-plugin.version>2.13.0</maven-versions-plugin.version>
-        <maven-enforcer-plugin.version>3.1.0</maven-enforcer-plugin.version>
-        <maven-surefire-plugin.version>3.0.0-M7</maven-surefire-plugin.version>
-
         <kotlin.version>1.7.20</kotlin.version>
+        <kotlinx-coroutines.version>1.6.4</kotlinx-coroutines.version>
         <jackson.version>2.13.4.20221013</jackson.version>
-        <slf4j.version>1.7.36</slf4j.version>
         <esjc.version>2.7.0</esjc.version>
+        <db-client-java.version>4.0.0</db-client-java.version>
+        <spring-boot-version>2.7.5</spring-boot-version>
         <spring.version>5.3.23</spring.version>
-        <logback.version>1.2.11</logback.version>
-        <kotlin-logging.version>2.1.23</kotlin-logging.version>
+        <mssql-jdbc.version>11.2.1.jre11</mssql-jdbc.version>
+        <protobuf-java.version>3.21.9</protobuf-java.version>
+        <mongodb-driver-version>4.7.2</mongodb-driver-version>
+
+        <junit.jupiter.version>5.9.1</junit.jupiter.version>
         <mockk.version>1.13.2</mockk.version>
         <kotest.version>5.3.2</kotest.version>
-        <kotest.testcontainers.version>1.3.4</kotest.testcontainers.version>
         <kotest.spring.version>1.1.2</kotest.spring.version>
-        <jacoco-maven-plugin.version>0.8.8</jacoco-maven-plugin.version>
-        <junit.jupiter.version>5.9.1</junit.jupiter.version>
+        <kotest.testcontainers.version>1.3.4</kotest.testcontainers.version>
         <testcontainers.version>1.17.5</testcontainers.version>
-        <mssql-jdbc.version>11.2.1.jre11</mssql-jdbc.version>
-        <protobuf-java.version>3.21.8</protobuf-java.version>
-        <testcontainers.version>1.15.2</testcontainers.version>
-        <spring-boot-version>2.7.4</spring-boot-version>
-        <mongodb-driver-version>4.7.2</mongodb-driver-version>
-        <spring-boot-version>2.7.1</spring-boot-version>
-        <kotlinx-coroutines.version>1.6.4</kotlinx-coroutines.version>
-        <io-grpc.version>1.50.2</io-grpc.version>
     </properties>
 
     <dependencyManagement>
@@ -148,32 +137,15 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-bom</artifactId>
-                <version>${io-grpc.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
+                <groupId>com.eventstore</groupId>
+                <artifactId>db-client-java</artifactId>
+                <version>${db-client-java.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>no.ks.fiks</groupId>
                 <artifactId>fiks-esjc</artifactId>
                 <version>${esjc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${slf4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-classic</artifactId>
-                <version>${logback.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.microutils</groupId>
-                <artifactId>kotlin-logging-jvm</artifactId>
-                <version>${kotlin-logging.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson</groupId>
@@ -270,33 +242,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>${maven-enforcer-plugin.version}</version>
-                <inherited>true</inherited>
-                <executions>
-                    <execution>
-                        <id>default-cli</id>
-                        <configuration>
-                            <rules>
-                                <requireReleaseVersion/>
-                                <requireReleaseDeps />
-                            </rules>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>validate-snap</id>
-                        <configuration>
-                            <rules>
-                                <requireSnapshotVersion>
-                                    <failWhenParentIsRelease>false</failWhenParentIsRelease>
-                                </requireSnapshotVersion>
-                            </rules>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <version>${kotlin.version}</version>
@@ -320,26 +265,11 @@
                     <jvmTarget>${java.version}</jvmTarget>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>prepare-jacoco-agent</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
 
         <pluginManagement>
-
             <plugins>
-
                 <plugin>
-
                     <groupId>org.jetbrains.kotlin</groupId>
                     <artifactId>kotlin-maven-plugin</artifactId>
                     <version>${kotlin.version}</version>
@@ -366,40 +296,11 @@
                     </executions>
                 </plugin>
                 <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>versions-maven-plugin</artifactId>
-                    <version>${maven-versions-plugin.version}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-source-plugin</artifactId>
-                    <version>${maven-source-plugin.version}</version>
-                    <executions>
-                        <execution>
-                            <id>attach-sources</id>
-                            <goals>
-                                <goal>jar</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>${maven-compiler-plugin.version}</version>
                     <configuration>
                         <release>${java.version}</release>
                     </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>${maven-surefire-plugin.version}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.jacoco</groupId>
-                    <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>${jacoco-maven-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

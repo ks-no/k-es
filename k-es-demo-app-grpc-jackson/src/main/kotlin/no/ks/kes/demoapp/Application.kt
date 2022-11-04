@@ -3,6 +3,7 @@ package no.ks.kes.demoapp
 import com.eventstore.dbclient.ConnectionSettingsBuilder
 import com.eventstore.dbclient.Endpoint
 import com.eventstore.dbclient.EventStoreDBClient
+import com.eventstore.dbclient.EventStoreDBClientSettings
 import mu.KotlinLogging
 import no.ks.kes.grpc.GrpcAggregateRepository
 import no.ks.kes.grpc.GrpcEventSubscriberFactory
@@ -50,7 +51,7 @@ class Application {
 
     @Bean
     fun eventStore(@Value("\${eventstore.host}") host: String, @Value("\${eventstore.port}") port: String): EventStoreDBClient =  EventStoreDBClient.create(
-        ConnectionSettingsBuilder()
+        EventStoreDBClientSettings.builder()
             .addHost(Endpoint(host, port.toInt()))
             .defaultCredentials("admin", "changeit").tls(false)
             .buildConnectionSettings())

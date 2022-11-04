@@ -30,7 +30,7 @@ internal class GrpcEventWriterTest : StringSpec() {
             val capturedEventData = slot<Iterator<com.eventstore.dbclient.EventData>>()
             val eventStoreMock = mockk<EventStoreDBClient>().apply {
                 every { appendToStream("ks.fiks.$eventAggregateType.${event.aggregateId}", any(), capture(capturedEventData)) } returns
-                        CompletableFuture.completedFuture(WriteResult(StreamRevision.START, Position.START))
+                        CompletableFuture.completedFuture(mockk { every { nextExpectedRevision } returns ExpectedRevision.any() })
             }
 
             val serializer = mockk<EventSerdes>()
