@@ -1,5 +1,6 @@
 package no.ks.kes.grpc
 
+import com.eventstore.dbclient.ReadMessage
 import com.eventstore.dbclient.ResolvedEvent
 import java.util.*
 
@@ -19,5 +20,8 @@ object GrpcEventUtil {
         event.eventType == null ||
         event.eventType.isEmpty() ||
         event.eventType.startsWith("$")
+
+    fun ReadMessage.isIgnorable(): Boolean =
+        event == null || event.isIgnorable()
 
 }

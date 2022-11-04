@@ -78,9 +78,9 @@ class GrpcAggregateRepository(
 
     private fun resolveExpectedRevision(expectedEventNumber: ExpectedEventNumber): ExpectedRevision =
         when (expectedEventNumber) {
-            is ExpectedEventNumber.AggregateDoesNotExist -> ExpectedRevision.NO_STREAM
-            is ExpectedEventNumber.AggregateExists -> ExpectedRevision.STREAM_EXISTS
-            is ExpectedEventNumber.Any -> ExpectedRevision.ANY
+            is ExpectedEventNumber.AggregateDoesNotExist -> ExpectedRevision.noStream()
+            is ExpectedEventNumber.AggregateExists -> ExpectedRevision.streamExists()
+            is ExpectedEventNumber.Any -> ExpectedRevision.any()
             is ExpectedEventNumber.Exact -> expectedRevision(expectedEventNumber.eventNumber)
         }
 
@@ -92,7 +92,7 @@ private class AggregateSubscriber<A : Aggregate>(
     private val aggregateId: UUID,
     private val streamId: String,
     private val applicator: (state: A?, event: EventWrapper<*>) -> A?
-) : Subscriber<ResolvedEvent> {
+) : Subscriber<ReadMessage> {
 
     val future = CompletableFuture<AggregateReadResult>()
 
@@ -105,15 +105,15 @@ private class AggregateSubscriber<A : Aggregate>(
         subscription.request(Long.MAX_VALUE)
     }
 
-    override fun onNext(resolved: ResolvedEvent) {
-        if (resolved.isIgnorable()) {
-            lastEventNumber = resolved.event.streamRevision.valueUnsigned
+    override fun onNext(message: ReadMessage) {
+        if (message.isIgnorable()) {
+            lastEventNumber = message.event.event.revision
         } else {
             val eventMeta =
-                if (resolved.event.userMetadata.isNotEmpty() && metadataSerdes != null)
-                    metadataSerdes.deserialize(resolved.event.userMetadata)
+                if (message.event.event.userMetadata.isNotEmpty() && metadataSerdes != null)
+                    metadataSerdes.deserialize(message.event.event.userMetadata)
                 else null
-            val eventData = EventUpgrader.upgrade(serdes.deserialize(resolved.event.eventData, resolved.event.eventType))
+            val eventData = EventUpgrader.upgrade(serdes.deserialize(message.event.event.eventData, message.event.event.eventType))
             state = applicator.invoke(
                 state,
                 EventWrapper(
@@ -122,11 +122,11 @@ private class AggregateSubscriber<A : Aggregate>(
                         eventData = eventData,
                         metadata = eventMeta
                     ),
-                    eventNumber = resolved.event.streamRevision.valueUnsigned,
+                    eventNumber = message.event.event.revision,
                     serializationId = serdes.getSerializationId(eventData::class)
                 )
             )
-            lastEventNumber = resolved.event.streamRevision.valueUnsigned
+            lastEventNumber = message.event.event.revision
         }
     }
 

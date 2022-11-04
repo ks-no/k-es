@@ -1,6 +1,7 @@
 package no.ks.kes.grpc
 
 import com.eventstore.dbclient.*
+import com.eventstore.dbclient.StreamPosition
 import mu.KotlinLogging
 import no.ks.kes.grpc.GrpcEventUtil.isIgnorable
 import no.ks.kes.grpc.GrpcEventUtil.isResolved
@@ -38,8 +39,8 @@ class GrpcEventSubscriberFactory(
 
         val streamId = "\$ce-$category"
         val revision = when {
-            fromEvent == -1L -> StreamRevision.START
-            fromEvent > -1L -> StreamRevision(fromEvent)
+            fromEvent == -1L -> StreamPosition.start()
+            fromEvent > -1L -> StreamPosition.position(fromEvent)
             else -> error("the from-event $fromEvent is invalid, must be a number equal to or larger than -1")
         }
 
@@ -53,7 +54,7 @@ class GrpcEventSubscriberFactory(
 
                 log.debug { "$subscriber: received event \"$resolvedEvent\"" }
 
-                val eventNumber = resolvedEvent.originalEvent.streamRevision.valueUnsigned
+                val eventNumber = resolvedEvent.originalEvent.revision
 
                 subscriptionLiveCheckpoint.triggerOnceIfSubscriptionIsLive(eventNumber) {
                     onLive.invoke()
@@ -61,9 +62,9 @@ class GrpcEventSubscriberFactory(
 
                 when {
                     !resolvedEvent.isResolved() ->
-                        log.info { "$subscriber: event not resolved: ${resolvedEvent.link.streamRevision} ${resolvedEvent.link.streamId}" }
+                        log.info { "$subscriber: event not resolved: ${resolvedEvent.link.revision} ${resolvedEvent.link.streamId}" }
                     resolvedEvent.isIgnorable() ->
-                        log.info { "$subscriber: event ignored: ${resolvedEvent.originalEvent.streamRevision} ${resolvedEvent.originalEvent.streamId}" }
+                        log.info { "$subscriber: event ignored: ${resolvedEvent.originalEvent.revision} ${resolvedEvent.originalEvent.streamId}" }
                     else -> try {
                         val eventMeta = if(resolvedEvent.event.userMetadata.isNotEmpty() && metadataSerdes != null) metadataSerdes.deserialize(resolvedEvent.event.userMetadata) else null
                         val event = EventUpgrader.upgrade(serdes.deserialize(resolvedEvent.event.eventData, resolvedEvent.event.eventType))
@@ -112,7 +113,7 @@ class GrpcEventSubscriberFactory(
         ).get()
 
         // In case we are already live before we start receiving events.
-        subscriptionLiveCheckpoint.triggerOnceIfSubscriptionIsLive(revision.valueUnsigned) {
+        subscriptionLiveCheckpoint.triggerOnceIfSubscriptionIsLive(revision.position.orElse(-1)) {
             onLive.invoke()
         }
 
@@ -162,9 +163,9 @@ class SubscriptionLiveCheckpoint(private val eventStoreDBClient: EventStoreDBCli
 private fun EventStoreDBClient.getSubscriptionLiveCheckpoint(streamId: String): Long {
     return try {
         readStream(
-            streamId, 1,
-            ReadStreamOptions.get().backwards().fromEnd().notResolveLinkTos()
-        ).get().events.firstOrNull()?.originalEvent?.streamRevision?.valueUnsigned ?: -1L
+            streamId,
+            ReadStreamOptions.get().maxCount(1).backwards().fromEnd().notResolveLinkTos()
+        ).get().events.firstOrNull()?.originalEvent?.revision ?: -1L
     } catch (e: ExecutionException) {
         when (e.cause) {
             is StreamNotFoundException -> (-1L).also { log.debug(e.cause) { "Stream does not exist, returning -1 as last event number in $streamId" } }

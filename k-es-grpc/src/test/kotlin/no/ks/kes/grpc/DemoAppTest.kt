@@ -1,36 +1,34 @@
 package no.ks.kes.grpc
 
-import com.eventstore.dbclient.ConnectionSettingsBuilder
 import com.eventstore.dbclient.Endpoint
 import com.eventstore.dbclient.EventStoreDBClient
-import com.eventstore.dbclient.StreamRevision
+import com.eventstore.dbclient.EventStoreDBClientSettings
 import com.google.protobuf.Message
 import io.kotest.assertions.timing.eventually
 import io.kotest.core.annotation.EnabledIf
 import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.core.test.TestCase
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import mu.KotlinLogging
-import no.ks.kes.demoapp.*
-import no.ks.kes.lib.*
+import no.ks.kes.demoapp.Konto
+import no.ks.kes.demoapp.KontoAggregate
+import no.ks.kes.demoapp.KontoCmds
+import no.ks.kes.lib.AggregateReadResult
+import no.ks.kes.lib.AggregateRepository
 import no.ks.kes.serdes.jackson.JacksonEventMetadataSerdes
 import no.ks.kes.serdes.proto.ProtoEventData
 import no.ks.kes.serdes.proto.ProtoEventDeserializer
 import no.ks.kes.serdes.proto.ProtoEventSerdes
 import no.ks.svarut.event.Avsender
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Test
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
-import java.lang.Thread.sleep
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.time.*
+import kotlin.time.DurationUnit
+import kotlin.time.ExperimentalTime
+import kotlin.time.toDuration
 
 
 private val log = KotlinLogging.logger {}
@@ -59,7 +57,7 @@ class DemoAppTest : StringSpec() {
     override suspend fun beforeSpec(spec: Spec) {
         eventStoreContainer.start()
 
-        val eventStoreClient = EventStoreDBClient.create(ConnectionSettingsBuilder()
+        val eventStoreClient = EventStoreDBClient.create(EventStoreDBClientSettings.builder()
             .addHost(Endpoint("localhost", eventStoreContainer.getMappedPort(2113)))
             .defaultCredentials("admin", "changeit").tls(false).dnsDiscover(false)
             .buildConnectionSettings())

@@ -14,7 +14,7 @@
 
     <properties>
         <awaitility.version>4.2.0</awaitility.version>
-        <db-client-java.version>3.0.1</db-client-java.version>
+        <db-client-java.version>4.0.0</db-client-java.version>
     </properties>
 
     <dependencies>
