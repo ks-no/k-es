@@ -50,7 +50,7 @@
         <db-client-java.version>4.0.0</db-client-java.version>
         <spring-boot-version>2.7.5</spring-boot-version>
         <spring.version>5.3.23</spring.version>
-        <mssql-jdbc.version>11.2.1.jre11</mssql-jdbc.version>
+        <mssql-jdbc.version>12.1.0.jre11-preview</mssql-jdbc.version>
         <protobuf-java.version>3.21.9</protobuf-java.version>
         <mongodb-driver-version>4.7.2</mongodb-driver-version>
 
