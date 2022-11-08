@@ -94,10 +94,10 @@ class GrpcAggregateRepository(
     }
 
     private fun <A : Aggregate> handleMessage(context: AggregateContext<A>, message: ReadMessage): AggregateContext<A> {
-        log.trace { "onNext: ${message.toLogString()}" }
+        log.trace { "handleMessage: ${message.toLogString()}" }
         return if (message.hasEvent()) {
             context.apply {
-                state = handleEvent(context, message.event, applicator)
+                state = handleEvent(context, message.event)
                 lastStreamPosition = message.event?.event?.revision ?: context.lastStreamPosition
             }
         } else {
@@ -106,17 +106,17 @@ class GrpcAggregateRepository(
         }
     }
 
-    private fun <A : Aggregate> handleEvent(context: AggregateContext<A>, event: ResolvedEvent, applicator: (state: A?, event: EventWrapper<*>) -> A?): A? =
+    private fun <A : Aggregate> handleEvent(context: AggregateContext<A>, event: ResolvedEvent): A? =
         if (!event.isIgnorable()) {
-            handleEvent(context, event.event, applicator)
+            handleEvent(context, event.event)
         } else {
             context.state
         }
 
-    private fun <A : Aggregate> handleEvent(context: AggregateContext<A>, event: RecordedEvent, applicator: (state: A?, event: EventWrapper<*>) -> A?): A? {
+    private fun <A : Aggregate> handleEvent(context: AggregateContext<A>, event: RecordedEvent): A? {
         val metadata = getMetadata(event)
         val eventData = EventUpgrader.upgrade(serdes.deserialize(event.eventData, event.eventType))
-        return applicator.invoke(
+        return context.applicator.invoke(
             context.state,
             EventWrapper(
                 Event(
