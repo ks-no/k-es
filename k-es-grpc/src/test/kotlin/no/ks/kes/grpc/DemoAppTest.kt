@@ -4,6 +4,7 @@ import com.eventstore.dbclient.Endpoint
 import com.eventstore.dbclient.EventStoreDBClient
 import com.eventstore.dbclient.EventStoreDBClientSettings
 import com.google.protobuf.Message
+import io.kotest.assertions.asClue
 import io.kotest.assertions.timing.eventually
 import io.kotest.core.annotation.EnabledIf
 import io.kotest.core.spec.Spec
@@ -109,21 +110,31 @@ class DemoAppTest : StringSpec() {
                 receivedEvents.incrementAndGet()
             })
 
+            repo.read(kontoId, validatedAggregateConfiguration).asClue {
+                it.shouldBeInstanceOf<AggregateReadResult.NonExistingAggregate>()
+            }
+
             kontoCmds.handle(KontoCmds.Opprett(kontoId, orgId))
+            repo.read(kontoId, validatedAggregateConfiguration).asClue {
+                it.shouldBeInstanceOf<AggregateReadResult.InitializedAggregate<KontoAggregate>>()
+                it.aggregateState.aktivert shouldBe false
+                it.eventNumber shouldBe 0
+            }
+
             kontoCmds.handle(KontoCmds.Aktiver(kontoId))
-
-            var aggregateResult = repo.read(kontoId, validatedAggregateConfiguration)
-
-            aggregateResult.shouldBeInstanceOf<AggregateReadResult.InitializedAggregate<KontoAggregate>>()
-            aggregateResult.aggregateState.aktivert shouldBe true
+            repo.read(kontoId, validatedAggregateConfiguration).asClue {
+                it.shouldBeInstanceOf<AggregateReadResult.InitializedAggregate<KontoAggregate>>()
+                it.aggregateState.aktivert shouldBe true
+                it.eventNumber shouldBe 1
+            }
 
             kontoCmds.handle(KontoCmds.Deaktiver(kontoId))
-
-            aggregateResult = repo.read(kontoId, validatedAggregateConfiguration)
-            aggregateResult.shouldBeInstanceOf<AggregateReadResult.InitializedAggregate<KontoAggregate>>()
-            aggregateResult.aggregateState.aktivert shouldBe false
-
-            aggregateResult.aggregateState.aggregateId shouldBe kontoId
+            repo.read(kontoId, validatedAggregateConfiguration).asClue {
+                it.shouldBeInstanceOf<AggregateReadResult.InitializedAggregate<KontoAggregate>>()
+                it.aggregateState.aktivert shouldBe false
+                it.eventNumber shouldBe 2
+                it.aggregateState.aggregateId shouldBe kontoId
+            }
 
             val subscriber = subscriberFactory.createSubscriber("catchup subscriber", 1, {
                     receivedCatchupEvents.incrementAndGet()

@@ -21,7 +21,4 @@ object GrpcEventUtil {
         event.eventType.isEmpty() ||
         event.eventType.startsWith("$")
 
-    fun ReadMessage.isIgnorable(): Boolean =
-        event == null || event.isIgnorable()
-
 }
