@@ -98,7 +98,7 @@ private class AggregateSubscriber<A : Aggregate>(
 
     private var subscription: Subscription? = null
     private var state: A? = null
-    private var lastEventNumber: Long? = null
+    private var lastStreamPosition: Long? = null
 
     override fun onSubscribe(subscription: Subscription) {
         this.subscription = subscription
@@ -106,47 +106,74 @@ private class AggregateSubscriber<A : Aggregate>(
     }
 
     override fun onNext(message: ReadMessage) {
-        if (message.isIgnorable()) {
-            lastEventNumber = message.event.event.revision
+        log.trace { "onNext: ${message.toLogString()}" }
+        if (message.hasEvent()) {
+            this.lastStreamPosition = message.event?.event?.revision ?: lastStreamPosition
+            handleEvent(message.event)
         } else {
-            val eventMeta =
-                if (message.event.event.userMetadata.isNotEmpty() && metadataSerdes != null)
-                    metadataSerdes.deserialize(message.event.event.userMetadata)
-                else null
-            val eventData = EventUpgrader.upgrade(serdes.deserialize(message.event.event.eventData, message.event.event.eventType))
-            state = applicator.invoke(
-                state,
-                EventWrapper(
-                    Event(
-                        aggregateId = aggregateId,
-                        eventData = eventData,
-                        metadata = eventMeta
-                    ),
-                    eventNumber = message.event.event.revision,
-                    serializationId = serdes.getSerializationId(eventData::class)
-                )
-            )
-            lastEventNumber = message.event.event.revision
+            log.debug { "Message does not have event (streamId: $streamId, aggregateId: $aggregateId, lastStreamPosition: $lastStreamPosition)" }
         }
     }
 
+    private fun handleEvent(event: ResolvedEvent) {
+        if (!event.isIgnorable()) {
+            handleEvent(event.event)
+        }
+    }
+
+    private fun handleEvent(event: RecordedEvent) {
+        val metadata = getMetadata(event)
+        val eventData = EventUpgrader.upgrade(serdes.deserialize(event.eventData, event.eventType))
+        this.state = applicator.invoke(
+            this.state,
+            EventWrapper(
+                Event(
+                    aggregateId = aggregateId,
+                    eventData = eventData,
+                    metadata = metadata
+                ),
+                eventNumber = event.revision,
+                serializationId = serdes.getSerializationId(eventData::class)
+            )
+        )
+    }
+
+    private fun getMetadata(event: RecordedEvent) =
+        if (event.userMetadata.isNotEmpty() && metadataSerdes != null)
+            metadataSerdes.deserialize(event.userMetadata)
+        else
+            null
+
+    private fun ReadMessage.toLogString() = "ReadMessage(" +
+                "firstStreamPosition=${ if (hasFirstStreamPosition()) firstStreamPosition else null }, " +
+                "lastStreamPosition=${ if (hasLastStreamPosition()) lastStreamPosition else null }, " +
+                "lastAllPosition=${ if (hasLastAllPosition()) lastStreamPosition else null }, " +
+                "event=${ if (hasEvent()) event else null }" +
+            ")"
+
     override fun onError(throwable: Throwable) {
         when (throwable) {
-            is StreamNotFoundException -> future.complete(AggregateReadResult.NonExistingAggregate)
-            else -> future.completeExceptionally(throwable)
+            is StreamNotFoundException -> this.future.complete(AggregateReadResult.NonExistingAggregate)
+            else -> this.future.completeExceptionally(throwable)
         }
     }
 
     override fun onComplete() {
-        when {
-            //when the aggregate stream has events, but applying these did not lead to a initialized state
-            state == null && lastEventNumber != null -> future.complete(AggregateReadResult.UninitializedAggregate(lastEventNumber!!))
+        if (this.lastStreamPosition != null) {
+            completeHandledEvent()
+        } else {
+            // When the aggregate stream has no events
+            this.future.completeExceptionally(RuntimeException("Error reading $streamId, the stream exists but does not contain any events"))
+        }
+    }
 
-            //when the aggregate stream has events, and applying these has lead to a initialized state
-            state != null && lastEventNumber != null -> future.complete(AggregateReadResult.InitializedAggregate(state!!, lastEventNumber!!))
-
-            //when the aggregate stream has no events
-            else -> future.completeExceptionally(RuntimeException("Error reading $streamId, the stream exists but does not contain any events"))
+    private fun completeHandledEvent() {
+        if (this.state == null) {
+            // When the aggregate stream has events, but applying these did not lead to a initialized state
+            this.future.complete(AggregateReadResult.UninitializedAggregate(this.lastStreamPosition!!))
+        } else {
+            // When the aggregate stream has events, and applying these has lead to a initialized state
+            this.future.complete(AggregateReadResult.InitializedAggregate(this.state!!, this.lastStreamPosition!!))
         }
     }
 
