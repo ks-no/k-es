@@ -53,6 +53,7 @@
         <mssql-jdbc.version>11.2.1.jre11</mssql-jdbc.version>
         <protobuf-java.version>3.21.9</protobuf-java.version>
         <mongodb-driver-version>4.7.2</mongodb-driver-version>
+        <rxjava.version>3.1.5</rxjava.version>
 
         <junit.jupiter.version>5.9.1</junit.jupiter.version>
         <mockk.version>1.13.2</mockk.version>
@@ -140,6 +141,11 @@
                 <groupId>com.eventstore</groupId>
                 <artifactId>db-client-java</artifactId>
                 <version>${db-client-java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.reactivex.rxjava3</groupId>
+                <artifactId>rxjava</artifactId>
+                <version>${rxjava.version}</version>
             </dependency>
 
             <dependency>

@@ -2,16 +2,13 @@ package no.ks.kes.grpc
 
 import com.eventstore.dbclient.*
 import com.eventstore.dbclient.ExpectedRevision.expectedRevision
+import io.reactivex.rxjava3.core.Flowable
 import mu.KotlinLogging
 import no.ks.kes.grpc.GrpcEventUtil.isIgnorable
 import no.ks.kes.lib.*
 import no.ks.kes.lib.EventData
-import org.reactivestreams.Subscriber
-import org.reactivestreams.Subscription
 import java.util.*
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
-import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 
 private val log = KotlinLogging.logger {}
@@ -20,19 +17,21 @@ class GrpcAggregateRepository(
     private val eventStoreDBClient: EventStoreDBClient,
     private val serdes: EventSerdes,
     private val streamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String,
-    private val metadataSerdes: EventMetadataSerdes<out Metadata>? = null
+    private val metadataSerdes: EventMetadataSerdes<out Metadata>? = null,
 ) : AggregateRepository() {
 
     override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, eventWrappers: List<Event<*>>) {
         val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
         try {
             val events = eventWrappers.map { toEventData(it, serdes) }
-            eventStoreDBClient.appendToStream(
-                streamId,
-                AppendToStreamOptions.get().expectedRevision(resolveExpectedRevision(expectedEventNumber)),
-                events.iterator()
-            )
-                .get().also {
+            eventStoreDBClient
+                .appendToStream(
+                    streamId,
+                    AppendToStreamOptions.get().expectedRevision(resolveExpectedRevision(expectedEventNumber)),
+                    events.iterator()
+                )
+                .get()
+                .also {
                     log.info("wrote ${eventWrappers.size} events to stream ${streamId}, next expected version for this stream is ${it.nextExpectedRevision}")
                 }
         } catch (e: ExecutionException) {
@@ -56,26 +55,6 @@ class GrpcAggregateRepository(
             }
         }.build()
 
-    override fun getSerializationId(eventDataClass: KClass<EventData<*>>): String =
-        serdes.getSerializationId(eventDataClass)
-
-    override fun <A : Aggregate> read(aggregateId: UUID, aggregateType: String, applicator: (state: A?, event: EventWrapper<*>) -> A?): AggregateReadResult {
-        val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
-
-        return AggregateSubscriber(serdes, metadataSerdes, aggregateId, streamId, applicator)
-            .apply {
-                eventStoreDBClient.readStreamReactive(
-                    streamId,
-                    ReadStreamOptions.get()
-                        .forwards()
-                        .fromStart()
-                        .notResolveLinkTos()
-                ).subscribe(this)
-            }
-            .future
-            .get(5, TimeUnit.MINUTES)
-    }
-
     private fun resolveExpectedRevision(expectedEventNumber: ExpectedEventNumber): ExpectedRevision =
         when (expectedEventNumber) {
             is ExpectedEventNumber.AggregateDoesNotExist -> ExpectedRevision.noStream()
@@ -84,51 +63,64 @@ class GrpcAggregateRepository(
             is ExpectedEventNumber.Exact -> expectedRevision(expectedEventNumber.eventNumber)
         }
 
-}
+    override fun getSerializationId(eventDataClass: KClass<EventData<*>>): String =
+        serdes.getSerializationId(eventDataClass)
 
-private class AggregateSubscriber<A : Aggregate>(
-    private val serdes: EventSerdes,
-    private val metadataSerdes: EventMetadataSerdes<out Metadata>?,
-    private val aggregateId: UUID,
-    private val streamId: String,
-    private val applicator: (state: A?, event: EventWrapper<*>) -> A?
-) : Subscriber<ReadMessage> {
+    override fun <A : Aggregate> read(aggregateId: UUID, aggregateType: String, applicator: (state: A?, event: EventWrapper<*>) -> A?): AggregateReadResult {
+        val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
 
-    val future = CompletableFuture<AggregateReadResult>()
-
-    private var subscription: Subscription? = null
-    private var state: A? = null
-    private var lastStreamPosition: Long? = null
-
-    override fun onSubscribe(subscription: Subscription) {
-        this.subscription = subscription
-        subscription.request(Long.MAX_VALUE)
+        return try {
+            Flowable
+                .fromPublisher(
+                    eventStoreDBClient.readStreamReactive(
+                        streamId,
+                        ReadStreamOptions.get()
+                            .forwards()
+                            .fromStart()
+                            .notResolveLinkTos()
+                    )
+                )
+                .reduce(AggregateContext(aggregateId, streamId, applicator)) { aggregate, message ->
+                    handleMessage(aggregate, message)
+                }
+                .blockingGet()
+                .let { toAggregateReadResult(it.state, it.lastStreamPosition, streamId) }
+        } catch (e: Exception) {
+            when (e) {
+                is StreamNotFoundException -> AggregateReadResult.NonExistingAggregate
+                else -> throw e
+            }
+        }
     }
 
-    override fun onNext(message: ReadMessage) {
+    private fun <A : Aggregate> handleMessage(context: AggregateContext<A>, message: ReadMessage): AggregateContext<A> {
         log.trace { "onNext: ${message.toLogString()}" }
-        if (message.hasEvent()) {
-            this.lastStreamPosition = message.event?.event?.revision ?: lastStreamPosition
-            handleEvent(message.event)
+        return if (message.hasEvent()) {
+            context.apply {
+                state = handleEvent(context, message.event, applicator)
+                lastStreamPosition = message.event?.event?.revision ?: context.lastStreamPosition
+            }
         } else {
-            log.debug { "Message does not have event (streamId: $streamId, aggregateId: $aggregateId, lastStreamPosition: $lastStreamPosition)" }
+            log.debug { "Message does not have event (context: $context)" }
+            context
         }
     }
 
-    private fun handleEvent(event: ResolvedEvent) {
+    private fun <A : Aggregate> handleEvent(context: AggregateContext<A>, event: ResolvedEvent, applicator: (state: A?, event: EventWrapper<*>) -> A?): A? =
         if (!event.isIgnorable()) {
-            handleEvent(event.event)
+            handleEvent(context, event.event, applicator)
+        } else {
+            context.state
         }
-    }
 
-    private fun handleEvent(event: RecordedEvent) {
+    private fun <A : Aggregate> handleEvent(context: AggregateContext<A>, event: RecordedEvent, applicator: (state: A?, event: EventWrapper<*>) -> A?): A? {
         val metadata = getMetadata(event)
         val eventData = EventUpgrader.upgrade(serdes.deserialize(event.eventData, event.eventType))
-        this.state = applicator.invoke(
-            this.state,
+        return applicator.invoke(
+            context.state,
             EventWrapper(
                 Event(
-                    aggregateId = aggregateId,
+                    aggregateId = context.aggregateId,
                     eventData = eventData,
                     metadata = metadata
                 ),
@@ -145,36 +137,37 @@ private class AggregateSubscriber<A : Aggregate>(
             null
 
     private fun ReadMessage.toLogString() = "ReadMessage(" +
-                "firstStreamPosition=${ if (hasFirstStreamPosition()) firstStreamPosition else null }, " +
-                "lastStreamPosition=${ if (hasLastStreamPosition()) lastStreamPosition else null }, " +
-                "lastAllPosition=${ if (hasLastAllPosition()) lastStreamPosition else null }, " +
-                "event=${ if (hasEvent()) event else null }" +
+            "firstStreamPosition=${if (hasFirstStreamPosition()) firstStreamPosition else null}, " +
+            "lastStreamPosition=${if (hasLastStreamPosition()) lastStreamPosition else null}, " +
+            "lastAllPosition=${if (hasLastAllPosition()) lastStreamPosition else null}, " +
+            "event=${if (hasEvent()) event else null}" +
             ")"
 
-    override fun onError(throwable: Throwable) {
-        when (throwable) {
-            is StreamNotFoundException -> this.future.complete(AggregateReadResult.NonExistingAggregate)
-            else -> this.future.completeExceptionally(throwable)
-        }
-    }
-
-    override fun onComplete() {
-        if (this.lastStreamPosition != null) {
-            completeHandledEvent()
+    private fun <A : Aggregate> toAggregateReadResult(state: A?, lastStreamPosition: Long?, streamId: String): AggregateReadResult {
+        return if (lastStreamPosition != null) {
+            toAggregateReadResult(state, lastStreamPosition)
         } else {
             // When the aggregate stream has no events
-            this.future.completeExceptionally(RuntimeException("Error reading $streamId, the stream exists but does not contain any events"))
+            throw RuntimeException("Error reading ${streamId}, the stream exists but does not contain any events")
         }
     }
 
-    private fun completeHandledEvent() {
-        if (this.state == null) {
+    private fun <A : Aggregate> toAggregateReadResult(state: A?, lastStreamPosition: Long): AggregateReadResult {
+        return if (state == null) {
             // When the aggregate stream has events, but applying these did not lead to a initialized state
-            this.future.complete(AggregateReadResult.UninitializedAggregate(this.lastStreamPosition!!))
+            AggregateReadResult.UninitializedAggregate(lastStreamPosition)
         } else {
             // When the aggregate stream has events, and applying these has lead to a initialized state
-            this.future.complete(AggregateReadResult.InitializedAggregate(this.state!!, this.lastStreamPosition!!))
+            AggregateReadResult.InitializedAggregate(state, lastStreamPosition)
         }
     }
-
 }
+
+private data class AggregateContext<A : Aggregate>(
+    val aggregateId: UUID,
+    val streamId: String,
+    val applicator: (state: A?, event: EventWrapper<*>) -> A?,
+    var state: A? = null,
+    var lastStreamPosition: Long? = null,
+)
+
