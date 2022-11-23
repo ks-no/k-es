@@ -78,7 +78,7 @@ object Sagas {
             try {
                 commandQueue.poll()
             } catch (e: Exception) {
-                log.error { "Got exception while polling command queue" }
+                log.error(e) { "Got exception while polling command queue" }
             }
         }
         return subscription
