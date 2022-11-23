@@ -75,7 +75,11 @@ object Sagas {
         }
 
         Timer("PollingCommandQueue", false).schedule(0, pollInterval) {
-            commandQueue.poll()
+            try {
+                commandQueue.poll()
+            } catch (e: Exception) {
+                log.error { "Got exception while polling command queue" }
+            }
         }
         return subscription
     }
