@@ -10,20 +10,7 @@
     </parent>
 
     <artifactId>k-es-esjc</artifactId>
-    <properties>
-        <netty.version>4.1.86.Final</netty.version>
-    </properties>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-bom</artifactId>
-                <version>${netty.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+
     <dependencies>
         <!--internal-->
         <dependency>
