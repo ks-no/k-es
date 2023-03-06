@@ -58,7 +58,7 @@ class KesTestSetupTest : FunSpec({
         withKes(eventSerdes = Events.serdes, cmdSerdes = Cmds.serdes) {
             Projections.initialize(
                     eventSubscriberFactory = it.subscriberFactory,
-                    subscriber = testCase.displayName,
+                    hwmId = testCase.displayName,
                     projectionRepository = it.projectionRepository,
                     projections = setOf(enginesProjection)
             )
@@ -76,7 +76,7 @@ class KesTestSetupTest : FunSpec({
         withKes(eventSerdes = Events.serdes, cmdSerdes = Cmds.serdes) { kes ->
             Projections.initialize(
                     eventSubscriberFactory = kes.subscriberFactory,
-                    subscriber = testCase.displayName,
+                    hwmId = testCase.displayName,
                     projectionRepository = kes.projectionRepository,
                     projections = setOf(enginesProjection)
             )

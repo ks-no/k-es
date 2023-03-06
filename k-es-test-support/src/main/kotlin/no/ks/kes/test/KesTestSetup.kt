@@ -113,7 +113,7 @@ class TestEventSubscription(private val factory: TestEventSubscriberFactory,
 class TestEventSubscriberFactory(private val serdes: EventSerdes, private val testEventStream: TestEventStream) : EventSubscriberFactory<TestEventSubscription> {
     override fun getSerializationId(eventDataClass: KClass<EventData<*>>): String = serdes.getSerializationId(eventDataClass)
 
-    override fun createSubscriber(subscriber: String, fromEvent: Long, onEvent: (EventWrapper<EventData<*>>) -> Unit, onClose: (Exception) -> Unit, onLive: () -> Unit): TestEventSubscription {
+    override fun createSubscriber(hwmId: String, fromEvent: Long, onEvent: (EventWrapper<EventData<*>>) -> Unit, onClose: (Exception) -> Unit, onLive: () -> Unit): TestEventSubscription {
         return TestEventSubscription(factory = this, onEvent = onEvent) {
             testEventStream.removeListener(it)
         }.also { testEventStream.addListener(it) }

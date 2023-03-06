@@ -7,25 +7,25 @@ private val log = KotlinLogging.logger {}
 
 object Projections {
     fun <S: EventSubscription> initialize(
-            eventSubscriberFactory: EventSubscriberFactory<S>,
-            projections: Set<Projection>,
-            projectionRepository: ProjectionRepository,
-            subscriber: String,
-            onClose: (Exception) -> Unit = defaultOnCloseHandler
+        eventSubscriberFactory: EventSubscriberFactory<S>,
+        projections: Set<Projection>,
+        projectionRepository: ProjectionRepository,
+        hwmId: String,
+        onClose: (Exception) -> Unit = defaultOnCloseHandler
     ): S {
         val validatedProjectionConfigurations = projections.map { projection -> projection.getConfiguration { eventSubscriberFactory.getSerializationId(it) } }
 
         return eventSubscriberFactory.createSubscriber(
-                subscriber = subscriber,
+                hwmId = hwmId,
                 onEvent = { wrapper ->
                     projectionRepository.transactionally {
                         validatedProjectionConfigurations.forEach {
                             it.accept(wrapper)
                         }
-                        projectionRepository.hwmTracker.update(subscriber, wrapper.eventNumber)
+                        projectionRepository.hwmTracker.update(hwmId, wrapper.eventNumber)
                     }
                 },
-                fromEvent = projectionRepository.hwmTracker.getOrInit(subscriber),
+                fromEvent = projectionRepository.hwmTracker.getOrInit(hwmId),
                 onClose = { onClose.invoke(it) },
                 onLive = { projections.forEach { it.onLive() } }
         )

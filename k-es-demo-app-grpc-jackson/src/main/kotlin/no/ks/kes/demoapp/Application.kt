@@ -1,6 +1,5 @@
 package no.ks.kes.demoapp
 
-import com.eventstore.dbclient.ConnectionSettingsBuilder
 import com.eventstore.dbclient.Endpoint
 import com.eventstore.dbclient.EventStoreDBClient
 import com.eventstore.dbclient.EventStoreDBClientSettings
@@ -28,7 +27,6 @@ import org.springframework.stereotype.Component
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import javax.sql.DataSource
-import kotlin.system.exitProcess
 
 private val log = KotlinLogging.logger {}
 
@@ -111,7 +109,7 @@ class Application {
                     eventSubscriberFactory = eventSubscriberFactory,
                     projections = setOf(shipments),
                     projectionRepository = SqlServerProjectionRepository(dataSource),
-                    subscriber = "ProjectionManager",
+                    hwmId = "ProjectionManager",
                     onClose = {
                         log.error(it) { "Event subscription for Projections was closed." }
                     }

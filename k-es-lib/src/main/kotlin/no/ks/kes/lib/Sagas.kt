@@ -22,7 +22,7 @@ object Sagas {
         val validSagaConfigurations = sagas.map { it.getConfiguration { eventSubscriberFactory.getSerializationId(it) } }
 
         val subscription = eventSubscriberFactory.createSubscriber(
-                subscriber = SAGA_SUBSCRIBER,
+                hwmId = SAGA_SUBSCRIBER,
                 fromEvent = sagaRepository.hwmTracker.getOrInit(SAGA_SUBSCRIBER),
                 onEvent = { wrapper ->
                     sagaRepository.transactionally {

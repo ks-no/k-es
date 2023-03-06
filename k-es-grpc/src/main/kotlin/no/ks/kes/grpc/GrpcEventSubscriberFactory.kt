@@ -30,7 +30,7 @@ class GrpcEventSubscriberFactory(
         serdes.getSerializationId(eventDataClass)
 
     override fun createSubscriber(
-        subscriber: String,
+        hwmId: String,
         fromEvent: Long,
         onEvent: (EventWrapper<EventData<*>>) -> Unit,
         onClose: (Exception) -> Unit,
@@ -52,7 +52,7 @@ class GrpcEventSubscriberFactory(
 
             override fun onEvent(subscription: Subscription, resolvedEvent: ResolvedEvent) {
 
-                log.debug { "$subscriber: received event \"$resolvedEvent\"" }
+                log.debug { "$hwmId: received event \"$resolvedEvent\"" }
 
                 val eventNumber = resolvedEvent.originalEvent.revision
 
@@ -62,9 +62,9 @@ class GrpcEventSubscriberFactory(
 
                 when {
                     !resolvedEvent.isResolved() ->
-                        log.info { "$subscriber: event not resolved: ${resolvedEvent.link.revision} ${resolvedEvent.link.streamId}" }
+                        log.info { "$hwmId: event not resolved: ${resolvedEvent.link.revision} ${resolvedEvent.link.streamId}" }
                     resolvedEvent.isIgnorable() ->
-                        log.info { "$subscriber: event ignored: ${resolvedEvent.originalEvent.revision} ${resolvedEvent.originalEvent.streamId}" }
+                        log.info { "$hwmId: event ignored: ${resolvedEvent.originalEvent.revision} ${resolvedEvent.originalEvent.streamId}" }
                     else -> try {
                         val eventMeta = if(resolvedEvent.event.userMetadata.isNotEmpty() && metadataSerdes != null) metadataSerdes.deserialize(resolvedEvent.event.userMetadata) else null
                         val event = EventUpgrader.upgrade(serdes.deserialize(resolvedEvent.event.eventData, resolvedEvent.event.eventType))
@@ -78,11 +78,11 @@ class GrpcEventSubscriberFactory(
                             eventNumber = eventNumber,
                             serializationId = serdes.getSerializationId(event::class)))
                             .also {
-                                log.info("$subscriber: event ${eventNumber}@${resolvedEvent.originalEvent.streamId}: " +
+                                log.info("$hwmId: event ${eventNumber}@${resolvedEvent.originalEvent.streamId}: " +
                                         "${resolvedEvent.event.eventType}(${resolvedEvent.event.eventId}) received")
                             }
                     } catch (e: java.lang.Exception) {
-                        log.error(e) { "Event handler for $subscriber threw exception: " }
+                        log.error(e) { "Event handler for $hwmId threw exception: " }
                         throw e
                     }
                 }
@@ -91,12 +91,12 @@ class GrpcEventSubscriberFactory(
             }
 
             override fun onCancelled(subscription: Subscription?) {
-                log.error { "subscription cancelled. subscriptionId=${subscription?.subscriptionId}, subscriber=$subscriber, streamId=$streamId, lastEvent=$lastEventProcessed" }
+                log.error { "subscription cancelled. subscriptionId=${subscription?.subscriptionId}, subscriber=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed" }
                 onClose.invoke(GrpcSubscriptionDroppedException(SubscriptionCancelled))
             }
 
             override fun onError(subscription: Subscription?, throwable: Throwable?) {
-                log.error { "error on subscription. subscriptionId=${subscription?.subscriptionId}, subscriber=$subscriber, streamId=$streamId, lastEvent=$lastEventProcessed, exception=$throwable" }
+                log.error { "error on subscription. subscriptionId=${subscription?.subscriptionId}, subscriber=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed, exception=$throwable" }
                 when (throwable) {
                     is ConnectionShutdownException -> onClose.invoke(GrpcSubscriptionDroppedException(ConnectionShutDown, throwable))
                     else -> onClose.invoke(GrpcSubscriptionDroppedException(Unknown, RuntimeException(throwable)))

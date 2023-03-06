@@ -34,7 +34,7 @@ internal class ProjectionsTest : StringSpec() {
             Projections.initialize(
                     eventSubscriberFactory = mockk<EventSubscriberFactory<SimpleEventSubscription>> {
                         every { createSubscriber(
-                                subscriber = consumerName,
+                                hwmId = consumerName,
                                 fromEvent = 0L,
                                 onEvent = capture(slot),
                                 onClose = any(),
@@ -55,7 +55,7 @@ internal class ProjectionsTest : StringSpec() {
                         }
                     },
                     onClose = {},
-                    subscriber = consumerName
+                    hwmId = consumerName
             )
 
             val aggregateId = UUID.randomUUID()

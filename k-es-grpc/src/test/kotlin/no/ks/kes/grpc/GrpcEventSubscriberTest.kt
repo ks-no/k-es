@@ -31,7 +31,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                         eventStoreDBClient = eventStoreMock,
                         category = category,
                         serdes = mockk()
-                ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
+                ).createSubscriber(hwmId = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
                 verify(exactly = 1) { eventStoreMock.subscribeToStream("\$ce-$category", any(), any()) }
                 true
             }
@@ -53,7 +53,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                     eventStoreDBClient = eventStoreMock,
                     category = category,
                     serdes = mockk()
-            ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = 1, onClose = {
+            ).createSubscriber(hwmId = "aSubscriber", onEvent = { run {} }, fromEvent = 1, onClose = {
                 catchedException = it
             })
             val reason = "connection closed"
@@ -78,7 +78,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                         eventStoreDBClient = eventStoreMock,
                         category = category,
                         serdes = mockk()
-                ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
+                ).createSubscriber(hwmId = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
             }.message shouldBe "the from-event $hwm is invalid, must be a number equal to or larger than -1"
         }
 
@@ -102,7 +102,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                         eventStoreDBClient = eventStoreMock,
                         category = category,
                         serdes = mockk()
-                ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
+                ).createSubscriber(hwmId = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
                 verify(exactly = 1) { eventStoreMock.subscribeToStream(
                     "\$ce-$category",
                     any(),

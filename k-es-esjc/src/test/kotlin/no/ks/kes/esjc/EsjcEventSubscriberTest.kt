@@ -23,7 +23,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
                         eventStore = eventStoreMock,
                         category = category,
                         serdes = mockk()
-                ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
+                ).createSubscriber(hwmId = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
                 verify(exactly = 1) { eventStoreMock.subscribeToStreamFrom("\$ce-$category", eq(eventnumber), any(), ofType<CatchUpSubscriptionListener>()) }
             }
 
@@ -42,7 +42,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
                     eventStore = eventStoreMock,
                     category = category,
                     serdes = mockk()
-            ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = 1, onClose = {
+            ).createSubscriber(hwmId = "aSubscriber", onEvent = { run {} }, fromEvent = 1, onClose = {
                 catchedException = it
             })
             val subscriptionDropReason = SubscriptionDropReason.ConnectionClosed
@@ -67,7 +67,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
                         eventStore = eventStoreMock,
                         category = category,
                         serdes = mockk()
-                ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
+                ).createSubscriber(hwmId = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
             }.message shouldBe "the from-event $hwm is invalid, must be a number equal to or larger than -1"
         }
 
@@ -84,7 +84,7 @@ internal class EsjcEventSubscriberTest : StringSpec() {
                         eventStore = eventStoreMock,
                         category = category,
                         serdes = mockk()
-                ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
+                ).createSubscriber(hwmId = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
                 verify(exactly = 1) { eventStoreMock.subscribeToStreamFrom("\$ce-$category", eventnumber, any(), ofType<CatchUpSubscriptionListener>()) }
             }
         }
