@@ -21,8 +21,8 @@ object Projections {
                     projectionRepository.transactionally {
                         validatedProjectionConfigurations.forEach {
                             it.accept(wrapper)
-                            projectionRepository.hwmTracker.update(subscriber, wrapper.eventNumber)
                         }
+                        projectionRepository.hwmTracker.update(subscriber, wrapper.eventNumber)
                     }
                 },
                 fromEvent = projectionRepository.hwmTracker.getOrInit(subscriber),
