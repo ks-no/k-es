@@ -12,7 +12,7 @@
 
     <artifactId>k-es-demo-app-grpc-jackson</artifactId>
     <properties>
-        <flyway.version>9.7.0</flyway.version>
+        <flyway.version>9.15.2</flyway.version>
         <awaitility.version>4.2.0</awaitility.version>
         <spring-service-configuration.version>2.6.4</spring-service-configuration.version>
     </properties>
