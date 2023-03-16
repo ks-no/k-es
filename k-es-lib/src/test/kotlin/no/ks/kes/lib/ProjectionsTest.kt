@@ -37,7 +37,7 @@ internal class ProjectionsTest : StringSpec() {
                                 hwmId = consumerName,
                                 fromEvent = 0L,
                                 onEvent = capture(slot),
-                                onClose = any(),
+                                onError = any(),
                                 onLive = any()
                         ) } returns SimpleEventSubscription(-1)
                         every { getSerializationId(any()) } answers { firstArg<KClass<EventData<*>>>().simpleName!! }
@@ -54,7 +54,7 @@ internal class ProjectionsTest : StringSpec() {
                             runnable.invoke()
                         }
                     },
-                    onClose = {},
+                    onError = {},
                     hwmId = consumerName
             )
 

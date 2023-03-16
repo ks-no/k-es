@@ -108,7 +108,7 @@ class DemoAppTest : StringSpec() {
 
             subscriberFactory.createSubscriber("subscriber", -1, {
                 receivedEvents.incrementAndGet()
-            })
+            }) {}
 
             repo.read(kontoId, validatedAggregateConfiguration).asClue {
                 it.shouldBeInstanceOf<AggregateReadResult.NonExistingAggregate>()
@@ -138,7 +138,7 @@ class DemoAppTest : StringSpec() {
 
             val subscriber = subscriberFactory.createSubscriber("catchup subscriber", 1, {
                     receivedCatchupEvents.incrementAndGet()
-            })
+            }){}
 
             eventually(5.toDuration(DurationUnit.SECONDS)) {
                 receivedEvents.get() shouldBe 3

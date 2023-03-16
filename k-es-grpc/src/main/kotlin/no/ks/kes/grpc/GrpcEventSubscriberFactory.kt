@@ -3,14 +3,11 @@ package no.ks.kes.grpc
 import com.eventstore.dbclient.*
 import com.eventstore.dbclient.StreamPosition
 import mu.KotlinLogging
-import no.ks.kes.grpc.GrpcEventUtil.isIgnorable
-import no.ks.kes.grpc.GrpcEventUtil.isResolved
-import no.ks.kes.grpc.GrpcSubscriptionDroppedReason.*
 import no.ks.kes.lib.*
 import no.ks.kes.lib.EventData
 import java.time.Duration
 import java.time.Instant
-import java.util.*
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
@@ -19,6 +16,8 @@ import kotlin.reflect.KClass
 
 private val log = KotlinLogging.logger {}
 
+private const val MAX_RECONNECT_RETRIES = 10L
+
 class GrpcEventSubscriberFactory(
     private val eventStoreDBClient: EventStoreDBClient,
     private val serdes: EventSerdes,
@@ -26,18 +25,64 @@ class GrpcEventSubscriberFactory(
     private val metadataSerdes: EventMetadataSerdes<out Metadata>? = null
 ) : EventSubscriberFactory<GrpcSubscriptionWrapper> {
 
+    private val retryCount = AtomicLong(0)
+    private var firstOnCancelled: Instant? = null
+
     override fun getSerializationId(eventDataClass: KClass<EventData<*>>): String =
         serdes.getSerializationId(eventDataClass)
+
+    private fun onCancelled(
+        streamId: String,
+        hwmId: String,
+        lastEventProcessed: AtomicLong,
+        onEvent: (EventWrapper<EventData<*>>) -> Unit,
+        onError: (Exception) -> Unit,
+        onLive: () -> Unit,
+        subscriptionLiveCheckpoint: SubscriptionLiveCheckpoint,
+        revision: StreamPosition<Long>?,
+        exception: Exception
+    ) {
+        log.info(exception) {"Subscription canceled, automatic reconnect in ${retryCount.get()} seconds"}
+        if (retryCount.get() > 0 && firstOnCancelled?.isBefore(Instant.now().minus(3, ChronoUnit.MINUTES)) == true) {
+            firstOnCancelled = null
+            retryCount.set(0)
+        }
+
+        if (retryCount.get() >= MAX_RECONNECT_RETRIES) {
+            log.error(exception) {"Subscription canceled, automatic reconnect failed with ${retryCount.get()} attempts"}
+            onError.invoke(GrpcSubscriptionDroppedException(GrpcSubscriptionDroppedReason.SubscriptionDroped, RuntimeException(exception)))
+        } else {
+
+            if (retryCount.get() == 0L) {
+                firstOnCancelled = Instant.now()
+            }
+
+            Thread.sleep(Duration.ofSeconds(1).toMillis() * retryCount.getAndIncrement())
+
+            createListenerAndSubcription(
+                streamId,
+                hwmId,
+                lastEventProcessed,
+                onEvent,
+                onError,
+                onLive,
+                subscriptionLiveCheckpoint,
+                revision
+            )
+        }
+    }
 
     override fun createSubscriber(
         hwmId: String,
         fromEvent: Long,
         onEvent: (EventWrapper<EventData<*>>) -> Unit,
-        onClose: (Exception) -> Unit,
-        onLive: () -> Unit
+        onLive: () -> Unit,
+        onError: (Exception) -> Unit
     ): GrpcSubscriptionWrapper {
 
         val streamId = "\$ce-$category"
+        val lastEventProcessed = AtomicLong(fromEvent)
+
         val revision = when {
             fromEvent == -1L -> StreamPosition.start()
             fromEvent > -1L -> StreamPosition.position(fromEvent)
@@ -46,78 +91,65 @@ class GrpcEventSubscriberFactory(
 
         val subscriptionLiveCheckpoint = SubscriptionLiveCheckpoint(eventStoreDBClient, streamId)
 
-        val listener = object : SubscriptionListener() {
-
-            var lastEventProcessed = AtomicLong(fromEvent)
-
-            override fun onEvent(subscription: Subscription, resolvedEvent: ResolvedEvent) {
-
-                log.debug { "$hwmId: received event \"$resolvedEvent\"" }
-
-                val eventNumber = resolvedEvent.originalEvent.revision
-
-                subscriptionLiveCheckpoint.triggerOnceIfSubscriptionIsLive(eventNumber) {
-                    onLive.invoke()
-                }
-
-                when {
-                    !resolvedEvent.isResolved() ->
-                        log.info { "$hwmId: event not resolved: ${resolvedEvent.link.revision} ${resolvedEvent.link.streamId}" }
-                    resolvedEvent.isIgnorable() ->
-                        log.info { "$hwmId: event ignored: ${resolvedEvent.originalEvent.revision} ${resolvedEvent.originalEvent.streamId}" }
-                    else -> try {
-                        val eventMeta = if(resolvedEvent.event.userMetadata.isNotEmpty() && metadataSerdes != null) metadataSerdes.deserialize(resolvedEvent.event.userMetadata) else null
-                        val event = EventUpgrader.upgrade(serdes.deserialize(resolvedEvent.event.eventData, resolvedEvent.event.eventType))
-                        val aggregateId = UUID.fromString(resolvedEvent.event.streamId.takeLast(36))
-                        onEvent.invoke(EventWrapper(
-                            Event(
-                                aggregateId = aggregateId,
-                                metadata = eventMeta,
-                                eventData = event
-                            ),
-                            eventNumber = eventNumber,
-                            serializationId = serdes.getSerializationId(event::class)))
-                            .also {
-                                log.info("$hwmId: event ${eventNumber}@${resolvedEvent.originalEvent.streamId}: " +
-                                        "${resolvedEvent.event.eventType}(${resolvedEvent.event.eventId}) received")
-                            }
-                    } catch (e: java.lang.Exception) {
-                        log.error(e) { "Event handler for $hwmId threw exception: " }
-                        throw e
-                    }
-                }
-
-                lastEventProcessed.set(eventNumber)
-            }
-
-            override fun onCancelled(subscription: Subscription?) {
-                log.error { "subscription cancelled. subscriptionId=${subscription?.subscriptionId}, subscriber=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed" }
-                onClose.invoke(GrpcSubscriptionDroppedException(SubscriptionCancelled))
-            }
-
-            override fun onError(subscription: Subscription?, throwable: Throwable?) {
-                log.error { "error on subscription. subscriptionId=${subscription?.subscriptionId}, subscriber=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed, exception=$throwable" }
-                when (throwable) {
-                    is ConnectionShutdownException -> onClose.invoke(GrpcSubscriptionDroppedException(ConnectionShutDown, throwable))
-                    else -> onClose.invoke(GrpcSubscriptionDroppedException(Unknown, RuntimeException(throwable)))
-                }
-            }
-        }
-
-        val subscription = eventStoreDBClient.subscribeToStream(
+        createListenerAndSubcription(
             streamId,
-            listener,
-            SubscribeToStreamOptions.get()
-                .resolveLinkTos()
-                .fromRevision(revision)
-        ).get()
+            hwmId,
+            lastEventProcessed,
+            onEvent,
+            onError,
+            onLive,
+            subscriptionLiveCheckpoint,
+            revision
+        )
 
         // In case we are already live before we start receiving events.
         subscriptionLiveCheckpoint.triggerOnceIfSubscriptionIsLive(revision.position.orElse(-1)) {
             onLive.invoke()
         }
 
-        return GrpcSubscriptionWrapper(streamId, subscription) { listener.lastEventProcessed.get() }
+        return GrpcSubscriptionWrapper(streamId) { lastEventProcessed.get() }
+    }
+
+    private fun createListenerAndSubcription(
+        streamId: String,
+        hwmId: String,
+        lastEventProcessed: AtomicLong,
+        onEvent: (EventWrapper<EventData<*>>) -> Unit,
+        onError: (Exception) -> Unit,
+        onLive: () -> Unit,
+        subscriptionLiveCheckpoint: SubscriptionLiveCheckpoint,
+        revision: StreamPosition<Long>?
+    ) {
+        val listener = GrpcSubscriptionListener(
+            streamId,
+            hwmId,
+            lastEventProcessed,
+            onEvent,
+            {
+                onCancelled(
+                    streamId,
+                    hwmId,
+                    lastEventProcessed,
+                    onEvent,
+                    onError,
+                    onLive,
+                    subscriptionLiveCheckpoint,
+                    revision,
+                    it
+                )
+            },
+            onLive,
+            subscriptionLiveCheckpoint,
+            serdes,
+            metadataSerdes
+        )
+        eventStoreDBClient.subscribeToStream(
+            streamId,
+            listener,
+            SubscribeToStreamOptions.get()
+                .resolveLinkTos()
+                .fromRevision(revision)
+        ).get()
     }
 
 }

@@ -1,4 +1,6 @@
-import com.github.msemys.esjc.EventStoreBuilder
+import com.eventstore.dbclient.Endpoint
+import com.eventstore.dbclient.EventStoreDBClient
+import com.eventstore.dbclient.EventStoreDBClientSettings
 import com.google.protobuf.Message
 import io.kotest.assertions.timing.eventually
 import io.kotest.core.annotation.EnabledCondition
@@ -14,9 +16,9 @@ import mu.KotlinLogging
 import no.ks.kes.demoapp.Konto
 import no.ks.kes.demoapp.KontoAggregate
 import no.ks.kes.demoapp.KontoCmds
-import no.ks.kes.esjc.EsjcAggregateRepository
-import no.ks.kes.esjc.EsjcEventSubscriberFactory
-import no.ks.kes.esjc.EsjcEventUtil
+import no.ks.kes.grpc.GrpcAggregateRepository
+import no.ks.kes.grpc.GrpcEventSubscriberFactory
+import no.ks.kes.grpc.GrpcEventUtil
 import no.ks.kes.lib.AggregateReadResult
 import no.ks.kes.lib.AggregateRepository
 import no.ks.kes.serdes.jackson.JacksonEventMetadataSerdes
@@ -38,7 +40,7 @@ import kotlin.time.toDuration
 
 private val log = KotlinLogging.logger {}
 
-private const val PORT = 1113
+private const val PORT = 2113
 
 private val EVENTSTORE_AMD64_IMAGE_NAME = DockerImageName.parse("eventstore/eventstore").withTag("21.6.0-buster-slim")
 private val EVENTSTORE_ARM64_IMAGE_NAME = DockerImageName.parse("ghcr.io/eventstore/eventstore").withTag("21.10.0-alpha-arm64v8")
@@ -78,7 +80,7 @@ class Test : StringSpec() {
             klient.subscriberFactory.createSubscriber("subscriber", -1, {
                 log.info { "Got event: ${it.eventNumber} - ${it.event.aggregateId} - ${it.event.eventData}" }
                 receivedEvents.incrementAndGet()
-            })
+            }) {}
 
             klient.kontoCmds.handle(KontoCmds.Opprett(kontoId, orgId))
             klient.kontoCmds.handle(KontoCmds.Aktiver(kontoId))
@@ -98,7 +100,7 @@ class Test : StringSpec() {
 
             val subscriber = klient.subscriberFactory.createSubscriber("catchup subscriber", 1, {
                 receivedCatchupEvents.incrementAndGet()
-            })
+            }) {}
 
             eventually(5.toDuration(DurationUnit.SECONDS)) {
                 receivedEvents.get() shouldBe 3
@@ -112,7 +114,7 @@ class Test : StringSpec() {
 internal class EventStoreTestKlientListener(private val portProvider: () -> Int): TestListener {
     lateinit var kontoCmds: KontoCmds
     lateinit var repo: AggregateRepository
-    lateinit var subscriberFactory: EsjcEventSubscriberFactory
+    lateinit var subscriberFactory: GrpcEventSubscriberFactory
     override suspend fun beforeSpec(spec: Spec) {
 
         val port = withTimeout(3.minutes) {
@@ -120,16 +122,18 @@ internal class EventStoreTestKlientListener(private val portProvider: () -> Int)
             do {
                 try {
                     port = portProvider.invoke()
-                } catch (e: IllegalStateException) {
+                } catch (_: IllegalStateException) {
 
                 }
             } while (port == null)
             port ?: error("Kunne ikke slå opp port")
         }
-        val eventStore = EventStoreBuilder.newBuilder()
-            .singleNodeAddress("localhost", port)
-            .userCredentials("admin", "changeit")
-            .build()
+
+        val eventStoreClient = EventStoreDBClient.create(
+            EventStoreDBClientSettings.builder()
+            .addHost(Endpoint("localhost", port))
+            .defaultCredentials("admin", "changeit").tls(false).dnsDiscover(false)
+            .buildConnectionSettings())
 
         val eventSerdes = ProtoEventSerdes(
             mapOf(
@@ -152,11 +156,11 @@ internal class EventStoreTestKlientListener(private val portProvider: () -> Int)
 
         val jacksonEventMetadataSerdes = JacksonEventMetadataSerdes(Konto.DemoMetadata::class)
 
-        repo = EsjcAggregateRepository(eventStore, eventSerdes, EsjcEventUtil.defaultStreamName("no.ks.kes.proto.demo"),jacksonEventMetadataSerdes)
+        repo = GrpcAggregateRepository(eventStoreClient, eventSerdes, GrpcEventUtil.defaultStreamName("no.ks.kes.proto.demo"),jacksonEventMetadataSerdes)
 
         kontoCmds = KontoCmds(repo)
 
-        subscriberFactory = EsjcEventSubscriberFactory(eventStore, eventSerdes, "no.ks.kes.proto.demo")
+        subscriberFactory = GrpcEventSubscriberFactory(eventStoreClient, eventSerdes, "no.ks.kes.proto.demo")
     }
 }
 

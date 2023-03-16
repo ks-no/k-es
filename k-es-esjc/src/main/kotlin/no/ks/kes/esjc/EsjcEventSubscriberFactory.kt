@@ -19,7 +19,7 @@ class EsjcEventSubscriberFactory(
     override fun getSerializationId(eventDataClass: KClass<EventData<*>>): String =
             serdes.getSerializationId(eventDataClass)
 
-    override fun createSubscriber(hwmId: String, fromEvent: Long, onEvent: (EventWrapper<EventData<*>>) -> Unit, onClose: (JavaException) -> Unit, onLive: () -> Unit): CatchUpSubscriptionWrapper =
+    override fun createSubscriber(hwmId: String, fromEvent: Long, onEvent: (EventWrapper<EventData<*>>) -> Unit, onLive: () -> Unit, onError: (JavaException) -> Unit): CatchUpSubscriptionWrapper =
             CatchUpSubscriptionWrapper(eventStore.subscribeToStreamFrom(
                     "\$ce-$category",
                     when {
@@ -31,7 +31,7 @@ class EsjcEventSubscriberFactory(
                     object : CatchUpSubscriptionListener {
                         override fun onClose(subscription: CatchUpSubscription, reason: SubscriptionDropReason, exception: JavaException) {
                             log.error(exception) { "$hwmId: subscription closed: $reason" }
-                            onClose.invoke(EsjcSubscriptionDroppedException(reason, exception))
+                            onError.invoke(EsjcSubscriptionDroppedException(reason, exception))
                         }
 
                         override fun onLiveProcessingStarted(subscription: CatchUpSubscription?) {

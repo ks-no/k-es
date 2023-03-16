@@ -110,7 +110,7 @@ class Application {
                     projections = setOf(shipments),
                     projectionRepository = SqlServerProjectionRepository(dataSource),
                     hwmId = "ProjectionManager",
-                    onClose = {
+                    onError = {
                         log.error(it) { "Event subscription for Projections was closed." }
                     }
             )
@@ -124,7 +124,7 @@ class Application {
                     sagas = setOf(ShipmentSaga),
                     commandQueue = SqlServerCommandQueue(dataSource, cmdSerdes, setOf(basketCmds, shipmentCmds)),
                     pollInterval = 500,
-                    onClose = {
+                onError = {
                         log.error(it) { "Event subscription for Sagas was closed." }
                     }
             )

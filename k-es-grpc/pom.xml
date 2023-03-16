@@ -95,12 +95,7 @@
             <scope>test</scope>
         </dependency>
         <!-- /Kotest -->
-        <dependency>
-            <groupId>no.ks</groupId>
-            <artifactId>k-es-demo-app-proto</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
+
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -110,6 +105,11 @@
         <dependency>
             <groupId>no.ks</groupId>
             <artifactId>k-es-serdes-proto</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>no.ks</groupId>
+            <artifactId>k-es-serdes-jackson</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -11,7 +11,7 @@ object Projections {
         projections: Set<Projection>,
         projectionRepository: ProjectionRepository,
         hwmId: String,
-        onClose: (Exception) -> Unit = defaultOnCloseHandler
+        onError: (Exception) -> Unit = defaultOnCloseHandler
     ): S {
         val validatedProjectionConfigurations = projections.map { projection -> projection.getConfiguration { eventSubscriberFactory.getSerializationId(it) } }
 
@@ -26,7 +26,7 @@ object Projections {
                     }
                 },
                 fromEvent = projectionRepository.hwmTracker.getOrInit(hwmId),
-                onClose = { onClose.invoke(it) },
+                onError = { onError.invoke(it) },
                 onLive = { projections.forEach { it.onLive() } }
         )
     }

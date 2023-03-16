@@ -10,6 +10,7 @@ class GrpcSubscriptionDroppedException(val reason: GrpcSubscriptionDroppedReason
 }
 
 enum class GrpcSubscriptionDroppedReason {
+    SubscriptionDroped,
     SubscriptionCancelled,
     ConnectionShutDown,
     Unknown
