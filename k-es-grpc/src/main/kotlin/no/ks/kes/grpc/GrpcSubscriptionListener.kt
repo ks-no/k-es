@@ -80,7 +80,7 @@ class GrpcSubscriptionListener (private val streamId: String,
     }
 
     override fun onError(subscription: Subscription?, throwable: Throwable?) {
-        log.error(throwable) { "error on subscription. subscriptionId=${subscription?.subscriptionId}, subscriber=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed" }
+        log.error(throwable) { "error on subscription. subscriptionId=${subscription?.subscriptionId}, hwmId=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed" }
         when (throwable) {
             is ConnectionShutdownException -> onError.invoke(GrpcSubscriptionException(
                 GrpcSubscriptionReason.ConnectionShutDown, throwable))
