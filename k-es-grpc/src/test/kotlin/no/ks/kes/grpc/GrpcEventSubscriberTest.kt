@@ -11,7 +11,6 @@ import io.kotest.property.Arb
 import io.kotest.property.arbitrary.long
 import io.kotest.property.forAll
 import io.mockk.*
-import no.ks.kes.grpc.GrpcSubscriptionDroppedReason.ConnectionShutDown
 import org.springframework.util.ReflectionUtils
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -24,7 +23,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
 
                 val eventStoreMock = mockk<EventStoreDBClient>(relaxed = true) {
                     every { readStream(any(), any(), )} returns CompletableFuture.completedFuture(mockk { every { events } returns emptyList() })
-                    every { subscribeToStream(any(), any(), any()) } returns CompletableFuture.completedFuture(mockk())
+                    every { subscribeToStream(any(), any(), any()) } returns mockk() { every { get() } returns mockk() { every { subscriptionId } returns UUID.randomUUID().toString()} }
                 }
 
                 GrpcEventSubscriberFactory(
@@ -63,14 +62,12 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                     RuntimeException("Consumer too slow to handle event while live")
                 )
             }
-            (catchedException!! as GrpcSubscriptionDroppedException).run {
+            (catchedException!! as GrpcSubscriptionException).run {
                 reason shouldBe reason
-                message shouldBe "Subscription was dropped. Reason: ${GrpcSubscriptionDroppedReason.SubscriptionDroped}"
+                message shouldBe "Subscription was dropped. Reason: ${GrpcSubscriptionReason.Unknown}"
                 cause should beInstanceOf<RuntimeException>()
             }
             verify(exactly = 11) { eventStoreMock.subscribeToStream("\$ce-$category", any(), any()) }
-            verify(exactly = 11) { subscription.get().subscriptionId }
-            confirmVerified(subscription.get())
         }
 
         "Create event subsription starting on MIN_VALUE" {
@@ -100,7 +97,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
 
                 val eventStoreMock = mockk<EventStoreDBClient> {
                     every { readStream(any(), any())} returns CompletableFuture.completedFuture(mockk { every { events } returns emptyList() })
-                    every { subscribeToStream(streamName, any(), any()) } returns CompletableFuture.completedFuture(mockk())
+                    every { subscribeToStream(any(), any(), any()) } returns mockk() { every { get() } returns mockk() { every { subscriptionId } returns UUID.randomUUID().toString()} }
                 }
 
                 GrpcEventSubscriberFactory(
@@ -142,7 +139,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
             subscriberFactory.createSubscriber("subscriber",
                 fromEvent = 0,
                 onEvent = { },
-                onLive = { onLiveCalled += 1 }) {}
+                onLive = { onLiveCalled += 1 })
             onLiveCalled shouldBe 1
         }
 
@@ -174,7 +171,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
             subscriberFactory.createSubscriber("subscriber",
                 fromEvent = 42,
                 onEvent = { },
-                onLive = { onLiveCalled += 1 }) {}
+                onLive = { onLiveCalled += 1 })
             onLiveCalled shouldBe 1
         }
 
@@ -213,7 +210,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
             subscriberFactory.createSubscriber("subscriber",
                 fromEvent = subscribeFrom,
                 onEvent = { onEventCalled += 1},
-                onLive = { onLiveCalled += 1 }) {}
+                onLive = { onLiveCalled += 1 })
 
             verify { eventStoreMock.readStream(streamId, any()) }
 

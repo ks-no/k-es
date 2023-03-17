@@ -76,15 +76,15 @@ class GrpcSubscriptionListener (private val streamId: String,
     }
 
     override fun onCancelled(subscription: Subscription?) {
-        log.info { "Subscription cancelled: subscriptionId=${subscription?.subscriptionId}, subscriber=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed" }
+        log.info { "Subscription cancelled: subscriptionId=${subscription?.subscriptionId}, hwmId=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed" }
     }
 
     override fun onError(subscription: Subscription?, throwable: Throwable?) {
-        log.error { "error on subscription. subscriptionId=${subscription?.subscriptionId}, subscriber=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed, exception=$throwable" }
+        log.error(throwable) { "error on subscription. subscriptionId=${subscription?.subscriptionId}, subscriber=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed" }
         when (throwable) {
-            is ConnectionShutdownException -> onError.invoke(GrpcSubscriptionDroppedException(
-                GrpcSubscriptionDroppedReason.ConnectionShutDown, throwable))
-            else -> onError.invoke(GrpcSubscriptionDroppedException(GrpcSubscriptionDroppedReason.Unknown, RuntimeException(throwable)))
+            is ConnectionShutdownException -> onError.invoke(GrpcSubscriptionException(
+                GrpcSubscriptionReason.ConnectionShutDown, throwable))
+            else -> onError.invoke(GrpcSubscriptionException(GrpcSubscriptionReason.Unknown, RuntimeException(throwable)))
         }
     }
 }

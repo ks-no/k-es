@@ -5,8 +5,8 @@ import com.eventstore.dbclient.EventStoreDBClient
 import com.eventstore.dbclient.EventStoreDBClientSettings
 import mu.KotlinLogging
 import no.ks.kes.grpc.GrpcAggregateRepository
-import no.ks.kes.grpc.GrpcEventSubscriberFactory
 import no.ks.kes.grpc.GrpcEventUtil
+import no.ks.kes.grpc.GrpcEventSubscriberFactory
 import no.ks.kes.jdbc.projection.SqlServerProjectionRepository
 import no.ks.kes.jdbc.saga.SqlServerCommandQueue
 import no.ks.kes.jdbc.saga.SqlServerSagaRepository
