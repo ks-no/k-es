@@ -2,8 +2,7 @@ package no.ks.kes.grpc
 
 
 class GrpcSubscriptionException(val reason: GrpcSubscriptionReason, cause: Exception?) :
-    RuntimeException("Subscription was dropped. Reason: $reason", cause) {
-    constructor(reason: GrpcSubscriptionReason) : this(reason, null)
+    RuntimeException("Subscription failed. Reason: $reason", cause) {
 }
 
 enum class GrpcSubscriptionReason {
