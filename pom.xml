@@ -54,7 +54,7 @@
         <rxjava.version>3.1.6</rxjava.version>
         <netty.version>4.1.89.Final</netty.version>
 
-        <junit.jupiter.version>5.9.1</junit.jupiter.version>
+        <junit.jupiter.version>5.9.2</junit.jupiter.version>
         <mockk.version>1.13.2</mockk.version>
         <kotest.version>5.3.2</kotest.version>
         <kotest.spring.version>1.1.2</kotest.spring.version>
