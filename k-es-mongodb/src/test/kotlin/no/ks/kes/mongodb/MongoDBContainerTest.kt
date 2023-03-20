@@ -88,7 +88,7 @@ class MongoDBContainerTest: StringSpec() {
                     sagas = setOf(EngineSaga),
                     commandQueue = commandQueue,
                     pollInterval = 1000,
-                    onClose = {
+                    onError = {
                         fail(it)
                     }
                 )

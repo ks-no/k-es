@@ -41,6 +41,7 @@ class DemoAppTest : StringSpec() {
     lateinit var kontoCmds: KontoCmds
     lateinit var repo: AggregateRepository
     lateinit var subscriberFactory: GrpcEventSubscriberFactory
+    lateinit var eventStoreClient: EventStoreDBClient
 
     val dockerImageName = DockerImageName.parse("eventstore/eventstore:21.6.0-buster-slim")
     val eventStoreContainer = GenericContainer<GenericContainer<*>>(dockerImageName)
@@ -55,37 +56,37 @@ class DemoAppTest : StringSpec() {
         .withReuse(true)
         .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4))
 
+    val eventSerdes = ProtoEventSerdes(
+        mapOf(
+            Konto.AvsenderOpprettet::class to Avsender.AvsenderOpprettet.getDefaultInstance(),
+            Konto.AvsenderAktivert::class to Avsender.AvsenderAktivert.getDefaultInstance(),
+            Konto.AvsenderDeaktivert::class to Avsender.AvsenderDeaktivert.getDefaultInstance(),
+        ),
+        object: ProtoEventDeserializer {
+            override fun deserialize(msg: Message): ProtoEventData<*> {
+                return when (msg) {
+                    is Avsender.AvsenderOpprettet -> Konto.AvsenderOpprettet(msg = msg)
+                    is Avsender.AvsenderAktivert -> Konto.AvsenderAktivert(msg = msg)
+                    is Avsender.AvsenderDeaktivert -> Konto.AvsenderDeaktivert(msg = msg)
+                    else -> throw RuntimeException("Event ${msg::class.java} mangler konvertering")
+                }
+            }
+        }
+    )
+
+    val jacksonEventMetadataSerdes = JacksonEventMetadataSerdes(Konto.DemoMetadata::class)
+
     override suspend fun beforeSpec(spec: Spec) {
         eventStoreContainer.start()
 
-        val eventStoreClient = EventStoreDBClient.create(EventStoreDBClientSettings.builder()
+        eventStoreClient = EventStoreDBClient.create(EventStoreDBClientSettings.builder()
             .addHost(Endpoint("localhost", eventStoreContainer.getMappedPort(2113)))
             .defaultCredentials("admin", "changeit").tls(false).dnsDiscover(false)
             .buildConnectionSettings())
 
-        val eventSerdes = ProtoEventSerdes(
-            mapOf(
-                Konto.AvsenderOpprettet::class to Avsender.AvsenderOpprettet.getDefaultInstance(),
-                Konto.AvsenderAktivert::class to Avsender.AvsenderAktivert.getDefaultInstance(),
-                Konto.AvsenderDeaktivert::class to Avsender.AvsenderDeaktivert.getDefaultInstance(),
-            ),
-            object: ProtoEventDeserializer {
-                override fun deserialize(msg: Message): ProtoEventData<*> {
-                    return when (msg) {
-                        is Avsender.AvsenderOpprettet -> Konto.AvsenderOpprettet(msg = msg)
-                        is Avsender.AvsenderAktivert -> Konto.AvsenderAktivert(msg = msg)
-                        is Avsender.AvsenderDeaktivert -> Konto.AvsenderDeaktivert(msg = msg)
-                        else -> throw RuntimeException("Event ${msg::class.java} mangler konvertering")
-                    }
-                }
-            }
-        )
-
-        val jacksonEventMetadataSerdes = JacksonEventMetadataSerdes(Konto.DemoMetadata::class)
+        subscriberFactory = GrpcEventSubscriberFactory(eventStoreClient, eventSerdes, "no.ks.kes.proto.demo")
 
         repo = GrpcAggregateRepository(eventStoreClient, eventSerdes, GrpcEventUtil.defaultStreamName("no.ks.kes.proto.demo"),jacksonEventMetadataSerdes)
-
-        subscriberFactory = GrpcEventSubscriberFactory(eventStoreClient, eventSerdes, "no.ks.kes.proto.demo")
 
         kontoCmds = KontoCmds(repo)
     }
@@ -108,7 +109,7 @@ class DemoAppTest : StringSpec() {
 
             subscriberFactory.createSubscriber("subscriber", -1, {
                 receivedEvents.incrementAndGet()
-            })
+            }) {}
 
             repo.read(kontoId, validatedAggregateConfiguration).asClue {
                 it.shouldBeInstanceOf<AggregateReadResult.NonExistingAggregate>()
@@ -138,7 +139,7 @@ class DemoAppTest : StringSpec() {
 
             val subscriber = subscriberFactory.createSubscriber("catchup subscriber", 1, {
                     receivedCatchupEvents.incrementAndGet()
-            })
+            }){}
 
             eventually(5.toDuration(DurationUnit.SECONDS)) {
                 receivedEvents.get() shouldBe 3

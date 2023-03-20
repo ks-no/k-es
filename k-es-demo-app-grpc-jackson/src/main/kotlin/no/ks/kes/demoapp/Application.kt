@@ -1,13 +1,12 @@
 package no.ks.kes.demoapp
 
-import com.eventstore.dbclient.ConnectionSettingsBuilder
 import com.eventstore.dbclient.Endpoint
 import com.eventstore.dbclient.EventStoreDBClient
 import com.eventstore.dbclient.EventStoreDBClientSettings
 import mu.KotlinLogging
 import no.ks.kes.grpc.GrpcAggregateRepository
-import no.ks.kes.grpc.GrpcEventSubscriberFactory
 import no.ks.kes.grpc.GrpcEventUtil
+import no.ks.kes.grpc.GrpcEventSubscriberFactory
 import no.ks.kes.jdbc.projection.SqlServerProjectionRepository
 import no.ks.kes.jdbc.saga.SqlServerCommandQueue
 import no.ks.kes.jdbc.saga.SqlServerSagaRepository
@@ -28,7 +27,6 @@ import org.springframework.stereotype.Component
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import javax.sql.DataSource
-import kotlin.system.exitProcess
 
 private val log = KotlinLogging.logger {}
 
@@ -111,8 +109,8 @@ class Application {
                     eventSubscriberFactory = eventSubscriberFactory,
                     projections = setOf(shipments),
                     projectionRepository = SqlServerProjectionRepository(dataSource),
-                    subscriber = "ProjectionManager",
-                    onClose = {
+                    hwmId = "ProjectionManager",
+                    onError = {
                         log.error(it) { "Event subscription for Projections was closed." }
                     }
             )
@@ -126,7 +124,7 @@ class Application {
                     sagas = setOf(ShipmentSaga),
                     commandQueue = SqlServerCommandQueue(dataSource, cmdSerdes, setOf(basketCmds, shipmentCmds)),
                     pollInterval = 500,
-                    onClose = {
+                onError = {
                         log.error(it) { "Event subscription for Sagas was closed." }
                     }
             )

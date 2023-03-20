@@ -17,12 +17,12 @@ object Sagas {
             sagas: Set<Saga<*>>,
             commandQueue: CommandQueue,
             pollInterval: Long = 5000,
-            onClose: (Exception) -> Unit = defaultOnCloseHandler
+            onError: (Exception) -> Unit = defaultOnCloseHandler
     ): S {
         val validSagaConfigurations = sagas.map { it.getConfiguration { eventSubscriberFactory.getSerializationId(it) } }
 
         val subscription = eventSubscriberFactory.createSubscriber(
-                subscriber = SAGA_SUBSCRIBER,
+                hwmId = SAGA_SUBSCRIBER,
                 fromEvent = sagaRepository.hwmTracker.getOrInit(SAGA_SUBSCRIBER),
                 onEvent = { wrapper ->
                     sagaRepository.transactionally {
@@ -43,7 +43,7 @@ object Sagas {
                         }
                     }
                 },
-                onClose = onClose
+                onError = onError
         )
 
         Timer("PollingTimeouts", false).schedule(0, pollInterval) {

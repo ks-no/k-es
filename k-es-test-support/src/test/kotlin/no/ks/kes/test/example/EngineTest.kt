@@ -162,7 +162,7 @@ class EngineTest : StringSpec({
             Projections.initialize(eventSubscriberFactory = kes.subscriberFactory,
                     projections = setOf(engineProjection),
                     projectionRepository = kes.projectionRepository,
-                    subscriber = testCase.displayName
+                    hwmId = testCase.displayName
             ) { e ->
                 failure("Failed during eventhandling in projection", e)
             }
@@ -191,7 +191,7 @@ class EngineTest : StringSpec({
                     eventSubscriberFactory = kes.subscriberFactory,
                     projections = setOf(engineProjection),
                     projectionRepository = kes.projectionRepository,
-                    subscriber = testCase.displayName
+                    hwmId = testCase.displayName
             ) { e ->
                 failure("Failed during projection event handling", e)
             }
@@ -217,7 +217,7 @@ class EngineTest : StringSpec({
                     eventSubscriberFactory = kes.subscriberFactory,
                     projections = setOf(engineProjection),
                     projectionRepository = kes.projectionRepository,
-                    subscriber = testCase.displayName
+                    hwmId = testCase.displayName
             ) { e ->
                 failure("Failed during projection event handling", e)
             }

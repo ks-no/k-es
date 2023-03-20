@@ -33,7 +33,7 @@
         <!--internal-->
         <dependency>
             <groupId>no.ks</groupId>
-            <artifactId>k-es-esjc</artifactId>
+            <artifactId>k-es-grpc</artifactId>
         </dependency>
         <dependency>
             <groupId>no.ks</groupId>

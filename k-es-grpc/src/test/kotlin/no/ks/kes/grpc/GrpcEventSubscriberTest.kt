@@ -11,7 +11,6 @@ import io.kotest.property.Arb
 import io.kotest.property.arbitrary.long
 import io.kotest.property.forAll
 import io.mockk.*
-import no.ks.kes.grpc.GrpcSubscriptionDroppedReason.ConnectionShutDown
 import org.springframework.util.ReflectionUtils
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -24,21 +23,21 @@ internal class GrpcEventSubscriberTest : StringSpec() {
 
                 val eventStoreMock = mockk<EventStoreDBClient>(relaxed = true) {
                     every { readStream(any(), any(), )} returns CompletableFuture.completedFuture(mockk { every { events } returns emptyList() })
-                    every { subscribeToStream(any(), any(), any()) } returns CompletableFuture.completedFuture(mockk())
+                    every { subscribeToStream(any(), any(), any()) } returns mockk() { every { get() } returns mockk() { every { subscriptionId } returns UUID.randomUUID().toString()} }
                 }
 
                 GrpcEventSubscriberFactory(
                         eventStoreDBClient = eventStoreMock,
                         category = category,
                         serdes = mockk()
-                ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
+                ).createSubscriber(hwmId = "aSubscriber", onEvent = { run {} }, fromEvent = hwm) {}
                 verify(exactly = 1) { eventStoreMock.subscribeToStream("\$ce-$category", any(), any()) }
                 true
             }
 
         }
 
-        "On close propagates reason" {
+        "On error propagates reason after 10 retries" {
             val category = UUID.randomUUID().toString()
             val subscriptionListener = slot<SubscriptionListener>()
             val subscription: CompletableFuture<Subscription> = CompletableFuture.completedFuture(mockk<Subscription> {
@@ -53,19 +52,22 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                     eventStoreDBClient = eventStoreMock,
                     category = category,
                     serdes = mockk()
-            ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = 1, onClose = {
+            ).createSubscriber(hwmId = "aSubscriber", onEvent = { run {} }, fromEvent = 1, onError = {
                 catchedException = it
             })
             val reason = "connection closed"
-            subscriptionListener.captured.onError(subscription.get(), mockk<ConnectionShutdownException>())
-            (catchedException!! as GrpcSubscriptionDroppedException).run {
-                reason shouldBe reason
-                message shouldBe "Subscription was dropped. Reason: $ConnectionShutDown"
-                cause should beInstanceOf<ConnectionShutdownException>()
+            for(i: Int in 0..10) {
+                subscriptionListener.captured.onError(
+                    subscription.get(),
+                    RuntimeException("Consumer too slow to handle event while live")
+                )
             }
-            verify(exactly = 1) { eventStoreMock.subscribeToStream("\$ce-$category", any(), any()) }
-            verify(exactly = 1) { subscription.get().subscriptionId }
-            confirmVerified(subscription.get())
+            (catchedException!! as GrpcSubscriptionException).run {
+                reason shouldBe reason
+                message shouldBe "Subscription failed. Reason: ${GrpcSubscriptionExceptionReason.Unknown}"
+                cause should beInstanceOf<RuntimeException>()
+            }
+            verify(exactly = 11) { eventStoreMock.subscribeToStream("\$ce-$category", any(), any()) }
         }
 
         "Create event subsription starting on MIN_VALUE" {
@@ -78,7 +80,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                         eventStoreDBClient = eventStoreMock,
                         category = category,
                         serdes = mockk()
-                ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
+                ).createSubscriber(hwmId = "aSubscriber", onEvent = { run {} }, fromEvent = hwm) {}
             }.message shouldBe "the from-event $hwm is invalid, must be a number equal to or larger than -1"
         }
 
@@ -95,14 +97,14 @@ internal class GrpcEventSubscriberTest : StringSpec() {
 
                 val eventStoreMock = mockk<EventStoreDBClient> {
                     every { readStream(any(), any())} returns CompletableFuture.completedFuture(mockk { every { events } returns emptyList() })
-                    every { subscribeToStream(streamName, any(), any()) } returns CompletableFuture.completedFuture(mockk())
+                    every { subscribeToStream(any(), any(), any()) } returns mockk() { every { get() } returns mockk() { every { subscriptionId } returns UUID.randomUUID().toString()} }
                 }
 
                 GrpcEventSubscriberFactory(
                         eventStoreDBClient = eventStoreMock,
                         category = category,
                         serdes = mockk()
-                ).createSubscriber(subscriber = "aSubscriber", onEvent = { run {} }, fromEvent = hwm)
+                ).createSubscriber(hwmId = "aSubscriber", onEvent = { run {} }, fromEvent = hwm) {}
                 verify(exactly = 1) { eventStoreMock.subscribeToStream(
                     "\$ce-$category",
                     any(),
