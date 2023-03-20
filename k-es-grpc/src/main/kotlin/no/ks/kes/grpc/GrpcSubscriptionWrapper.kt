@@ -84,7 +84,6 @@ class GrpcSubscriptionWrapper(
     private fun onError(
         exception: Exception
     ) {
-        log.info(exception) {"Error on subscription, automatic reconnect in ${retryCount.get()} seconds"}
         if (retryCount.get() > 0 && firstOnCancelled?.isBefore(Instant.now().minus(3, ChronoUnit.MINUTES)) == true) {
             firstOnCancelled = null
             retryCount.set(0)
@@ -94,7 +93,7 @@ class GrpcSubscriptionWrapper(
             log.error(exception) {"Error on subscription, automatic reconnect failed with ${retryCount.get()} attempts"}
             onError.invoke(exception)
         } else {
-
+            log.info(exception) {"Error on subscription, automatic reconnect in ${retryCount.get()} seconds"}
             if (retryCount.get() == 0L) {
                 firstOnCancelled = Instant.now()
             }

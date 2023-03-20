@@ -83,8 +83,8 @@ class GrpcSubscriptionListener (private val streamId: String,
         log.error(throwable) { "error on subscription. subscriptionId=${subscription?.subscriptionId}, hwmId=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed" }
         when (throwable) {
             is ConnectionShutdownException -> onError.invoke(GrpcSubscriptionException(
-                GrpcSubscriptionCause.ConnectionShutDown, throwable))
-            else -> onError.invoke(GrpcSubscriptionException(GrpcSubscriptionCause.Unknown, RuntimeException(throwable)))
+                GrpcSubscriptionExceptionReason.ConnectionShutDown, throwable))
+            else -> onError.invoke(GrpcSubscriptionException(GrpcSubscriptionExceptionReason.Unknown, RuntimeException(throwable)))
         }
     }
 }

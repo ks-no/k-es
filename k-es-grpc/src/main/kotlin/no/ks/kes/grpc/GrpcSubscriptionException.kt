@@ -1,11 +1,11 @@
 package no.ks.kes.grpc
 
 
-class GrpcSubscriptionException(cause: GrpcSubscriptionCause, exception: Exception?) :
-    RuntimeException("Subscription failed. Cause: $cause", exception) {
+class GrpcSubscriptionException(reason: GrpcSubscriptionExceptionReason, cause: Exception?) :
+    RuntimeException("Subscription failed. Reason: $reason", cause) {
 }
 
-enum class GrpcSubscriptionCause {
+enum class GrpcSubscriptionExceptionReason {
     ConnectionShutDown,
     Unknown
 }
