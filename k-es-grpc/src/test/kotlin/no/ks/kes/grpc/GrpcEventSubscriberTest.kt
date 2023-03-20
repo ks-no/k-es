@@ -64,7 +64,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
             }
             (catchedException!! as GrpcSubscriptionException).run {
                 reason shouldBe reason
-                message shouldBe "Subscription failed. Rason: ${GrpcSubscriptionExceptionReason.Unknown}"
+                message shouldBe "Subscription failed. Reason: ${GrpcSubscriptionExceptionReason.Unknown}"
                 cause should beInstanceOf<RuntimeException>()
             }
             verify(exactly = 11) { eventStoreMock.subscribeToStream("\$ce-$category", any(), any()) }
