@@ -1,7 +1,7 @@
 package no.ks.kes.grpc
 
 
-class GrpcSubscriptionException(val reason: GrpcSubscriptionReason, cause: Exception?) :
+class GrpcSubscriptionException(reason: GrpcSubscriptionReason, cause: Exception?) :
     RuntimeException("Subscription failed. Reason: $reason", cause) {
 }
 
