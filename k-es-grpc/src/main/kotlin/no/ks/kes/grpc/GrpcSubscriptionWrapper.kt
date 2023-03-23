@@ -105,7 +105,7 @@ class GrpcSubscriptionWrapper(
             try {
                 subscription = createListenerAndSubcription()
             } catch (e: Exception) {
-                onError.invoke(RuntimeException("Failed to reonnect subscription",e));
+                onError.invoke(RuntimeException("Failed to reconnect subscription",e));
             }
         }
     }
