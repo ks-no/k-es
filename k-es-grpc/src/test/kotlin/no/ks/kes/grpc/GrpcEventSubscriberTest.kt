@@ -23,7 +23,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
 
                 val eventStoreMock = mockk<EventStoreDBClient>(relaxed = true) {
                     every { readStream(any(), any(), )} returns CompletableFuture.completedFuture(mockk { every { events } returns emptyList() })
-                    every { subscribeToStream(any(), any(), any()) } returns mockk() { every { get() } returns mockk() { every { subscriptionId } returns UUID.randomUUID().toString()} }
+                    every { subscribeToStream(any(), any(), any()) } returns mockk() { every { get(any(), any()) } returns mockk() { every { subscriptionId } returns UUID.randomUUID().toString()} }
                 }
 
                 GrpcEventSubscriberFactory(
@@ -97,7 +97,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
 
                 val eventStoreMock = mockk<EventStoreDBClient> {
                     every { readStream(any(), any())} returns CompletableFuture.completedFuture(mockk { every { events } returns emptyList() })
-                    every { subscribeToStream(any(), any(), any()) } returns mockk() { every { get() } returns mockk() { every { subscriptionId } returns UUID.randomUUID().toString()} }
+                    every { subscribeToStream(any(), any(), any()) } returns mockk() { every { get(any(), any()) } returns mockk() { every { subscriptionId } returns UUID.randomUUID().toString()} }
                 }
 
                 GrpcEventSubscriberFactory(

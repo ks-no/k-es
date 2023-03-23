@@ -6,9 +6,11 @@ import com.eventstore.dbclient.SubscribeToStreamOptions
 import com.eventstore.dbclient.Subscription
 import mu.KotlinLogging
 import no.ks.kes.lib.*
+import java.lang.RuntimeException
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 
@@ -73,12 +75,12 @@ class GrpcSubscriptionWrapper(
             metadataSerdes
         )
         return eventStoreDBClient.subscribeToStream(
-            streamId,
-            listener,
-            SubscribeToStreamOptions.get()
-                .resolveLinkTos()
-                .fromRevision(revision)
-        ).get().also { log.info("Subscription on stream '$streamId' created with subscriptionId '${it.subscriptionId}'") }
+                streamId,
+                listener,
+                SubscribeToStreamOptions.get()
+                    .resolveLinkTos()
+                    .fromRevision(revision)
+            ).get(2, TimeUnit.MINUTES).also { log.info("Subscription on stream '$streamId' created with subscriptionId '${it.subscriptionId}'") }
     }
 
     private fun onError(
@@ -100,7 +102,11 @@ class GrpcSubscriptionWrapper(
 
             Thread.sleep(Duration.ofSeconds(1).toMillis() * retryCount.getAndIncrement())
 
-            subscription = createListenerAndSubcription()
+            try {
+                subscription = createListenerAndSubcription()
+            } catch (e: Exception) {
+                onError.invoke(RuntimeException("Failed to reconnect subscription",e));
+            }
         }
     }
 }
