@@ -61,7 +61,7 @@ class GrpcSubscriptionListener (private val streamId: String,
                     )
                 )
                     .also {
-                        log.info(
+                        log.debug(
                             "$hwmId: event ${eventNumber}@${resolvedEvent.originalEvent.streamId}: " +
                                     "${resolvedEvent.event.eventType}(${resolvedEvent.event.eventId}) received"
                         )
