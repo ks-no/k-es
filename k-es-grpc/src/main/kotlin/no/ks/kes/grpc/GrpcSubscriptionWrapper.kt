@@ -29,15 +29,12 @@ class GrpcSubscriptionWrapper(
     private val onLive: () -> Unit
 ): EventSubscription {
 
-    private val revision = when {
-        fromEvent == -1L -> StreamPosition.start()
-        fromEvent > -1L -> StreamPosition.position(fromEvent)
+    private val streamId = "\$ce-$category"
+    private val lastEventProcessed = when {
+        fromEvent >= -1L -> AtomicLong(fromEvent)
         else -> error("the from-event $fromEvent is invalid, must be a number equal to or larger than -1")
     }
-
-    private val streamId = "\$ce-$category"
     private val subscriptionLiveCheckpoint = SubscriptionLiveCheckpoint(eventStoreDBClient, streamId)
-    private val lastEventProcessed = AtomicLong(fromEvent)
     private val retryCount = AtomicLong(0)
     private var firstOnCancelled: Instant? = null
     private var subscription: Subscription = init()
@@ -46,13 +43,19 @@ class GrpcSubscriptionWrapper(
 
     override fun lastProcessedEvent(): Long = lastEventProcessed.get()
 
+    private fun revision() = when {
+        lastEventProcessed.get() == -1L -> StreamPosition.start()
+        lastEventProcessed.get() > -1L -> StreamPosition.position(lastEventProcessed.get())
+        else -> throw RuntimeException("the from-event ${lastEventProcessed.get()} is invalid, must be a number equal to or larger than -1")
+    }
+
     fun subscriptionId() = subscription.subscriptionId
 
 
     private fun init(): Subscription =
         createListenerAndSubcription().also {
             // In case we are already live before we start receiving events.
-            subscriptionLiveCheckpoint.triggerOnceIfSubscriptionIsLive(revision.position.orElse(-1)) {
+            subscriptionLiveCheckpoint.triggerOnceIfSubscriptionIsLive(revision().position.orElse(-1)) {
                 onLive.invoke()
             }
         }
@@ -74,13 +77,14 @@ class GrpcSubscriptionWrapper(
             serdes,
             metadataSerdes
         )
+        val revision = revision()
         return eventStoreDBClient.subscribeToStream(
                 streamId,
                 listener,
                 SubscribeToStreamOptions.get()
                     .resolveLinkTos()
                     .fromRevision(revision)
-            ).get(2, TimeUnit.MINUTES).also { log.info("Subscription on stream '$streamId' created with subscriptionId '${it.subscriptionId}'") }
+            ).get(2, TimeUnit.MINUTES).also { log.info("Subscription on stream '$streamId' created with subscriptionId '${it.subscriptionId}' from revision ${if (revision.position.isPresent) revision.position.get() else "Start" }") }
     }
 
     private fun onError(
