@@ -223,6 +223,83 @@ internal class GrpcEventSubscriberTest : StringSpec() {
             onLiveCalled shouldBe 1
             onEventCalled shouldBe 2
         }
+
+        "Reconnect to stream should start reading from last event received" {
+            val category = UUID.randomUUID().toString()
+            val streamId = "\$ce-$category"
+            val lastEvent = 42L
+            val subscribeFrom = 41L
+            val listener = slot<SubscriptionListener>()
+            val subscription: CompletableFuture<Subscription> = CompletableFuture.completedFuture(mockk<Subscription> {
+                every { subscriptionId } returns UUID.randomUUID().toString()
+            })
+            val eventStoreMock = mockk<EventStoreDBClient>(relaxed = true) {
+                every {
+                    hint(CompletableFuture::class)
+                    readStream(streamId, any())
+                } returns mockk<CompletableFuture<ReadResult>>(relaxed = true) {
+                    every {
+                        get().events.first().originalEvent.revision
+                    } returns lastEvent
+                }
+
+                every {
+                    hint(CompletableFuture::class)
+                    subscribeToStream(streamId, capture(listener), any())
+                } returns subscription
+            }
+            val subscriberFactory = GrpcEventSubscriberFactory(
+                eventStoreDBClient = eventStoreMock,
+                category = category,
+                serdes = mockk(relaxed = true) {
+                    every {
+                        deserialize(any(), any())
+                    } returns mockk { every { upgrade() } returns null }
+                }
+            )
+            var onLiveCalled = 0
+            var onEventCalled = 0
+            subscriberFactory.createSubscriber("subscriber",
+                fromEvent = subscribeFrom,
+                onEvent = { onEventCalled += 1},
+                onLive = { onLiveCalled += 1 })
+
+            verify { eventStoreMock.readStream(streamId, any()) }
+
+            onLiveCalled shouldBe 0
+            onEventCalled shouldBe 0
+
+            listener.captured.onEvent(mockk(), eventMock(streamId, 41L))
+            listener.captured.onEvent(mockk(), eventMock(streamId,42L))
+
+            onLiveCalled shouldBe 1
+            onEventCalled shouldBe 2
+
+            listener.captured.onError(
+                subscription.get(),
+                RuntimeException("Consumer too slow to handle event while live")
+            )
+
+
+            verifySequence {
+                eventStoreMock.readStream(any(),any())
+                val startRevision = StreamPosition.position(41L)
+                eventStoreMock.subscribeToStream("\$ce-$category", any(), withArg {
+                    val field = ReflectionUtils.findField(SubscribeToStreamOptions::class.java, "startRevision")!!
+                    field.isAccessible = true
+                    val subscribeRevision = field.get(it) as StreamPosition<*>
+                    subscribeRevision.position shouldBe startRevision.position
+                })
+                val reconnectRevision = StreamPosition.position(42L)
+                eventStoreMock.subscribeToStream("\$ce-$category", any(), withArg {
+                    val field = ReflectionUtils.findField(SubscribeToStreamOptions::class.java, "startRevision")!!
+                    field.isAccessible = true
+                    val subscribeRevision = field.get(it) as StreamPosition<*>
+                    subscribeRevision.position shouldBe reconnectRevision.position
+                })
+
+            }
+        }
     }
 
     private fun eventMock(streamId: String, eventNumber: Long): ResolvedEvent {
