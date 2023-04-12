@@ -279,24 +279,26 @@ internal class GrpcEventSubscriberTest : StringSpec() {
                 subscription.get(),
                 RuntimeException("Consumer too slow to handle event while live")
             )
-            val startRevision = StreamPosition.position(41L)
-            verify(exactly = 1) { eventStoreMock.subscribeToStream("\$ce-$category", any(), withArg {
-                val field = ReflectionUtils.findField(SubscribeToStreamOptions::class.java, "startRevision")!!
-                field.isAccessible = true
-                val subscribeRevision = field.get(it) as StreamPosition<*>
-                subscribeRevision.isStart shouldBe startRevision.isStart
-                subscribeRevision.isEnd shouldBe startRevision.isEnd
-                subscribeRevision.position shouldBe startRevision.position
-            })}
-            val reconnectRevision = StreamPosition.position(41L)
-            verify(exactly = 1) { eventStoreMock.subscribeToStream("\$ce-$category", any(), withArg {
-                val field = ReflectionUtils.findField(SubscribeToStreamOptions::class.java, "startRevision")!!
-                field.isAccessible = true
-                val subscribeRevision = field.get(it) as StreamPosition<*>
-                subscribeRevision.isStart shouldBe reconnectRevision.isStart
-                subscribeRevision.isEnd shouldBe reconnectRevision.isEnd
-                subscribeRevision.position shouldBe reconnectRevision.position
-            })}
+
+
+            verifySequence {
+                eventStoreMock.readStream(any(),any())
+                val startRevision = StreamPosition.position(41L)
+                eventStoreMock.subscribeToStream("\$ce-$category", any(), withArg {
+                    val field = ReflectionUtils.findField(SubscribeToStreamOptions::class.java, "startRevision")!!
+                    field.isAccessible = true
+                    val subscribeRevision = field.get(it) as StreamPosition<*>
+                    subscribeRevision.position shouldBe startRevision.position
+                })
+                val reconnectRevision = StreamPosition.position(42L)
+                eventStoreMock.subscribeToStream("\$ce-$category", any(), withArg {
+                    val field = ReflectionUtils.findField(SubscribeToStreamOptions::class.java, "startRevision")!!
+                    field.isAccessible = true
+                    val subscribeRevision = field.get(it) as StreamPosition<*>
+                    subscribeRevision.position shouldBe reconnectRevision.position
+                })
+
+            }
         }
     }
 
