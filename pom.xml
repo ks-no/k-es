@@ -44,7 +44,7 @@
 
         <kotlin.version>1.8.10</kotlin.version>
         <kotlinx-coroutines.version>1.6.4</kotlinx-coroutines.version>
-        <jackson.version>2.13.4.20221013</jackson.version>
+        <jackson.version>2.15.0</jackson.version>
         <db-client-java.version>4.1.0</db-client-java.version>
         <spring-boot-version>3.0.4</spring-boot-version>
         <spring.version>5.3.23</spring.version>
