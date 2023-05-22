@@ -15,7 +15,9 @@ class GrpcSubscriptionListenerTest : StringSpec({
 
 
         val statusRuntimeExceptionUnknown = mockk<io.grpc.StatusRuntimeException>()
-        every { statusRuntimeException.message } returns "ABORTED: Operation failed: unknown. Client resubscription required."
-        GrpcSubscriptionListener.isTooSlowException(statusRuntimeException) shouldBe false
+        every { statusRuntimeExceptionUnknown.message } returns "ABORTED: Operation failed: unknown. Client resubscription required."
+        GrpcSubscriptionListener.isTooSlowException(statusRuntimeExceptionUnknown) shouldBe false
+
+        GrpcSubscriptionListener.isTooSlowException(null) shouldBe false
     }
 })
