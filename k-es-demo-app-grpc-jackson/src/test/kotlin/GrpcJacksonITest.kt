@@ -1,6 +1,5 @@
 import io.kotest.assertions.asClue
 import io.kotest.matchers.types.shouldBeSameInstanceAs
-import mu.KotlinLogging
 import no.ks.kes.demoapp.*
 import no.ks.kes.lib.AggregateReadResult
 import no.ks.kes.lib.AggregateRepository
@@ -22,7 +21,6 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
 import java.util.*
 
-private val log = KotlinLogging.logger {}
 
 @Testcontainers
 @SpringBootTest(classes = [Application::class])

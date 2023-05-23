@@ -7,7 +7,7 @@
     <parent>
         <groupId>no.ks.fiks.pom</groupId>
         <artifactId>fiks-ekstern-kotlin-superpom</artifactId>
-        <version>1.0.21</version>
+        <version>1.1.1</version>
     </parent>
 
     <groupId>no.ks</groupId>
@@ -64,6 +64,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
             <!-- Kotlin bom -->
             <dependency>
                 <groupId>org.jetbrains.kotlin</groupId>
