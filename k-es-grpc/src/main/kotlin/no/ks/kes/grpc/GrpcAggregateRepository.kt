@@ -2,6 +2,8 @@ package no.ks.kes.grpc
 
 import com.eventstore.dbclient.*
 import com.eventstore.dbclient.ExpectedRevision.expectedRevision
+import io.grpc.Status
+import io.grpc.StatusRuntimeException
 import io.reactivex.rxjava3.core.Flowable
 import mu.KotlinLogging
 import no.ks.kes.grpc.GrpcEventUtil.isIgnorable
@@ -18,12 +20,32 @@ class GrpcAggregateRepository(
     private val serdes: EventSerdes,
     private val streamIdGenerator: (aggregateType: String, aggregateId: UUID) -> String,
     private val metadataSerdes: EventMetadataSerdes<out Metadata>? = null,
+    private val allowRetryOnWrite: Boolean = false,
 ) : AggregateRepository() {
 
     override fun append(aggregateType: String, aggregateId: UUID, expectedEventNumber: ExpectedEventNumber, eventWrappers: List<Event<*>>) {
-        val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
         try {
-            val events = eventWrappers.map { toEventData(it, serdes) }
+            appendEventsToStream(aggregateType, aggregateId, eventWrappers, expectedEventNumber)
+        } catch (e: WriteAbortedException) {
+            if (allowRetryOnWrite) {
+                log.info { "Retrying write events to stream for aggregateType: $aggregateType, aggregateId: '$aggregateId'" }
+                appendEventsToStream(aggregateType, aggregateId, eventWrappers, expectedEventNumber)
+            } else {
+                log.error(e) { "Got aborted status when write events to stream. aggregateType: $aggregateType, aggregateId: '$aggregateId', allowRetry is: $allowRetryOnWrite" }
+                throw e
+            }
+        }
+    }
+
+    private fun appendEventsToStream(
+        aggregateType: String,
+        aggregateId: UUID,
+        eventWrappers: List<Event<*>>,
+        expectedEventNumber: ExpectedEventNumber
+    ) {
+        val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
+        val events = eventWrappers.map { toEventData(it, serdes) }
+        try {
             eventStoreDBClient
                 .appendToStream(
                     streamId,
@@ -34,10 +56,16 @@ class GrpcAggregateRepository(
                 .also {
                     log.info("wrote ${eventWrappers.size} events to stream ${streamId}, next expected version for this stream is ${it.nextExpectedRevision}")
                 }
+
         } catch (e: ExecutionException) {
             val cause = e.cause
             if (cause is WrongExpectedVersionException) {
-                throw RuntimeException("Actual version did not match expected! streamName: ${cause.streamName}, nextExpectedRevision: ${cause.nextExpectedRevision}, actualVersion: ${cause.actualVersion}", e)
+                throw RuntimeException(
+                    "Actual version did not match expected! streamName: ${cause.streamName}, nextExpectedRevision: ${cause.nextExpectedRevision}, actualVersion: ${cause.actualVersion}",
+                    e
+                )
+            } else if (cause is StatusRuntimeException && cause.status == Status.ABORTED) {
+                throw WriteAbortedException("Got aborted status when write events to stream",cause)
             } else {
                 throw RuntimeException("Error while appending events to stream $streamId", cause)
             }
