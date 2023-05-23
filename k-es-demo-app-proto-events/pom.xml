@@ -7,7 +7,7 @@
     <parent>
         <groupId>no.ks</groupId>
         <artifactId>k-es</artifactId>
-        <version>4.1.1-SNAPSHOT</version>
+        <version>4.1.1</version>
     </parent>
 
     <artifactId>k-es-demo-app-proto-events</artifactId>
