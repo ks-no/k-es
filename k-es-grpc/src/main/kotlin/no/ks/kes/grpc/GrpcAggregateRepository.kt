@@ -31,7 +31,7 @@ class GrpcAggregateRepository(
                 log.info { "Retrying write events to stream for aggregateType: $aggregateType, aggregateId: '$aggregateId'" }
                 appendEventsToStream(aggregateType, aggregateId, eventWrappers, expectedEventNumber)
             } else {
-                log.error(e) { "Got aborted status when write events to stream. aggregateType: $aggregateType, aggregateId: '$aggregateId', allowRetry is: $allowRetryOnWrite" }
+                log.error(e) { "Got aborted status when we were writing data to stream, with no retry. aggregateType: $aggregateType, aggregateId: '$aggregateId'" }
                 throw e
             }
         }
@@ -65,7 +65,7 @@ class GrpcAggregateRepository(
                     e
                 )
             } else if (cause is StatusRuntimeException && cause.status == Status.ABORTED) {
-                throw WriteAbortedException("Got aborted status when write events to stream",cause)
+                throw WriteAbortedException("Got aborted status when we were writing data to stream",cause)
             } else {
                 throw RuntimeException("Error while appending events to stream $streamId", cause)
             }
