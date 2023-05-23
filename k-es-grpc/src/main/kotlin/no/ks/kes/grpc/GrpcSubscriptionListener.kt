@@ -80,11 +80,21 @@ class GrpcSubscriptionListener (private val streamId: String,
     }
 
     override fun onError(subscription: Subscription?, throwable: Throwable?) {
-        log.error(throwable) { "error on subscription. subscriptionId=${subscription?.subscriptionId}, hwmId=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed" }
+        if(isTooSlowException(throwable)){
+            log.info { "Fikk 'Consumer too slow' på subscriptionId=${subscription?.subscriptionId}, streamId=$streamId" }
+        } else {
+            log.error(throwable) { "error on subscription. subscriptionId=${subscription?.subscriptionId}, hwmId=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed" }
+        }
+
         when (throwable) {
             is ConnectionShutdownException -> onError.invoke(GrpcSubscriptionException(
                 GrpcSubscriptionExceptionReason.ConnectionShutDown, throwable))
             else -> onError.invoke(GrpcSubscriptionException(GrpcSubscriptionExceptionReason.Unknown, RuntimeException(throwable)))
         }
+    }
+
+    companion object {
+        fun isTooSlowException(throwable: Throwable?) =
+            throwable?.message?.contains(other = "Consumer too slow", ignoreCase = true) == true
     }
 }
