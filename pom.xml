@@ -68,9 +68,12 @@
 
             <dependency>
                 <groupId>io.grpc</groupId>
-                <artifactId>grpc-api</artifactId>
+                <artifactId>grpc-bom</artifactId>
                 <version>${grpc.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
+
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-core</artifactId>
