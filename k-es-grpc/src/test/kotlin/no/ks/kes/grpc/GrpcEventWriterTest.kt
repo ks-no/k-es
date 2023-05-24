@@ -186,6 +186,47 @@ internal class GrpcEventWriterTest : StringSpec() {
 
             verify(exactly = 2) { eventStoreMock.appendToStream("ks.fiks.$eventAggregateType.${event.aggregateId}", any<AppendToStreamOptions>(), any<Iterator<EventData>>()) }
         }
+
+        "Test that GrpcAggregateRepository throws RuntimeException if StatusRuntimeExceptino is not of Status type ABORTED" {
+            data class SomeAggregate(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
+
+            data class SomeEventData(val aggregateId: UUID) : no.ks.kes.lib.EventData<SomeAggregate>
+
+            val eventAggregateType = UUID.randomUUID().toString()
+
+            val aggregateId = UUID.randomUUID()
+            val event: Event<SomeEventData> =
+                Event(aggregateId = aggregateId, eventData = SomeEventData(aggregateId))
+
+            val capturedEventData = slot<Iterator<EventData>>()
+            val eventStoreMock = mockk<EventStoreDBClient>().apply {
+                every { appendToStream("ks.fiks.$eventAggregateType.${event.aggregateId}", any(), capture(capturedEventData)) }.throws(
+                    ExecutionException(StatusRuntimeException(Status.ALREADY_EXISTS)))
+            }
+
+            val serializer = mockk<EventSerdes>()
+                .apply {
+                    every { isJson() } returns true
+                    every { serialize(event.eventData) } returns "foo".toByteArray()
+                    every { getSerializationId(any<KClass<no.ks.kes.lib.EventData<*>>>()) } answers { firstArg<KClass<no.ks.kes.lib.EventData<*>>>().simpleName!! }
+                }
+            val grpcEventWriter = GrpcAggregateRepository(
+                eventStoreDBClient = eventStoreMock,
+                streamIdGenerator = { t: String, id: UUID -> "ks.fiks.$t.$id" },
+                serdes = serializer,
+                allowRetryOnWrite = true)
+
+            shouldThrow<RuntimeException> {
+                grpcEventWriter.append(
+                    eventAggregateType,
+                    event.aggregateId,
+                    ExpectedEventNumber.Exact(0L),
+                    listOf(event)
+                )
+            }
+
+            verify(exactly = 1) { eventStoreMock.appendToStream("ks.fiks.$eventAggregateType.${event.aggregateId}", any<AppendToStreamOptions>(), any<Iterator<EventData>>()) }
+        }
     }
 
 }
