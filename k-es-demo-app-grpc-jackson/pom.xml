@@ -12,7 +12,6 @@
 
     <artifactId>k-es-demo-app-grpc-jackson</artifactId>
     <properties>
-        <flyway.version>9.15.2</flyway.version>
         <awaitility.version>4.2.0</awaitility.version>
         <spring-service-configuration.version>2.6.4</spring-service-configuration.version>
     </properties>
@@ -63,12 +62,10 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
-            <version>${flyway.version}</version>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-sqlserver</artifactId>
-            <version>${flyway.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -130,11 +127,6 @@
         <testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
 
         <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring-boot-version}</version>
-            </plugin>
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>

@@ -27,11 +27,6 @@
             </dependency>
             <dependency>
                 <groupId>no.ks.fiks</groupId>
-                <artifactId>k-es-esjc</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>no.ks.fiks</groupId>
                 <artifactId>k-es-grpc</artifactId>
                 <version>${project.version}</version>
             </dependency>
