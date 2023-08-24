@@ -51,7 +51,7 @@
         <mssql-jdbc.version>12.2.0.jre11</mssql-jdbc.version>
         <protobuf-java.version>3.23.3</protobuf-java.version>
         <mongodb-driver-version>4.9.0</mongodb-driver-version>
-        <rxjava.version>3.1.6</rxjava.version>
+        <rxjava.version>3.1.7</rxjava.version>
         <netty.version>4.1.94.Final</netty.version>
         <grpc.version>1.56.0</grpc.version>
 
