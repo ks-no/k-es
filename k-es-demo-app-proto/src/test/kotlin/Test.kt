@@ -1,4 +1,3 @@
-import com.eventstore.dbclient.Endpoint
 import com.eventstore.dbclient.EventStoreDBClient
 import com.eventstore.dbclient.EventStoreDBClientSettings
 import com.google.protobuf.Message
@@ -53,7 +52,7 @@ private fun eventstoreImageName() = when(System.getProperty("os.arch")) {
 @EnabledIf(DisableOnArm64::class)
 class Test : StringSpec() {
 
-    val eventStoreContainer = GenericContainer<GenericContainer<*>>(eventstoreImageName())
+    val eventStoreContainer = GenericContainer(eventstoreImageName())
         .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")
         .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
         .withEnv("EVENTSTORE_CLUSTER_SIZE","1")
@@ -131,7 +130,7 @@ internal class EventStoreTestKlientListener(private val portProvider: () -> Int)
 
         val eventStoreClient = EventStoreDBClient.create(
             EventStoreDBClientSettings.builder()
-            .addHost(Endpoint("localhost", port))
+            .addHost("localhost", port)
             .defaultCredentials("admin", "changeit").tls(false).dnsDiscover(false)
             .buildConnectionSettings())
 

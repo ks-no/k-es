@@ -3,8 +3,8 @@ package no.ks.kes.jdbc
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.kotest.assertions.asClue
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.assertions.throwables.shouldThrowExactly
-import io.kotest.assertions.timing.eventually
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.extensions.testcontainers.perSpec
 import io.kotest.matchers.shouldBe
@@ -26,6 +26,7 @@ import org.testcontainers.utility.DockerImageName
 import java.sql.DriverManager
 import java.time.Duration
 import java.util.*
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.seconds
 

@@ -42,10 +42,9 @@
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <kotlin.version>1.9.0</kotlin.version>
         <kotlinx-coroutines.version>1.7.1</kotlinx-coroutines.version>
         <jackson.version>2.15.2</jackson.version>
-        <db-client-java.version>4.2.0</db-client-java.version>
+        <db-client-java.version>5.2.0</db-client-java.version>
         <spring-boot-version>3.0.4</spring-boot-version>
         <spring.version>5.3.23</spring.version>
         <mssql-jdbc.version>12.2.0.jre11</mssql-jdbc.version>
@@ -70,13 +69,6 @@
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-bom</artifactId>
                 <version>${grpc.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-bom</artifactId>
-                <version>${kotlin.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -221,32 +213,7 @@
 
 
     <build>
-        <plugins>
-            <plugin>
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-maven-plugin</artifactId>
-                <version>${kotlin.version}</version>
-                <executions>
-                    <execution>
-                        <id>compile</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>test-compile</id>
-                        <phase>test-compile</phase>
-                        <goals>
-                            <goal>test-compile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <jvmTarget>${java.version}</jvmTarget>
-                </configuration>
-            </plugin>
-        </plugins>
+
 
         <pluginManagement>
             <plugins>
@@ -256,8 +223,8 @@
                     <version>${kotlin.version}</version>
                     <configuration>
                         <jvmTarget>${java.version}</jvmTarget>
-                        <languageVersion>1.6</languageVersion>
-                        <apiVersion>1.6</apiVersion>
+                        <languageVersion>1.9</languageVersion>
+                        <apiVersion>1.9</apiVersion>
                     </configuration>
                     <executions>
                         <execution>

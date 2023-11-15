@@ -1,6 +1,5 @@
 package no.ks.kes.grpc
 
-import com.eventstore.dbclient.Endpoint
 import com.eventstore.dbclient.EventStoreDBClient
 import com.eventstore.dbclient.EventStoreDBClientSettings
 import com.google.protobuf.Message
@@ -44,7 +43,7 @@ class DemoAppTest : StringSpec() {
     lateinit var eventStoreClient: EventStoreDBClient
 
     val dockerImageName = DockerImageName.parse("eventstore/eventstore:21.6.0-buster-slim")
-    val eventStoreContainer = GenericContainer<GenericContainer<*>>(dockerImageName)
+    val eventStoreContainer = GenericContainer(dockerImageName)
         .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")
         .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
         .withEnv("EVENTSTORE_CLUSTER_SIZE","1")
@@ -80,7 +79,7 @@ class DemoAppTest : StringSpec() {
         eventStoreContainer.start()
 
         eventStoreClient = EventStoreDBClient.create(EventStoreDBClientSettings.builder()
-            .addHost(Endpoint("localhost", eventStoreContainer.getMappedPort(2113)))
+            .addHost("localhost", eventStoreContainer.getMappedPort(2113))
             .defaultCredentials("admin", "changeit").tls(false).dnsDiscover(false)
             .buildConnectionSettings())
 

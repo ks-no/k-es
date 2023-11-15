@@ -3,8 +3,8 @@ package no.ks.kes.test.example
 import io.kotest.assertions.asClue
 import io.kotest.assertions.fail
 import io.kotest.assertions.failure
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.assertions.throwables.shouldThrowExactly
-import io.kotest.assertions.timing.eventually
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.beEmpty
 import io.kotest.matchers.collections.shouldContain
@@ -120,7 +120,7 @@ class EngineTest : StringSpec({
                     sagaRepository = kes.createSagaRepository(commandQueue),
                     sagas = setOf(EngineSaga),
                     commandQueue = commandQueue,
-                    pollInterval = 1.seconds.toLongMilliseconds()
+                    pollInterval = 1000L
             ) {
                 e -> failure("Failed to handle saga event", e)
             }
@@ -155,14 +155,14 @@ class EngineTest : StringSpec({
                     sagaRepository = kes.createSagaRepository(commandQueue),
                     sagas = setOf(EngineSaga),
                     commandQueue = commandQueue,
-                    pollInterval = 1.seconds.toLongMilliseconds()
+                    pollInterval = 1000L
             ) {
                 e -> failure("Failed to handle saga event", e)
             }
             Projections.initialize(eventSubscriberFactory = kes.subscriberFactory,
                     projections = setOf(engineProjection),
                     projectionRepository = kes.projectionRepository,
-                    hwmId = testCase.displayName
+                    hwmId = testCase.name.testName
             ) { e ->
                 failure("Failed during eventhandling in projection", e)
             }
@@ -191,7 +191,7 @@ class EngineTest : StringSpec({
                     eventSubscriberFactory = kes.subscriberFactory,
                     projections = setOf(engineProjection),
                     projectionRepository = kes.projectionRepository,
-                    hwmId = testCase.displayName
+                    hwmId = testCase.name.testName
             ) { e ->
                 failure("Failed during projection event handling", e)
             }
@@ -217,7 +217,7 @@ class EngineTest : StringSpec({
                     eventSubscriberFactory = kes.subscriberFactory,
                     projections = setOf(engineProjection),
                     projectionRepository = kes.projectionRepository,
-                    hwmId = testCase.displayName
+                    hwmId = testCase.name.testName
             ) { e ->
                 failure("Failed during projection event handling", e)
             }

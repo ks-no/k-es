@@ -34,7 +34,7 @@ class GrpcJacksonITest {
 
         @JvmStatic
         @Container
-        val eventStoreContainer = GenericContainer<GenericContainer<*>>(eventStoreDockerImageName)
+        val eventStoreContainer = GenericContainer(eventStoreDockerImageName)
             .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")
             .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
             .withEnv("EVENTSTORE_CLUSTER_SIZE","1")
@@ -46,7 +46,7 @@ class GrpcJacksonITest {
 
         @JvmStatic
         @Container
-        val mssqlContainer = GenericContainer<GenericContainer<*>>(mssqlDockerImageName)
+        val mssqlContainer = GenericContainer(mssqlDockerImageName)
             .withEnv("ACCEPT_EULA", "Y")
             .withEnv("SA_PASSWORD", "Test1234!")
             .withEnv("DB_NAME", "kesdemo")
