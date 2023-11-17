@@ -37,7 +37,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
 
         }
 
-        "On error propagates reason after 10 retries" {
+        "On cancelled propagates reason after 10 retries" {
             val category = UUID.randomUUID().toString()
             val subscriptionListener = slot<SubscriptionListener>()
             val subscription: CompletableFuture<Subscription> = CompletableFuture.completedFuture(mockk<Subscription> {
@@ -57,7 +57,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
             })
             val reason = "connection closed"
             for(i: Int in 0..10) {
-                subscriptionListener.captured.onError(
+                subscriptionListener.captured.onCancelled(
                     subscription.get(),
                     RuntimeException("Consumer too slow to handle event while live")
                 )
@@ -275,7 +275,7 @@ internal class GrpcEventSubscriberTest : StringSpec() {
             onLiveCalled shouldBe 1
             onEventCalled shouldBe 2
 
-            listener.captured.onError(
+            listener.captured.onCancelled(
                 subscription.get(),
                 RuntimeException("Consumer too slow to handle event while live")
             )

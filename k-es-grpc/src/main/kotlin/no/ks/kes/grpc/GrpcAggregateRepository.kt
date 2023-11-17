@@ -10,6 +10,7 @@ import no.ks.kes.grpc.GrpcEventUtil.isIgnorable
 import no.ks.kes.lib.*
 import no.ks.kes.lib.EventData
 import java.util.*
+import java.util.concurrent.CompletionException
 import java.util.concurrent.ExecutionException
 import kotlin.reflect.KClass
 
@@ -115,7 +116,13 @@ class GrpcAggregateRepository(
                 .let { toAggregateReadResult(it.state, it.lastStreamPosition, streamId) }
         } catch (e: Exception) {
             when (e) {
-                is StreamNotFoundException -> AggregateReadResult.NonExistingAggregate
+                is CompletionException -> {
+                    if (e.cause is StreamNotFoundException) {
+                        AggregateReadResult.NonExistingAggregate
+                    } else {
+                        throw e.cause ?: e
+                    }
+                }
                 else -> throw e
             }
         }

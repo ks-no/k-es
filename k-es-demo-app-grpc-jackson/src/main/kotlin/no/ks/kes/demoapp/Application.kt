@@ -1,6 +1,5 @@
 package no.ks.kes.demoapp
 
-import com.eventstore.dbclient.Endpoint
 import com.eventstore.dbclient.EventStoreDBClient
 import com.eventstore.dbclient.EventStoreDBClientSettings
 import mu.KotlinLogging
@@ -50,7 +49,7 @@ class Application {
     @Bean
     fun eventStore(@Value("\${eventstore.host}") host: String, @Value("\${eventstore.port}") port: String): EventStoreDBClient =  EventStoreDBClient.create(
         EventStoreDBClientSettings.builder()
-            .addHost(Endpoint(host, port.toInt()))
+            .addHost(host, port.toInt())
             .defaultCredentials("admin", "changeit").tls(false)
             .buildConnectionSettings())
 

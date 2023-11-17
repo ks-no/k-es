@@ -75,21 +75,19 @@ class GrpcSubscriptionListener (private val streamId: String,
         lastEventProcessed.set(eventNumber)
     }
 
-    override fun onCancelled(subscription: Subscription?) {
+    override fun onCancelled(subscription: Subscription?, exception: Throwable?) {
         log.info { "Subscription cancelled: subscriptionId=${subscription?.subscriptionId}, hwmId=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed" }
-    }
 
-    override fun onError(subscription: Subscription?, throwable: Throwable?) {
-        if(isTooSlowException(throwable)){
+        if(isTooSlowException(exception)){
             log.info { "Fikk 'Consumer too slow' på subscriptionId=${subscription?.subscriptionId}, streamId=$streamId" }
         } else {
-            log.error(throwable) { "error on subscription. subscriptionId=${subscription?.subscriptionId}, hwmId=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed" }
+            log.error(exception) { "error on subscription. subscriptionId=${subscription?.subscriptionId}, hwmId=$hwmId, streamId=$streamId, lastEvent=$lastEventProcessed" }
         }
 
-        when (throwable) {
+        when (exception) {
             is ConnectionShutdownException -> onError.invoke(GrpcSubscriptionException(
-                GrpcSubscriptionExceptionReason.ConnectionShutDown, throwable))
-            else -> onError.invoke(GrpcSubscriptionException(GrpcSubscriptionExceptionReason.Unknown, RuntimeException(throwable)))
+                GrpcSubscriptionExceptionReason.ConnectionShutDown, exception))
+            else -> onError.invoke(GrpcSubscriptionException(GrpcSubscriptionExceptionReason.Unknown, RuntimeException(exception)))
         }
     }
 
