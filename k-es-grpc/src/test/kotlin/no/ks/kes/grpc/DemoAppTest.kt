@@ -1,30 +1,32 @@
 package no.ks.kes.grpc
 
+import com.eventstore.dbclient.EventData
 import com.eventstore.dbclient.EventStoreDBClient
 import com.eventstore.dbclient.EventStoreDBClientSettings
 import com.google.protobuf.Message
 import io.kotest.assertions.asClue
-import io.kotest.assertions.timing.eventually
-import io.kotest.core.annotation.EnabledIf
-import io.kotest.core.spec.Spec
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.extensions.testcontainers.perSpec
+import io.kotest.matchers.nulls.beNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNot
 import io.kotest.matchers.types.shouldBeInstanceOf
 import mu.KotlinLogging
 import no.ks.kes.demoapp.Konto
 import no.ks.kes.demoapp.KontoAggregate
 import no.ks.kes.demoapp.KontoCmds
 import no.ks.kes.lib.AggregateReadResult
-import no.ks.kes.lib.AggregateRepository
 import no.ks.kes.serdes.jackson.JacksonEventMetadataSerdes
 import no.ks.kes.serdes.proto.ProtoEventData
 import no.ks.kes.serdes.proto.ProtoEventDeserializer
 import no.ks.kes.serdes.proto.ProtoEventSerdes
 import no.ks.svarut.event.Avsender
 import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.output.Slf4jLogConsumer
 import org.testcontainers.containers.wait.strategy.Wait
-import org.testcontainers.utility.DockerImageName
 import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
@@ -32,17 +34,19 @@ import kotlin.time.toDuration
 
 
 private val log = KotlinLogging.logger {}
+private val logConsumer = Slf4jLogConsumer(log).withSeparateOutputStreams().withPrefix("eventstore")
+private const val STREAM_NAME = "no.ks.kes.proto.demo"
 
 @ExperimentalTime
-@EnabledIf(enabledIf = DisableOnArm64::class)
 class DemoAppTest : StringSpec() {
 
-    lateinit var kontoCmds: KontoCmds
-    lateinit var repo: AggregateRepository
-    lateinit var subscriberFactory: GrpcEventSubscriberFactory
-    lateinit var eventStoreClient: EventStoreDBClient
-
-    val dockerImageName = DockerImageName.parse("eventstore/eventstore:21.6.0-buster-slim")
+    val dockerImageName = CompletableFuture.supplyAsync {
+        val imageName = "eventstore/eventstore"
+        when(System.getProperty("os.arch")) {
+            "aarch64" -> "$imageName:21.10.9-alpha-arm64v8"
+            else -> "$imageName:21.6.0-buster-slim"
+        }
+    }
     val eventStoreContainer = GenericContainer(dockerImageName)
         .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")
         .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
@@ -54,6 +58,7 @@ class DemoAppTest : StringSpec() {
         .withExposedPorts(1113, 2113)
         .withReuse(true)
         .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4))
+        .withLogConsumer(logConsumer)
 
     val eventSerdes = ProtoEventSerdes(
         mapOf(
@@ -75,29 +80,21 @@ class DemoAppTest : StringSpec() {
 
     val jacksonEventMetadataSerdes = JacksonEventMetadataSerdes(Konto.DemoMetadata::class)
 
-    override suspend fun beforeSpec(spec: Spec) {
-        eventStoreContainer.start()
-
-        eventStoreClient = EventStoreDBClient.create(EventStoreDBClientSettings.builder()
-            .addHost("localhost", eventStoreContainer.getMappedPort(2113))
-            .defaultCredentials("admin", "changeit").tls(false).dnsDiscover(false)
-            .buildConnectionSettings())
-
-        subscriberFactory = GrpcEventSubscriberFactory(eventStoreClient, eventSerdes, "no.ks.kes.proto.demo")
-
-        repo = GrpcAggregateRepository(eventStoreClient, eventSerdes, GrpcEventUtil.defaultStreamName("no.ks.kes.proto.demo"),jacksonEventMetadataSerdes)
-
-        kontoCmds = KontoCmds(repo)
-    }
-
-    override suspend fun afterSpec(spec: Spec) {
-        eventStoreContainer.stop()
-    }
-
     init {
-        "Test at vi kan opprette konto" {
+        listener(eventStoreContainer.perSpec())
 
-            val validatedAggregateConfiguration = Konto.getConfiguration { repo.getSerializationId(it) }
+        "Test at vi kan opprette konto" {
+            val eventStoreClient: EventStoreDBClient by lazy {
+                EventStoreDBClient.create(EventStoreDBClientSettings.builder()
+                    .addHost(eventStoreContainer.host, eventStoreContainer.getMappedPort(2113))
+                    .defaultCredentials("admin", "changeit").tls(false).dnsDiscover(false)
+                    .buildConnectionSettings().also { settings ->
+                        log.info { "Connection hosts: ${settings.hosts.joinToString { "${it.hostName}:${it.port}" }} $settings" }
+                    })
+            }
+            val repo = GrpcAggregateRepository(eventStoreClient, eventSerdes, GrpcEventUtil.defaultStreamName(STREAM_NAME), jacksonEventMetadataSerdes)
+
+            val validatedAggregateConfiguration = Konto.getConfiguration { eventSerdes.getSerializationId(it) }
 
             val receivedEvents = AtomicInteger(0)
             val receivedCatchupEvents = AtomicInteger(0)
@@ -105,16 +102,24 @@ class DemoAppTest : StringSpec() {
             val kontoId = UUID.randomUUID()
             val orgId = UUID.randomUUID().toString()
             log.info { "AggregateId $kontoId, OrgId $orgId" }
-
-            subscriberFactory.createSubscriber("subscriber", -1, {
+            val subscriberFactory: GrpcEventSubscriberFactory by lazy {
+                GrpcEventSubscriberFactory(eventStoreClient, eventSerdes, STREAM_NAME)
+            }
+            val subscription = subscriberFactory.createSubscriber("subscriber", -1, {
                 receivedEvents.incrementAndGet()
             }) {}
+
+            subscription.asClue {
+                it.isSubscribedToAll shouldBe false
+                it.subscriptionId() shouldNot beNull()
+            }
 
             repo.read(kontoId, validatedAggregateConfiguration).asClue {
                 it.shouldBeInstanceOf<AggregateReadResult.NonExistingAggregate>()
             }
-
+            val kontoCmds = KontoCmds(repo)
             kontoCmds.handle(KontoCmds.Opprett(kontoId, orgId))
+
             repo.read(kontoId, validatedAggregateConfiguration).asClue {
                 it.shouldBeInstanceOf<AggregateReadResult.InitializedAggregate<KontoAggregate>>()
                 it.aggregateState.aktivert shouldBe false

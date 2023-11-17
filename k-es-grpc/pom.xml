@@ -98,6 +98,11 @@
             <artifactId>kotest-assertions-core-jvm</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.kotest.extensions</groupId>
+            <artifactId>kotest-extensions-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- /Kotest -->
 
         <dependency>
@@ -119,6 +124,11 @@
         <dependency>
             <groupId>no.ks</groupId>
             <artifactId>k-es-demo-app-proto-events</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
