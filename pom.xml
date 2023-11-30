@@ -50,7 +50,7 @@
         <mongodb-driver-version>4.9.0</mongodb-driver-version>
         <rxjava.version>3.1.8</rxjava.version>
         <netty.version>4.1.101.Final</netty.version>
-        <grpc.version>1.59.0</grpc.version>
+        <grpc.version>1.59.1</grpc.version>
 
         <junit.jupiter.version>5.10.1</junit.jupiter.version>
         <mockk.version>1.13.5</mockk.version>
