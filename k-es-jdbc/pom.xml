@@ -13,6 +13,10 @@
     <artifactId>k-es-jdbc</artifactId>
     <description>JDBC support for sagas and projections</description>
 
+    <properties>
+        <spring.version>6.1.1</spring.version>
+    </properties>
+
     <dependencies>
         <!--internal-->
         <dependency>
