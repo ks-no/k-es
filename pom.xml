@@ -46,7 +46,7 @@
         <jackson.version>2.16.0</jackson.version>
         <db-client-java.version>5.2.0</db-client-java.version>
         <mssql-jdbc.version>12.2.0.jre11</mssql-jdbc.version>
-        <protobuf-java.version>3.23.3</protobuf-java.version>
+        <protobuf-java.version>3.25.1</protobuf-java.version>
         <mongodb-driver-version>4.9.0</mongodb-driver-version>
         <rxjava.version>3.1.8</rxjava.version>
         <netty.version>4.1.101.Final</netty.version>
