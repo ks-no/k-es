@@ -12,7 +12,7 @@
 
     <groupId>no.ks</groupId>
     <artifactId>k-es</artifactId>
-    <version>4.4.0</version>
+    <version>4.4.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>${project.artifactId}: An eventsourcing framework for Kotlin, with adapters for EventStore</description>
     <url>https://github.com/ks-no/k-es</url>
