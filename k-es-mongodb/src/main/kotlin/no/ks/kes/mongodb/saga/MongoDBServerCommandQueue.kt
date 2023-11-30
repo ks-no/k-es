@@ -4,7 +4,6 @@ import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Sorts
 import com.mongodb.client.model.Updates
-import mu.KotlinLogging
 import no.ks.kes.lib.*
 import no.ks.kes.mongodb.CmdCollection
 import no.ks.kes.mongodb.MongoDBTransactionAwareCollectionFactory
