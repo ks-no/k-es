@@ -14,7 +14,7 @@
     <description>Mongo support for sagas and projections</description>
 
     <properties>
-        <spring-boot.version>3.2.0</spring-boot.version>
+        <spring-data.version>4.2.0</spring-data.version>
     </properties>
 
     <dependencies>
@@ -47,9 +47,9 @@
             <artifactId>kotlin-logging-jvm</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-            <version>${spring-boot.version}</version>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-mongodb</artifactId>
+            <version>${spring-data.version}</version>
         </dependency>
 
         <!--test-->
