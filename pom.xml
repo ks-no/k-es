@@ -43,7 +43,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <kotlinx-coroutines.version>1.7.1</kotlinx-coroutines.version>
-        <jackson.version>2.15.2</jackson.version>
+        <jackson.version>2.16.0</jackson.version>
         <db-client-java.version>5.2.0</db-client-java.version>
         <spring-boot-version>3.0.4</spring-boot-version>
         <spring.version>5.3.23</spring.version>
