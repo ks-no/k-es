@@ -15,7 +15,7 @@
         <awaitility.version>4.2.0</awaitility.version>
         <spring-boot.version>3.2.0</spring-boot.version>
         <spring.version>6.1.1</spring.version>
-        <flyway.version>9.22.3</flyway.version>
+        <flyway.version>10.1.0</flyway.version>
         <spring-service-configuration.version>2.6.4</spring-service-configuration.version>
     </properties>
 
