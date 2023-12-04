@@ -42,7 +42,7 @@ class GrpcAggregateRepository(
         aggregateType: String,
         aggregateId: UUID,
         eventWrappers: List<Event<*>>,
-        expectedEventNumber: ExpectedEventNumber
+        expectedEventNumber: ExpectedEventNumber,
     ) {
         val streamId = streamIdGenerator.invoke(aggregateType, aggregateId)
         val events = eventWrappers.map { toEventData(it, serdes) }
@@ -66,7 +66,7 @@ class GrpcAggregateRepository(
                     e
                 )
             } else if (cause is StatusRuntimeException && cause.status == Status.ABORTED) {
-                throw WriteAbortedException("Got aborted status when we were writing data to stream",cause)
+                throw WriteAbortedException("Got aborted status when we were writing data to stream", cause)
             } else {
                 throw RuntimeException("Error while appending events to stream $streamId", cause)
             }
@@ -116,13 +116,12 @@ class GrpcAggregateRepository(
                 .let { toAggregateReadResult(it.state, it.lastStreamPosition, streamId) }
         } catch (e: Exception) {
             when (e) {
-                is CompletionException -> {
-                    if (e.cause is StreamNotFoundException) {
-                        AggregateReadResult.NonExistingAggregate
-                    } else {
-                        throw e.cause ?: e
+                is StreamNotFoundException -> AggregateReadResult.NonExistingAggregate
+                is CompletionException ->
+                    when (e.cause) {
+                        is StreamNotFoundException -> AggregateReadResult.NonExistingAggregate
+                        else -> throw e.cause ?: e
                     }
-                }
                 else -> throw e
             }
         }
