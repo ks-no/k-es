@@ -18,6 +18,29 @@ abstract class AggregateConfiguration<STATE : Aggregate>(val aggregateType: Stri
         initializers[E::class as KClass<EventData<*>>] = { initializer(it.event.eventData as E, it.event.aggregateId) }
     }
 
+    @Suppress("UNCHECKED_CAST")
+    protected inline fun <reified E : EventData<*>> applyEvent(crossinline applicator: STATE.(Event<E>) -> STATE) {
+        applicators[E::class as KClass<EventData<*>>] = { s, e ->
+            applicator(s, e.event as Event<E>)
+        }
+    }
+
+    protected inline fun <reified E : EventData<*>> initEvent(crossinline initializer: (Event<E>, UUID) -> STATE) {
+        initializers[E::class as KClass<EventData<*>>] = { initializer(it.event as Event<E>, it.event.aggregateId) }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    protected inline fun <reified E : EventData<*>> applyWrapper(crossinline applicator: STATE.(EventWrapper<E>) -> STATE) {
+        applicators[E::class as KClass<EventData<*>>] = { s, e ->
+            applicator(s, e as EventWrapper<E>)
+        }
+    }
+
+    protected inline fun <reified E : EventData<*>> initWrapper(crossinline initializer: (EventWrapper<E>, UUID) -> STATE) {
+        initializers[E::class as KClass<EventData<*>>] = { initializer(it as EventWrapper<E>, it.event.aggregateId) }
+    }
+
+
     fun getConfiguration(serializationIdFunction: (KClass<EventData<*>>) -> String): ValidatedAggregateConfiguration<STATE> =
             ValidatedAggregateConfiguration(
                     aggregateType = aggregateType,
