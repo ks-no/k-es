@@ -10,10 +10,12 @@ abstract class AggregateConfiguration<STATE : Aggregate>(val aggregateType: Stri
     protected val applicators: MutableMap<KClass<EventData<*>>, (STATE, EventWrapper<*>) -> STATE> = mutableMapOf()
     protected val initializers: MutableMap<KClass<EventData<*>>, (EventWrapper<*>) -> STATE> = mutableMapOf()
 
+    @Suppress("UNCHECKED_CAST")
     protected inline fun <reified E : EventData<*>> apply(crossinline applicator: STATE.(E) -> STATE) {
         applicators[E::class as KClass<EventData<*>>] = { s, e -> applicator(s, e.event.eventData as E) }
     }
 
+    @Suppress("UNCHECKED_CAST")
     protected inline fun <reified E : EventData<*>> init(crossinline initializer: (E, UUID) -> STATE) {
         initializers[E::class as KClass<EventData<*>>] = { initializer(it.event.eventData as E, it.event.aggregateId) }
     }
@@ -25,6 +27,7 @@ abstract class AggregateConfiguration<STATE : Aggregate>(val aggregateType: Stri
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     protected inline fun <reified E : EventData<*>> initEvent(crossinline initializer: (Event<E>, UUID) -> STATE) {
         initializers[E::class as KClass<EventData<*>>] = { initializer(it.event as Event<E>, it.event.aggregateId) }
     }
@@ -35,7 +38,7 @@ abstract class AggregateConfiguration<STATE : Aggregate>(val aggregateType: Stri
             applicator(s, e as EventWrapper<E>)
         }
     }
-
+    @Suppress("UNCHECKED_CAST")
     protected inline fun <reified E : EventData<*>> initWrapper(crossinline initializer: (EventWrapper<E>, UUID) -> STATE) {
         initializers[E::class as KClass<EventData<*>>] = { initializer(it as EventWrapper<E>, it.event.aggregateId) }
     }

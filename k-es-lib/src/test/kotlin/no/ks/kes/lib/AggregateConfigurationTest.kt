@@ -94,23 +94,25 @@ internal class AggregateConfigurationTest : StringSpec() {
         }
 
         "Test that an applied event can alter aggregate state"{
-            data class SomeState(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
+            data class SomeState(val stateInitialized: Boolean, val stateUpdated: Boolean = false, val someText: String) : Aggregate
 
-            class SomeInitEventData : EventData<SomeState>
+            class SomeInitEventData(val initText: String) : EventData<SomeState>
 
-            class SomeLaterEventData : EventData<SomeState>
+            class SomeLaterEventData(val updateText: String) : EventData<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
                 init {
-                    initEvent { _: Event<SomeInitEventData>, _: UUID ->
+                    initEvent { event: Event<SomeInitEventData>, _: UUID ->
                         SomeState(
-                            stateInitialized = true
+                            stateInitialized = true,
+                            someText = event.eventData.initText
                         )
                     }
 
                     applyEvent<SomeLaterEventData> {
                         copy(
-                            stateUpdated = true
+                            stateUpdated = true,
+                            someText = it.eventData.updateText
                         )
                     }
                 }
@@ -123,12 +125,13 @@ internal class AggregateConfigurationTest : StringSpec() {
                     wrapper = EventWrapper(
                         Event(
                             aggregateId = aggregateId,
-                            eventData = SomeInitEventData())
+                            eventData = SomeInitEventData("init"))
                         ,
                         eventNumber = -1,
                         serializationId = SomeInitEventData::class.simpleName!!
                     ),
                     currentState = null)
+            initializedState!!.someText shouldBe "init"
 
             val updatedState = aggregateConfig
                 .getConfiguration { it.simpleName!! }
@@ -136,7 +139,7 @@ internal class AggregateConfigurationTest : StringSpec() {
                     EventWrapper(
                         Event(
                             aggregateId = aggregateId,
-                            eventData = SomeLaterEventData()
+                            eventData = SomeLaterEventData("update")
                         ),
                         eventNumber = -1,
                         serializationId = SomeLaterEventData::class.simpleName!!
@@ -145,27 +148,30 @@ internal class AggregateConfigurationTest : StringSpec() {
                 )
 
             updatedState!!.stateUpdated shouldBe true
+            updatedState.someText shouldBe "update"
 
         }
 
         "Test that an applied eventwrapper can alter aggregate state"{
-            data class SomeState(val stateInitialized: Boolean, val stateUpdated: Boolean = false) : Aggregate
+            data class SomeState(val stateInitialized: Boolean, val stateUpdated: Boolean = false, val someText: String) : Aggregate
 
-            class SomeInitEventData : EventData<SomeState>
+            class SomeInitEventData(val initText: String) : EventData<SomeState>
 
-            class SomeLaterEventData : EventData<SomeState>
+            class SomeLaterEventData(val updateText: String) : EventData<SomeState>
 
             val aggregateConfig = object : AggregateConfiguration<SomeState>("employee") {
                 init {
-                    initWrapper { _: EventWrapper<SomeInitEventData>, _: UUID ->
+                    initWrapper { eventWrapper: EventWrapper<SomeInitEventData>, _: UUID ->
                         SomeState(
-                            stateInitialized = true
+                            stateInitialized = true,
+                            someText = eventWrapper.event.eventData.initText
                         )
                     }
 
                     applyWrapper<SomeLaterEventData> {
                         copy(
-                            stateUpdated = true
+                            stateUpdated = true,
+                            someText = it.event.eventData.updateText
                         )
                     }
                 }
@@ -178,12 +184,13 @@ internal class AggregateConfigurationTest : StringSpec() {
                     wrapper = EventWrapper(
                         Event(
                             aggregateId = aggregateId,
-                            eventData = SomeInitEventData())
+                            eventData = SomeInitEventData("init"))
                         ,
                         eventNumber = -1,
                         serializationId = SomeInitEventData::class.simpleName!!
                     ),
                     currentState = null)
+            initializedState!!.someText shouldBe "init"
 
             val updatedState = aggregateConfig
                 .getConfiguration { it.simpleName!! }
@@ -191,7 +198,7 @@ internal class AggregateConfigurationTest : StringSpec() {
                     EventWrapper(
                         Event(
                             aggregateId = aggregateId,
-                            eventData = SomeLaterEventData()
+                            eventData = SomeLaterEventData("update")
                         ),
                         eventNumber = -1,
                         serializationId = SomeLaterEventData::class.simpleName!!
@@ -200,6 +207,7 @@ internal class AggregateConfigurationTest : StringSpec() {
                 )
 
             updatedState!!.stateUpdated shouldBe true
+            updatedState.someText shouldBe "update"
 
         }
 
