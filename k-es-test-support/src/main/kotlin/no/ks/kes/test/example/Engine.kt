@@ -49,7 +49,7 @@ object Engine : AggregateConfiguration<EngineProperties>(ENGINE_AGGREGATE_TYPE) 
             EngineProperties(id = aggregateId, running = false)
         }
 
-        apply<Events.Started> { copy(running = true, startCount = startCount + 1) }
+        applyEvent<Events.Started> { copy(running = true, startCount = startCount + 1) }
 
         apply<Events.Stopped> { copy(running = false) }
     }

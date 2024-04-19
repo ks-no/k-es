@@ -35,6 +35,12 @@ object Konto: AggregateConfiguration<KontoAggregate>("konto") {
                     aktivert = false
             )
         }
+
+        applyEvent<AvsenderDeaktivert> {
+            copy(
+                aktivert = false
+            )
+        }
     }
 
     data class DemoMetadata(val aggregateId: UUID, val occurredOn: Long): Metadata
