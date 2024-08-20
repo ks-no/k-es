@@ -13,10 +13,21 @@
     <artifactId>k-es-demo-app-proto</artifactId>
     <properties>
         <awaitility.version>4.2.0</awaitility.version>
-        <spring-boot.version>3.2.0</spring-boot.version>
         <flyway.version>10.1.0</flyway.version>
         <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!--internal-->
@@ -49,7 +60,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
-            <version>${spring-boot.version}</version>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
@@ -80,7 +90,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <version>${spring-boot.version}</version>
             <scope>test</scope>
         </dependency>
 

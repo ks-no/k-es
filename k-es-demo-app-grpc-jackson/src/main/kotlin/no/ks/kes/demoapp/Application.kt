@@ -33,6 +33,8 @@ fun main(args: Array<String>) {
     SpringApplication.run(Application::class.java, *args)
 }
 
+const val SQLSERVER_SA_PASSWORD = "Test1234!"
+
 @Configuration
 @SpringBootApplication
 class Application {
@@ -43,7 +45,7 @@ class Application {
                 driverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver")
                 url("jdbc:sqlserver://$host:$port;databaseName=kesdemo;encrypt=false")
                 username("SA")
-                password("Test1234!")
+                password(SQLSERVER_SA_PASSWORD)
             }.build()
 
     @Bean

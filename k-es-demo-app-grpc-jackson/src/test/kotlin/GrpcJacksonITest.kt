@@ -15,22 +15,30 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.MSSQLServerContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
 import java.util.*
+import java.util.concurrent.CompletableFuture
 
 
 @Testcontainers
 @SpringBootTest(classes = [Application::class])
-@DisabledIfSystemProperty(named = "os.arch", matches = "aarch64", disabledReason = "Ikke støttet på arm arkitektur")
+//@DisabledIfSystemProperty(named = "os.arch", matches = "aarch64", disabledReason = "Ikke støttet på arm arkitektur")
 class GrpcJacksonITest {
 
     companion object {
 
-        val eventStoreDockerImageName = DockerImageName.parse("eventstore/eventstore:21.6.0-buster-slim")
-        val mssqlDockerImageName = DockerImageName.parse("docker-all.artifactory.fiks.ks.no/fiks-mssql")
+        val eventStoreDockerImageName = CompletableFuture.supplyAsync {
+            val imageName = "eventstore/eventstore"
+            when(System.getProperty("os.arch")) {
+                "aarch64" -> "$imageName:21.10.9-alpha-arm64v8"
+                else -> "$imageName:21.6.0-buster-slim"
+            }
+        }
+        val mssqlDockerImageName = DockerImageName.parse("mcr.microsoft.com/mssql/server").withTag("2022-latest")
 
         @JvmStatic
         @Container
@@ -46,12 +54,11 @@ class GrpcJacksonITest {
 
         @JvmStatic
         @Container
-        val mssqlContainer = GenericContainer(mssqlDockerImageName)
-            .withEnv("ACCEPT_EULA", "Y")
-            .withEnv("SA_PASSWORD", "Test1234!")
-            .withEnv("DB_NAME", "kesdemo")
+        val mssqlContainer = MSSQLServerContainer(mssqlDockerImageName)
+            .acceptLicense()
+            .withInitScript("create-database.sql")
             .withExposedPorts(1433)
-            .waitingFor(Wait.forLogMessage(".*Starting up database 'kesdemo'.*\\n", 1))
+            .withPassword(SQLSERVER_SA_PASSWORD)
 
         @JvmStatic
         @DynamicPropertySource
