@@ -3,7 +3,7 @@ package no.ks.kes.test
 import io.kotest.assertions.asClue
 import io.kotest.assertions.fail
 import io.kotest.assertions.failure
-import io.kotest.assertions.timing.eventually
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
@@ -20,6 +20,7 @@ import no.ks.kes.serdes.jackson.JacksonCmdSerdes
 import no.ks.kes.serdes.jackson.JacksonEventSerdes
 import no.ks.kes.test.example.*
 import java.util.*
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 import kotlin.time.toDuration
@@ -58,7 +59,7 @@ class KesTestSetupTest : FunSpec({
         withKes(eventSerdes = Events.serdes, cmdSerdes = Cmds.serdes) {
             Projections.initialize(
                     eventSubscriberFactory = it.subscriberFactory,
-                    hwmId = testCase.displayName,
+                    hwmId = testCase.name.testName,
                     projectionRepository = it.projectionRepository,
                     projections = setOf(enginesProjection)
             )
@@ -76,7 +77,7 @@ class KesTestSetupTest : FunSpec({
         withKes(eventSerdes = Events.serdes, cmdSerdes = Cmds.serdes) { kes ->
             Projections.initialize(
                     eventSubscriberFactory = kes.subscriberFactory,
-                    hwmId = testCase.displayName,
+                    hwmId = testCase.name.testName,
                     projectionRepository = kes.projectionRepository,
                     projections = setOf(enginesProjection)
             )
@@ -109,7 +110,7 @@ class KesTestSetupTest : FunSpec({
             cmdHandler.handle(Cmds.Create(aggregateId)).asClue {
                 it.id shouldBe aggregateId
             }
-            eventually(10.toDuration(DurationUnit.SECONDS)) {
+            eventually(10.seconds) {
                 sagaRepository.getSagaState(aggregateId, SAGA_SERILIZATION_ID, EngineSagaState::class)?.asClue {
                     it.stoppedBySaga shouldBe true
                 } ?: fail("EngineSaga did not change state of aggregate to be stopped")

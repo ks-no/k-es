@@ -13,7 +13,7 @@ class JacksonEventMetadataSerdes<T : Metadata>(val clazz: KClass<T>): EventMetad
     private val objectMapper: ObjectMapper = ObjectMapper()
         .registerModule(Jdk8Module())
         .registerModule(JavaTimeModule())
-        .registerModule(KotlinModule())
+        .registerModule(KotlinModule.Builder().build())
 
     override fun deserialize(metadata: ByteArray): T {
         return objectMapper.readValue(metadata, clazz.javaObjectType)

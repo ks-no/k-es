@@ -11,7 +11,7 @@ class JacksonEventSerdes(events: Set<KClass<out EventData<*>>>,
                          private val objectMapper: ObjectMapper = ObjectMapper()
                                  .registerModule(Jdk8Module())
                                  .registerModule(JavaTimeModule())
-                                 .registerModule(KotlinModule())
+                                 .registerModule(KotlinModule.Builder().build())
 ) : EventSerdes {
     private val events = events
             .map { getSerializationId(it) to it }

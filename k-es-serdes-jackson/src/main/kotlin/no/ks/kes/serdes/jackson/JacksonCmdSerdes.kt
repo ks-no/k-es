@@ -12,7 +12,7 @@ import kotlin.reflect.KClass
 class JacksonCmdSerdes(cmds: Set<KClass<out Cmd<*>>>, private val objectMapper: ObjectMapper = ObjectMapper()
         .registerModule(Jdk8Module())
         .registerModule(JavaTimeModule())
-        .registerModule(KotlinModule())) : CmdSerdes {
+        .registerModule(KotlinModule.Builder().build())) : CmdSerdes {
 
     private val commandClasses = cmds.map { getSerializationIdAnnotationValue(it) to it }.toMap()
 
