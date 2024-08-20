@@ -54,7 +54,7 @@
 
         <junit.jupiter.version>5.10.1</junit.jupiter.version>
         <mockk.version>1.13.10</mockk.version>
-        <kotest.version>5.9.0</kotest.version>
+        <kotest.version>5.9.1</kotest.version>
         <kotest.spring.version>1.3.0</kotest.spring.version>
         <kotest.testcontainers.version>2.0.2</kotest.testcontainers.version>
         <testcontainers.version>1.19.3</testcontainers.version>
