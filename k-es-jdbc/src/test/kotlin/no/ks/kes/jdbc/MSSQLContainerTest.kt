@@ -127,8 +127,7 @@ class MSSQLContainerTest : StringSpec() {
 
 }
 
-private val IMAGE_NAME = DockerImageName.parse("mcr.microsoft.com/azure-sql-edge").withTag("latest")
-    .asCompatibleSubstituteFor(DockerImageName.parse("mcr.microsoft.com/mssql/server").withTag("latest-2017"))
+private val IMAGE_NAME = DockerImageName.parse("mcr.microsoft.com/mssql/server").withTag("2022-latest")
 
 class KMSSQLContainer(password: String = "123K-es-password") : MSSQLServerContainer<KMSSQLContainer>(IMAGE_NAME) {
 
