@@ -7,7 +7,7 @@
     <parent>
         <groupId>no.ks</groupId>
         <artifactId>k-es</artifactId>
-        <version>4.4.6-SNAPSHOT</version>
+        <version>4.5.0</version>
     </parent>
 
     <artifactId>k-es-demo-app-grpc-jackson</artifactId>
