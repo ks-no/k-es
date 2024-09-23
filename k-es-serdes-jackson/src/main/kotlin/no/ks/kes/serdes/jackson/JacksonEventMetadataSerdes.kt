@@ -1,5 +1,6 @@
 package no.ks.kes.serdes.jackson
 
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -14,6 +15,7 @@ class JacksonEventMetadataSerdes<T : Metadata>(val clazz: KClass<T>): EventMetad
         .registerModule(Jdk8Module())
         .registerModule(JavaTimeModule())
         .registerModule(KotlinModule.Builder().build())
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
     override fun deserialize(metadata: ByteArray): T {
         return objectMapper.readValue(metadata, clazz.javaObjectType)
