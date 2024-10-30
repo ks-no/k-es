@@ -44,7 +44,7 @@
 
         <kotlinx-coroutines.version>1.8.0</kotlinx-coroutines.version>
         <jackson.version>2.17.2</jackson.version>
-        <db-client-java.version>5.4.1</db-client-java.version>
+        <db-client-java.version>5.4.2</db-client-java.version>
         <mssql-jdbc.version>12.7.0.jre11-preview</mssql-jdbc.version>
         <protobuf-java.version>3.25.5</protobuf-java.version>
         <mongodb-driver-version>5.0.1</mongodb-driver-version>
