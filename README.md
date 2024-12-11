@@ -6,7 +6,7 @@
 
 Kotlin library for persistance through [event-sourced](https://martinfowler.com/eaaDev/EventSourcing.html) aggregates. Support for projections and sagas included, check out the demo-app to see how it all fits together. One extended demo app with Jackson (k-es-demo-app-jackson), and one light demo app with Proto (k-es-demo-app-proto)
 
-Currently supports [ESJC](https://github.com/msemys/esjc) (a netty based client for [eventstore.org](https://eventstore.org/)) as the event store, Microsoft Sql Server as a command and saga repository, and JSON/Jackson (Protobuf support for Event serialization) as a serialization method, but a modular design should allow other databases and serialization types to be supported in the future. 
+Currently supports the standard GRPC-based Eventstore driver as well as [ESJC](https://github.com/msemys/esjc) (a netty based client for [eventstore.org](https://eventstore.org/)) for interacting with the event store, Microsoft Sql Server and MongoDB as a command and saga repository, and JSON/Jackson (Protobuf support for Event serialization) as a serialization method, but a modular design should allow other databases and serialization types to be supported in the future. 
 
 ## EventData
 EventData must implement interface `EventData<Aggregate>` or `ProtoEventData<Aggregate>` and be annotated with `@SerializationId".  
