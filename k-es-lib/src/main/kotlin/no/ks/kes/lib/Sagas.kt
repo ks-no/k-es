@@ -47,7 +47,7 @@ object Sagas {
                 onError = onError
         )
 
-        Timer("PollingTimeouts", false).schedule(0, pollInterval) {
+        Timer("${subscriptionName}-PollingTimeouts", false).schedule(0, pollInterval) {
             sagaRepository.transactionally {
                 sagaRepository.getReadyTimeouts()
                         ?.let { timeout ->
@@ -75,7 +75,7 @@ object Sagas {
             }
         }
 
-        Timer("PollingCommandQueue", false).schedule(0, pollInterval) {
+        Timer("${subscriptionName}-PollingCommandQueue", false).schedule(0, pollInterval) {
             try {
                 commandQueue.poll()
             } catch (e: Exception) {
