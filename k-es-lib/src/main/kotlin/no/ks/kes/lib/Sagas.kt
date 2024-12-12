@@ -17,13 +17,14 @@ object Sagas {
             sagas: Set<Saga<*>>,
             commandQueue: CommandQueue,
             pollInterval: Long = 5000,
+            subscriptionName: String = SAGA_SUBSCRIBER,
             onError: (Exception) -> Unit = defaultOnCloseHandler
     ): S {
         val validSagaConfigurations = sagas.map { it.getConfiguration { eventSubscriberFactory.getSerializationId(it) } }
 
         val subscription = eventSubscriberFactory.createSubscriber(
-                hwmId = SAGA_SUBSCRIBER,
-                fromEvent = sagaRepository.hwmTracker.getOrInit(SAGA_SUBSCRIBER),
+                hwmId = subscriptionName,
+                fromEvent = sagaRepository.hwmTracker.getOrInit(subscriptionName),
                 onEvent = { wrapper ->
                     sagaRepository.transactionally {
                         try {
@@ -36,7 +37,7 @@ object Sagas {
                                                 })
                                     }.toSet()
                             )
-                            sagaRepository.hwmTracker.update(SAGA_SUBSCRIBER, wrapper.eventNumber)
+                            sagaRepository.hwmTracker.update(subscriptionName, wrapper.eventNumber)
                         } catch (e: Exception) {
                             log.error("An error was encountered while handling incoming event ${wrapper.event::class.simpleName} with sequence number ${wrapper.eventNumber}", e)
                             throw e
