@@ -51,7 +51,7 @@
         <rxjava.version>3.1.10</rxjava.version>
         <netty.version>4.1.115.Final</netty.version>
         <grpc.version>1.69.0</grpc.version>
-        <bouncycastle.version>1.79</bouncycastle.version>
+        <bouncycastle.version>1.80</bouncycastle.version>
 
         <junit.jupiter.version>5.11.3</junit.jupiter.version>
         <mockk.version>1.13.10</mockk.version>
