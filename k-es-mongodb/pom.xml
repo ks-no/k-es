@@ -14,7 +14,7 @@
     <description>Mongo support for sagas and projections</description>
 
     <properties>
-        <spring-data.version>4.2.0</spring-data.version>
+        <spring-data.version>4.4.2</spring-data.version>
     </properties>
 
     <dependencies>
