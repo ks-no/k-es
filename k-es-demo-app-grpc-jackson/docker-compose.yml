@@ -1,7 +1,7 @@
 version: '3'
 services:
   mssql:
-    image: docker-all.artifactory.fiks.ks.no/fiks-mssql
+    image: docker-all.artifactory.fiks.ks.no/fiks-mssql-2022:latest
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=Test1234!
@@ -10,7 +10,7 @@ services:
       - 1433
 
   eventstore:
-    image: eventstore/eventstore:21.6.0-buster-slim
+    image: eventstore/eventstore:24.10.6-bookworm-slim
     environment:
       - EVENTSTORE_CLUSTER_SIZE=1
       - EVENTSTORE_RUN_PROJECTIONS=All
