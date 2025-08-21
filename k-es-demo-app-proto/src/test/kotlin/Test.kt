@@ -4,13 +4,12 @@ import com.google.protobuf.Message
 import io.kotest.assertions.timing.eventually
 import io.kotest.core.annotation.EnabledCondition
 import io.kotest.core.annotation.EnabledIf
-import io.kotest.core.listeners.TestListener
+import io.kotest.core.listeners.AfterSpecListener
+import io.kotest.core.listeners.BeforeSpecListener
 import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.extensions.testcontainers.perSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
-import kotlinx.coroutines.withTimeout
 import mu.KotlinLogging
 import no.ks.kes.demoapp.Konto
 import no.ks.kes.demoapp.KontoAggregate
@@ -31,7 +30,6 @@ import org.testcontainers.utility.DockerImageName
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KClass
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 import kotlin.time.toDuration
@@ -50,9 +48,9 @@ private fun eventstoreImageName() = when(System.getProperty("os.arch")) {
 
 @ExperimentalTime
 @EnabledIf(DisableOnArm64::class)
-class Test : StringSpec() {
+class Test : StringSpec(), BeforeSpecListener, AfterSpecListener {
 
-    val eventStoreContainer = GenericContainer(eventstoreImageName())
+    private val eventStoreContainer = GenericContainer(eventstoreImageName())
         .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")
         .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
         .withEnv("EVENTSTORE_CLUSTER_SIZE","1")
@@ -62,10 +60,20 @@ class Test : StringSpec() {
         .withEnv("EVENTSTORE_LOG_LEVEL", "Verbose")
         .withExposedPorts(PORT)
         .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4))
+    private lateinit var klient: EventStoreTestKlient
+
+    override suspend fun beforeSpec(spec: Spec) {
+        eventStoreContainer.start()
+        klient = EventStoreTestKlient(eventStoreContainer.getMappedPort(PORT))
+    }
+
+    override suspend fun afterSpec(spec: Spec) {
+        eventStoreContainer.stop()
+    }
 
     init {
-        val klient = EventStoreTestKlientListener(portProvider = { eventStoreContainer.getMappedPort(PORT)})
-        listeners(eventStoreContainer.perSpec(), klient)
+
+
         "Test at vi kan opprette konto" {
             val validatedAggregateConfiguration = Konto.getConfiguration { klient.repo.getSerializationId(it) }
 
@@ -110,23 +118,13 @@ class Test : StringSpec() {
     }
 }
 
-internal class EventStoreTestKlientListener(private val portProvider: () -> Int): TestListener {
-    lateinit var kontoCmds: KontoCmds
-    lateinit var repo: AggregateRepository
-    lateinit var subscriberFactory: GrpcEventSubscriberFactory
-    override suspend fun beforeSpec(spec: Spec) {
+internal class EventStoreTestKlient(port: Int) {
 
-        val port = withTimeout(3.minutes) {
-            var port: Int? = null
-            do {
-                try {
-                    port = portProvider.invoke()
-                } catch (_: IllegalStateException) {
+    val kontoCmds: KontoCmds
+    val repo: AggregateRepository
+    val subscriberFactory: GrpcEventSubscriberFactory
 
-                }
-            } while (port == null)
-            port ?: error("Kunne ikke slå opp port")
-        }
+    init {
 
         val eventStoreClient = EventStoreDBClient.create(
             EventStoreDBClientSettings.builder()

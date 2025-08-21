@@ -14,7 +14,7 @@
     <description>JDBC support for sagas and projections</description>
 
     <properties>
-        <spring.version>6.1.1</spring.version>
+        <spring.version>6.2.10</spring.version>
     </properties>
 
     <dependencies>
@@ -88,11 +88,6 @@
         <dependency>
             <groupId>io.kotest</groupId>
             <artifactId>kotest-assertions-core-jvm</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kotest.extensions</groupId>
-            <artifactId>kotest-extensions-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
         <!-- /Kotest -->

@@ -1,13 +1,14 @@
 package no.ks.kes.grpc
 
-import com.eventstore.dbclient.EventData
 import com.eventstore.dbclient.EventStoreDBClient
 import com.eventstore.dbclient.EventStoreDBClientSettings
 import com.google.protobuf.Message
 import io.kotest.assertions.asClue
 import io.kotest.assertions.nondeterministic.eventually
+import io.kotest.core.listeners.AfterSpecListener
+import io.kotest.core.listeners.BeforeSpecListener
+import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.extensions.testcontainers.perSpec
 import io.kotest.matchers.nulls.beNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNot
@@ -38,16 +39,16 @@ private val logConsumer = Slf4jLogConsumer(log).withSeparateOutputStreams().with
 private const val STREAM_NAME = "no.ks.kes.proto.demo"
 
 @ExperimentalTime
-class DemoAppTest : StringSpec() {
+class DemoAppTest : StringSpec(), BeforeSpecListener, AfterSpecListener {
 
-    val dockerImageName = CompletableFuture.supplyAsync {
+    private val dockerImageName = CompletableFuture.supplyAsync {
         val imageName = "eventstore/eventstore"
         when(System.getProperty("os.arch")) {
             "aarch64" -> "$imageName:21.10.9-alpha-arm64v8"
             else -> "$imageName:21.6.0-buster-slim"
         }
     }
-    val eventStoreContainer = GenericContainer(dockerImageName)
+    private val eventStoreContainer = GenericContainer(dockerImageName)
         .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")
         .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
         .withEnv("EVENTSTORE_CLUSTER_SIZE","1")
@@ -60,7 +61,7 @@ class DemoAppTest : StringSpec() {
         .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4))
         .withLogConsumer(logConsumer)
 
-    val eventSerdes = ProtoEventSerdes(
+    private val eventSerdes = ProtoEventSerdes(
         mapOf(
             Konto.AvsenderOpprettet::class to Avsender.AvsenderOpprettet.getDefaultInstance(),
             Konto.AvsenderAktivert::class to Avsender.AvsenderAktivert.getDefaultInstance(),
@@ -78,11 +79,17 @@ class DemoAppTest : StringSpec() {
         }
     )
 
-    val jacksonEventMetadataSerdes = JacksonEventMetadataSerdes(Konto.DemoMetadata::class)
+    private val jacksonEventMetadataSerdes = JacksonEventMetadataSerdes(Konto.DemoMetadata::class)
+
+    override suspend fun beforeSpec(spec: Spec) {
+        eventStoreContainer.start()
+    }
+
+    override suspend fun afterSpec(spec: Spec) {
+        eventStoreContainer.stop()
+    }
 
     init {
-        listener(eventStoreContainer.perSpec())
-
         "Test at vi kan opprette konto" {
             val eventStoreClient: EventStoreDBClient by lazy {
                 EventStoreDBClient.create(EventStoreDBClientSettings.builder()

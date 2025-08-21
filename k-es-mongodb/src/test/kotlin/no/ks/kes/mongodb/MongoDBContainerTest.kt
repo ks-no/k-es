@@ -7,9 +7,10 @@ import com.mongodb.client.MongoClients
 import io.kotest.assertions.asClue
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.assertions.timing.eventually
+import io.kotest.core.listeners.AfterSpecListener
+import io.kotest.core.listeners.BeforeSpecListener
+import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.core.test.TestCase
-import io.kotest.extensions.testcontainers.perSpec
 import io.kotest.matchers.shouldBe
 import no.ks.kes.lib.Sagas
 import no.ks.kes.mongodb.projection.MongoDBProjectionRepository
@@ -31,7 +32,8 @@ import kotlin.time.ExperimentalTime
 private const val INITIAL_HWM = -1L
 
 @ExperimentalTime
-class MongoDBContainerTest: StringSpec() {
+class MongoDBContainerTest: StringSpec(), BeforeSpecListener, AfterSpecListener {
+
     private val mongoDBContainer = MongoDBContainer("mongo:4.4.3")
     private val mongoClient: MongoClient by lazy {
         MongoClients.create(
@@ -41,9 +43,16 @@ class MongoDBContainerTest: StringSpec() {
                 .build()
         )
     }
-    init {
-        listener(mongoDBContainer.perSpec())
 
+    override suspend fun beforeSpec(spec: Spec) {
+        mongoDBContainer.start()
+    }
+
+    override suspend fun afterSpec(spec: Spec) {
+        mongoDBContainer.stop()
+    }
+
+    init {
         "Testing ProjectionRepository backed by Mongo" {
             val subscriber = testCase.name.testName
             val projectionRepository = MongoDBProjectionRepository(

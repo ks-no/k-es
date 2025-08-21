@@ -14,7 +14,7 @@
     <description>Mongo support for sagas and projections</description>
 
     <properties>
-        <spring-data.version>4.2.0</spring-data.version>
+        <spring-data.version>4.5.3</spring-data.version>
     </properties>
 
     <dependencies>
@@ -93,11 +93,6 @@
         <dependency>
             <groupId>io.kotest</groupId>
             <artifactId>kotest-assertions-core-jvm</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kotest.extensions</groupId>
-            <artifactId>kotest-extensions-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
         <!-- /Kotest -->

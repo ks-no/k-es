@@ -12,9 +12,9 @@
     <artifactId>k-es-demo-app-jackson</artifactId>
 
     <properties>
-        <awaitility.version>4.0.2</awaitility.version>
+        <awaitility.version>4.3.0</awaitility.version>
         <spring-boot.version>3.2.0</spring-boot.version>
-        <flyway.version>9.22.3</flyway.version>
+        <flyway.version>11.11.1</flyway.version>
         <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
 

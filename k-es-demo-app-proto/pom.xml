@@ -12,8 +12,8 @@
 
     <artifactId>k-es-demo-app-proto</artifactId>
     <properties>
-        <awaitility.version>4.2.0</awaitility.version>
-        <flyway.version>10.1.0</flyway.version>
+        <awaitility.version>4.3.0</awaitility.version>
+        <flyway.version>11.11.1</flyway.version>
         <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
 
@@ -107,11 +107,6 @@
         <dependency>
             <groupId>io.kotest</groupId>
             <artifactId>kotest-assertions-core-jvm</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kotest.extensions</groupId>
-            <artifactId>kotest-extensions-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
 

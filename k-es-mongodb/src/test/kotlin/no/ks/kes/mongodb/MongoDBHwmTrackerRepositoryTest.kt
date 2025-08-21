@@ -3,9 +3,10 @@ import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoClients
+import io.kotest.core.listeners.AfterSpecListener
+import io.kotest.core.listeners.BeforeSpecListener
+import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.core.test.TestCase
-import io.kotest.extensions.testcontainers.perSpec
 import io.kotest.matchers.shouldBe
 import no.ks.kes.mongodb.hwm.MongoDBServerHwmTrackerRepository
 import org.bson.UuidRepresentation
@@ -13,7 +14,8 @@ import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory
 import org.testcontainers.containers.MongoDBContainer
 import kotlin.random.Random
 
-class MongoDBHwmTrackerRepositoryTest: StringSpec() {
+class MongoDBHwmTrackerRepositoryTest: StringSpec(), BeforeSpecListener, AfterSpecListener {
+
     private val mongoDBContainer = MongoDBContainer("mongo:4.4.3")
     private val initialHwm = Random.nextLong(-1, 1)
     private val  hwmTrackerRepository: MongoDBServerHwmTrackerRepository by lazy {
@@ -29,9 +31,15 @@ class MongoDBHwmTrackerRepositoryTest: StringSpec() {
         )
     }
 
-    init {
+    override suspend fun beforeSpec(spec: Spec) {
+        mongoDBContainer.start()
+    }
 
-        listener(mongoDBContainer.perSpec())
+    override suspend fun afterSpec(spec: Spec) {
+        mongoDBContainer.stop()
+    }
+
+    init {
         "Test that a subscriber hwm is created if one does not exist" {
             hwmTrackerRepository.getOrInit("some-subscriber") shouldBe initialHwm
         }
