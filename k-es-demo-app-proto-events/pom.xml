@@ -11,9 +11,13 @@
     </parent>
 
     <artifactId>k-es-demo-app-proto-events</artifactId>
+
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
+
+        <protobuf-maven-plugin.version>3.7.0</protobuf-maven-plugin.version>
     </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.google.protobuf</groupId>
@@ -24,22 +28,17 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>com.github.os72</groupId>
-                <artifactId>protoc-jar-maven-plugin</artifactId>
-                <version>3.11.4</version>
+                <groupId>io.github.ascopes</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>${protobuf-maven-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>mainproto</id>
                         <goals>
-                            <goal>run</goal>
+                            <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <protocArtifact>com.google.protobuf:protoc:3.19.4</protocArtifact>
-                            <includeStdTypes>true</includeStdTypes>
-                            <protocVersion>3.1.0</protocVersion>
-                            <inputDirectories>
-                                <include>src/main/protobuf</include>
-                            </inputDirectories>
+                            <protocVersion>${protobuf-java.version}</protocVersion>
                         </configuration>
                     </execution>
                 </executions>
