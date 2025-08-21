@@ -5,8 +5,10 @@ import com.zaxxer.hikari.HikariDataSource
 import io.kotest.assertions.asClue
 import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.assertions.throwables.shouldThrowExactly
+import io.kotest.core.listeners.AfterSpecListener
+import io.kotest.core.listeners.BeforeSpecListener
+import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.extensions.testcontainers.perSpec
 import io.kotest.matchers.shouldBe
 import no.ks.kes.jdbc.hwm.SqlServerHwmTrackerRepository
 import no.ks.kes.jdbc.projection.SqlServerProjectionRepository
@@ -28,17 +30,23 @@ import java.time.Duration
 import java.util.*
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.seconds
 
 private const val INTIAL_HWM = -1L
 private val LOG = mu.KotlinLogging.logger { }
 
 @ExperimentalTime
-class MSSQLContainerTest : StringSpec() {
+class MSSQLContainerTest : StringSpec(), BeforeSpecListener, AfterSpecListener {
     private val mssqlContainer = KMSSQLContainer()
 
+    override suspend fun beforeSpec(spec: Spec) {
+        mssqlContainer.start()
+    }
+
+    override suspend fun afterSpec(spec: Spec) {
+        mssqlContainer.stop()
+    }
+
     init {
-        listener(mssqlContainer.perSpec())
         "Testing HWM backed by SQLServer" {
             val subscriber = testCase.name.testName
             mssqlContainer.createConnection().use { connection ->
