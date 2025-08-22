@@ -39,8 +39,8 @@ private val log = KotlinLogging.logger {}
 
 private const val PORT = 2113
 
-private val EVENTSTORE_AMD64_IMAGE_NAME = DockerImageName.parse("eventstore/eventstore").withTag("21.6.0-buster-slim")
-private val EVENTSTORE_ARM64_IMAGE_NAME = DockerImageName.parse("ghcr.io/eventstore/eventstore").withTag("21.10.0-alpha-arm64v8")
+private val EVENTSTORE_AMD64_IMAGE_NAME = DockerImageName.parse("eventstore/eventstore").withTag("24.10.6-bookworm-slim")
+private val EVENTSTORE_ARM64_IMAGE_NAME = DockerImageName.parse("ghcr.io/eventstore/eventstore").withTag("24.10.6-alpha-arm64v8")
 private fun eventstoreImageName() = when(System.getProperty("os.arch")) {
     "aarch64" -> EVENTSTORE_ARM64_IMAGE_NAME.asCompatibleSubstituteFor(EVENTSTORE_AMD64_IMAGE_NAME)
     else -> EVENTSTORE_AMD64_IMAGE_NAME
@@ -53,11 +53,7 @@ class Test : StringSpec(), BeforeSpecListener, AfterSpecListener {
     private val eventStoreContainer = GenericContainer(eventstoreImageName())
         .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")
         .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
-        .withEnv("EVENTSTORE_CLUSTER_SIZE","1")
         .withEnv("EVENTSTORE_INSECURE", "True")
-        .withEnv("EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP", "True")
-        .withEnv("EVENTSTORE_ENABLE_EXTERNAL_TCP", "True")
-        .withEnv("EVENTSTORE_LOG_LEVEL", "Verbose")
         .withExposedPorts(PORT)
         .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4))
     private lateinit var klient: EventStoreTestKlient

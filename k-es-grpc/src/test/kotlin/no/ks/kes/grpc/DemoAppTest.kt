@@ -44,19 +44,15 @@ class DemoAppTest : StringSpec(), BeforeSpecListener, AfterSpecListener {
     private val dockerImageName = CompletableFuture.supplyAsync {
         val imageName = "eventstore/eventstore"
         when(System.getProperty("os.arch")) {
-            "aarch64" -> "$imageName:21.10.9-alpha-arm64v8"
-            else -> "$imageName:21.6.0-buster-slim"
+            "aarch64" -> "$imageName:24.10.6-alpha-arm64v8"
+            else -> "$imageName:24.10.6-bookworm-slim"
         }
     }
     private val eventStoreContainer = GenericContainer(dockerImageName)
         .withEnv("EVENTSTORE_RUN_PROJECTIONS","All")
         .withEnv("EVENTSTORE_START_STANDARD_PROJECTIONS","True")
-        .withEnv("EVENTSTORE_CLUSTER_SIZE","1")
         .withEnv("EVENTSTORE_INSECURE", "True")
-        .withEnv("EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP", "True")
-        .withEnv("EVENTSTORE_ENABLE_EXTERNAL_TCP", "True")
-        .withEnv("EVENTSTORE_LOG_LEVEL", "Verbose")
-        .withExposedPorts(1113, 2113)
+        .withExposedPorts(2113)
         .withReuse(true)
         .waitingFor(Wait.forLogMessage(".*initialized.*\\n", 4))
         .withLogConsumer(logConsumer)
