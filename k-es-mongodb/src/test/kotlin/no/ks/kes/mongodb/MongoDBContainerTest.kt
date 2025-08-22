@@ -34,7 +34,7 @@ private const val INITIAL_HWM = -1L
 @ExperimentalTime
 class MongoDBContainerTest: StringSpec(), BeforeSpecListener, AfterSpecListener {
 
-    private val mongoDBContainer = MongoDBContainer("mongo:4.4.3")
+    private val mongoDBContainer = MongoDBContainer("mongo:8.0.12")
     private val mongoClient: MongoClient by lazy {
         MongoClients.create(
             MongoClientSettings.builder()

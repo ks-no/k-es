@@ -16,7 +16,7 @@ import kotlin.random.Random
 
 class MongoDBHwmTrackerRepositoryTest: StringSpec(), BeforeSpecListener, AfterSpecListener {
 
-    private val mongoDBContainer = MongoDBContainer("mongo:4.4.3")
+    private val mongoDBContainer = MongoDBContainer("mongo:8.0.12")
     private val initialHwm = Random.nextLong(-1, 1)
     private val  hwmTrackerRepository: MongoDBServerHwmTrackerRepository by lazy {
         MongoDBServerHwmTrackerRepository(MongoDBTransactionAwareCollectionFactory(SimpleMongoClientDatabaseFactory(client, "database")), initialHwm)
