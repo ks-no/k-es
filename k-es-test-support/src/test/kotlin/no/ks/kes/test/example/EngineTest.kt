@@ -1,8 +1,7 @@
 package no.ks.kes.test.example
 
+import io.kotest.assertions.AssertionErrorBuilder.Companion.fail
 import io.kotest.assertions.asClue
-import io.kotest.assertions.fail
-import io.kotest.assertions.failure
 import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.StringSpec
@@ -122,7 +121,7 @@ class EngineTest : StringSpec({
                     commandQueue = commandQueue,
                     pollInterval = 1000L
             ) {
-                e -> failure("Failed to handle saga event", e)
+                e -> fail("Failed to handle saga event: ${e.toString()}")
             }
             val aggregateId = UUID.randomUUID()
             engineCmdHandler.handle(Cmds.Create(aggregateId)).asClue {
@@ -157,14 +156,14 @@ class EngineTest : StringSpec({
                     commandQueue = commandQueue,
                     pollInterval = 1000L
             ) {
-                e -> failure("Failed to handle saga event", e)
+                e -> fail("Failed to handle saga event: ${e.toString()}")
             }
             Projections.initialize(eventSubscriberFactory = kes.subscriberFactory,
                     projections = setOf(engineProjection),
                     projectionRepository = kes.projectionRepository,
-                    hwmId = testCase.name.testName
+                    hwmId = testCase.name.name
             ) { e ->
-                failure("Failed during eventhandling in projection", e)
+                fail("Failed during eventhandling in projection: ${e.toString()}")
             }
             val aggregatesCreated = 10
             checkAll(iterations = aggregatesCreated, Arb.uuid(UUIDVersion.V4, false)) { aggregateId ->
@@ -191,9 +190,9 @@ class EngineTest : StringSpec({
                     eventSubscriberFactory = kes.subscriberFactory,
                     projections = setOf(engineProjection),
                     projectionRepository = kes.projectionRepository,
-                    hwmId = testCase.name.testName
+                    hwmId = testCase.name.name
             ) { e ->
-                failure("Failed during projection event handling", e)
+                fail("Failed during projection event handling: ${e.toString()}")
             }
             val aggregateId = UUID.randomUUID()
             engineCmdHandler.handle(Cmds.Create(aggregateId)).asClue {
@@ -217,9 +216,9 @@ class EngineTest : StringSpec({
                     eventSubscriberFactory = kes.subscriberFactory,
                     projections = setOf(engineProjection),
                     projectionRepository = kes.projectionRepository,
-                    hwmId = testCase.name.testName
+                    hwmId = testCase.name.name
             ) { e ->
-                failure("Failed during projection event handling", e)
+                fail("Failed during projection event handling: ${e.toString()}")
             }
             val aggregatesToCreate = 1000
             checkAll(aggregatesToCreate, Arb.uuid(UUIDVersion.V4, false)) { aggregateId ->

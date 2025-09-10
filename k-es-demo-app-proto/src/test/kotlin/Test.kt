@@ -1,8 +1,8 @@
 import com.eventstore.dbclient.EventStoreDBClient
 import com.eventstore.dbclient.EventStoreDBClientSettings
 import com.google.protobuf.Message
-import io.kotest.assertions.timing.eventually
-import io.kotest.core.annotation.EnabledCondition
+import io.kotest.assertions.nondeterministic.eventually
+import io.kotest.core.annotation.Condition
 import io.kotest.core.annotation.EnabledIf
 import io.kotest.core.listeners.AfterSpecListener
 import io.kotest.core.listeners.BeforeSpecListener
@@ -157,6 +157,6 @@ internal class EventStoreTestKlient(port: Int) {
     }
 }
 
-internal class DisableOnArm64: EnabledCondition {
-    override fun enabled(kclass: KClass<out Spec>): Boolean = System.getProperty("os.arch") != "aarch64"
+internal class DisableOnArm64: Condition {
+    override fun evaluate(kclass: KClass<out Spec>): Boolean = System.getProperty("os.arch") != "aarch64"
 }

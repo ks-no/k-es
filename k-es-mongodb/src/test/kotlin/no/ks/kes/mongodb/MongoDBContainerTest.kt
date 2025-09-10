@@ -6,7 +6,7 @@ import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoClients
 import io.kotest.assertions.asClue
 import io.kotest.assertions.throwables.shouldThrowExactly
-import io.kotest.assertions.timing.eventually
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.core.listeners.AfterSpecListener
 import io.kotest.core.listeners.BeforeSpecListener
 import io.kotest.core.spec.Spec
@@ -54,7 +54,7 @@ class MongoDBContainerTest: StringSpec(), BeforeSpecListener, AfterSpecListener 
 
     init {
         "Testing ProjectionRepository backed by Mongo" {
-            val subscriber = testCase.name.testName
+            val subscriber = testCase.name.name
             val projectionRepository = MongoDBProjectionRepository(
                 MongoDBTransactionAwareCollectionFactory(
                     SimpleMongoClientDatabaseFactory(

@@ -192,6 +192,11 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-stdlib</artifactId>
+                <version>${kotlin.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.mockk</groupId>
                 <artifactId>mockk</artifactId> <!-- Trenger fortsatt denne pga transitiv dep -->
                 <version>${mockk.version}</version>

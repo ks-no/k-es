@@ -48,7 +48,7 @@ class MSSQLContainerTest : StringSpec(), BeforeSpecListener, AfterSpecListener {
 
     init {
         "Testing HWM backed by SQLServer" {
-            val subscriber = testCase.name.testName
+            val subscriber = testCase.name.name
             mssqlContainer.createConnection().use { connection ->
                 NamedParameterJdbcTemplate(SingleConnectionDataSource(connection, true)).run {
                     val sqlServerHwmTrackerRepository = SqlServerHwmTrackerRepository(template = this, initialHwm = INTIAL_HWM)
@@ -65,7 +65,7 @@ class MSSQLContainerTest : StringSpec(), BeforeSpecListener, AfterSpecListener {
         }
 
         "Testing ProjectionRepository backed by SQLServer" {
-            val subscriber = testCase.name.testName
+            val subscriber = testCase.name.name
             mssqlContainer.createConnection().use { connection ->
                 val dataSource = SingleConnectionDataSource(connection, true)
                 val projectionRepository = SqlServerProjectionRepository(dataSource)
