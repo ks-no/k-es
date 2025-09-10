@@ -1,8 +1,7 @@
 package no.ks.kes.test
 
+import io.kotest.assertions.AssertionErrorBuilder.Companion.fail
 import io.kotest.assertions.asClue
-import io.kotest.assertions.fail
-import io.kotest.assertions.failure
 import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContain
@@ -59,7 +58,7 @@ class KesTestSetupTest : FunSpec({
         withKes(eventSerdes = Events.serdes, cmdSerdes = Cmds.serdes) {
             Projections.initialize(
                     eventSubscriberFactory = it.subscriberFactory,
-                    hwmId = testCase.name.testName,
+                    hwmId = testCase.name.name,
                     projectionRepository = it.projectionRepository,
                     projections = setOf(enginesProjection)
             )
@@ -77,7 +76,7 @@ class KesTestSetupTest : FunSpec({
         withKes(eventSerdes = Events.serdes, cmdSerdes = Cmds.serdes) { kes ->
             Projections.initialize(
                     eventSubscriberFactory = kes.subscriberFactory,
-                    hwmId = testCase.name.testName,
+                    hwmId = testCase.name.name,
                     projectionRepository = kes.projectionRepository,
                     projections = setOf(enginesProjection)
             )
@@ -104,7 +103,7 @@ class KesTestSetupTest : FunSpec({
                     commandQueue = commandQueue,
                     pollInterval = 10
             ) {
-                e -> failure("Failed to process event for saga", e)
+                e -> fail("Failed to process event for saga: ${e.toString()}")
             }
             val aggregateId = UUID.randomUUID()
             cmdHandler.handle(Cmds.Create(aggregateId)).asClue {

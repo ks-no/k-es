@@ -3,7 +3,6 @@ package no.ks.kes.grpc
 import com.eventstore.dbclient.*
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.data.row
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.beInstanceOf
@@ -14,6 +13,7 @@ import io.mockk.*
 import org.springframework.util.ReflectionUtils
 import java.util.*
 import java.util.concurrent.CompletableFuture
+import kotlin.to
 
 internal class GrpcEventSubscriberTest : StringSpec() {
     init {
@@ -85,13 +85,15 @@ internal class GrpcEventSubscriberTest : StringSpec() {
         }
 
         "Create event subscriptions using different borderline highwater marks" {
-            io.kotest.data.forAll(
-                row(-1L, StreamPosition.start()),
-                row(0L, StreamPosition.position(0L)),
-                row(1L, StreamPosition.position(1L)),
-                row(37999L, StreamPosition.position(37999L)),
-                row(Long.MAX_VALUE, StreamPosition.position(Long.MAX_VALUE)))
-            { hwm, revision ->
+            val testCases = listOf(
+                -1L to StreamPosition.start(),
+                0L to StreamPosition.position(0L),
+                1L to StreamPosition.position(1L),
+                37999L to StreamPosition.position(37999L),
+                Long.MAX_VALUE to StreamPosition.position(Long.MAX_VALUE)
+            )
+
+            testCases.forEach { (hwm, revision) ->
                 val category = UUID.randomUUID().toString()
                 val streamName = "\$ce-$category"
 
