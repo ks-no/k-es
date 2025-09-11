@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>k-es-demo-app-proto</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
     <properties>
         <awaitility.version>4.3.0</awaitility.version>
         <flyway.version>11.11.1</flyway.version>

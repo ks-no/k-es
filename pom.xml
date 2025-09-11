@@ -16,6 +16,7 @@
     <packaging>pom</packaging>
     <description>${project.artifactId}: An eventsourcing framework for Kotlin, with adapters for EventStore</description>
     <url>https://github.com/ks-no/k-es</url>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <modules>
         <module>k-es-bom</module>

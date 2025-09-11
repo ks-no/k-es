@@ -12,6 +12,7 @@
 
     <artifactId>k-es-jdbc</artifactId>
     <description>JDBC support for sagas and projections</description>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <spring.version>6.2.10</spring.version>

@@ -12,6 +12,7 @@
 
     <artifactId>k-es-mongodb</artifactId>
     <description>Mongo support for sagas and projections</description>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <spring-data.version>4.5.3</spring-data.version>

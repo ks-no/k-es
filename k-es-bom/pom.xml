@@ -11,6 +11,7 @@
 
     <artifactId>k-es-bom</artifactId>
     <packaging>pom</packaging>
+    <name>${project.groupId}:${project.artifactId}</name>
     <description>k-es Bill of Materials (BOM)</description>
 
     <dependencyManagement>
