@@ -105,6 +105,7 @@ class MSSQLContainerTest : StringSpec(), BeforeSpecListener, AfterSpecListener {
                     Sagas.initialize(eventSubscriberFactory = kesTest.subscriberFactory,
                         sagaRepository = sagaRepository,
                         sagas = setOf(EngineSaga),
+                        subscriptionName = "EngineSaga",
                         commandQueue = commandQueue,
                         pollInterval = 1000,
                         onError = {
