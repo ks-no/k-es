@@ -14,7 +14,7 @@
     <name>${project.groupId}:${project.artifactId}</name>
     <properties>
         <awaitility.version>4.3.0</awaitility.version>
-        <flyway.version>11.11.1</flyway.version>
+        <flyway.version>11.15.0</flyway.version>
         <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
 
