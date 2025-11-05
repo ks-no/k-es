@@ -44,7 +44,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <kotlinx-coroutines.version>1.10.2</kotlinx-coroutines.version>
-        <jackson.version>2.19.2</jackson.version>
+        <jackson.version>2.20.0</jackson.version>
         <db-client-java.version>5.4.5</db-client-java.version>
         <mssql-jdbc.version>13.2.0.jre11</mssql-jdbc.version>
         <protobuf-java.version>4.32.0</protobuf-java.version>
