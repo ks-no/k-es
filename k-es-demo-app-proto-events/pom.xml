@@ -16,7 +16,7 @@
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
 
-        <protobuf-maven-plugin.version>3.9.0</protobuf-maven-plugin.version>
+        <protobuf-maven-plugin.version>4.0.2</protobuf-maven-plugin.version>
     </properties>
 
     <dependencies>
