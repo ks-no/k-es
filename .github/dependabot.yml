@@ -12,6 +12,21 @@ registries:
     password: ${{secrets.DEPENDABOT}}
 updates:
 - package-ecosystem: maven
+  groups:
+    fiks-deps:
+      patterns:
+      - "no.ks.fiks*"
+      update-types:
+      - "minor"
+      - "patch"
+    other-deps:
+      patterns:
+      - "*"
+      exclude-patterns:
+      - "no.ks.fiks*"
+      update-types:
+      - "minor"
+      - "patch"
   directory: "/"
   schedule:
     interval: daily
