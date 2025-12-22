@@ -54,7 +54,7 @@
         <grpc.version>1.77.0</grpc.version>
         <bouncycastle.version>1.83</bouncycastle.version>
 
-        <junit.jupiter.version>5.13.4</junit.jupiter.version>
+        <junit.jupiter.version>6.0.1</junit.jupiter.version>
         <mockk.version>1.14.7</mockk.version>
         <kotest.version>6.0.7</kotest.version>
         <testcontainers.version>1.21.3</testcontainers.version>
