@@ -56,7 +56,7 @@
 
         <junit.jupiter.version>6.0.1</junit.jupiter.version>
         <mockk.version>1.14.7</mockk.version>
-        <kotest.version>6.1.0</kotest.version>
+        <kotest.version>6.1.1</kotest.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <spring-boot.version>3.5.5</spring-boot.version>
         <central-publishing-maven-plugin.ignorePublishedComponents>true</central-publishing-maven-plugin.ignorePublishedComponents>
