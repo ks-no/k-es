@@ -61,14 +61,14 @@ class GrpcAggregateRepository(
         } catch (e: ExecutionException) {
             val cause = e.cause
             if (cause is WrongExpectedVersionException) {
-                throw RuntimeException(
+                throw VersionMismatchException(
                     "Actual version did not match expected! streamName: ${cause.streamName}, nextExpectedRevision: ${cause.nextExpectedRevision}, actualVersion: ${cause.actualVersion}",
-                    e
+                    cause
                 )
             } else if (cause is StatusRuntimeException && cause.status == Status.ABORTED) {
                 throw WriteAbortedException("Got aborted status when we were writing data to stream", cause)
             } else {
-                throw RuntimeException("Error while appending events to stream $streamId", cause)
+                throw AppendToStreamException("Error while appending events to stream $streamId", cause)
             }
         }
     }
