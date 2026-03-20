@@ -16,7 +16,7 @@
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
 
-        <protobuf-maven-plugin.version>4.1.2</protobuf-maven-plugin.version>
+        <protobuf-maven-plugin.version>5.0.2</protobuf-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -39,7 +39,7 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <protocVersion>${protobuf-java.version}</protocVersion>
+                            <protoc>${protobuf-java.version}</protoc>
                         </configuration>
                     </execution>
                 </executions>
