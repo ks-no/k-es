@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k-es
+  title: K-ES
+  description: >
+    Kotlin-bibliotek for EventStoreDB med støtte for å skrive og lese hendelser.
+  annotations:
+    github.com/project-slug: ks-no/k-es
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - kotlin
+    - eventstoredb
+    - event-sourcing
+spec:
+  type: library
+  owner: group:team-kjernekomponenter
+  lifecycle: production
