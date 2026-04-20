@@ -15,7 +15,7 @@
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
-        <spring.version>7.0.6</spring.version>
+        <spring.version>7.0.7</spring.version>
     </properties>
 
     <dependencies>
