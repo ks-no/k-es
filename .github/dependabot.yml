@@ -30,7 +30,7 @@ updates:
   directory: "/"
   schedule:
     interval: daily
-    time: "03:00"
+    time: "05:14"
     timezone: Europe/Oslo
   open-pull-requests-limit: 15
   registries:
