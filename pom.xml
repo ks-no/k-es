@@ -50,11 +50,11 @@
         <protobuf-java.version>4.32.0</protobuf-java.version>
         <mongodb-driver-version>5.7.0</mongodb-driver-version>
         <rxjava.version>3.1.12</rxjava.version>
-        <netty.version>4.2.13.Final</netty.version>
+        <netty.version>4.2.14.Final</netty.version>
         <grpc.version>1.81.0</grpc.version>
         <bouncycastle.version>1.84</bouncycastle.version>
 
-        <junit.jupiter.version>6.0.3</junit.jupiter.version>
+        <junit.jupiter.version>6.1.0</junit.jupiter.version>
         <mockk.version>1.14.9</mockk.version>
         <kotest.version>6.1.11</kotest.version>
         <testcontainers.version>1.21.4</testcontainers.version>
