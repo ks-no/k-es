@@ -44,18 +44,18 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <kotlinx-coroutines.version>1.11.0</kotlinx-coroutines.version>
-        <jackson.version>2.21.3</jackson.version>
+        <jackson.version>2.22.0</jackson.version>
         <db-client-java.version>5.4.5</db-client-java.version>
         <mssql-jdbc.version>13.4.0.jre11</mssql-jdbc.version>
         <protobuf-java.version>4.32.0</protobuf-java.version>
-        <mongodb-driver-version>5.7.0</mongodb-driver-version>
+        <mongodb-driver-version>5.8.0</mongodb-driver-version>
         <rxjava.version>3.1.12</rxjava.version>
-        <netty.version>4.2.14.Final</netty.version>
+        <netty.version>4.2.15.Final</netty.version>
         <grpc.version>1.81.0</grpc.version>
         <bouncycastle.version>1.84</bouncycastle.version>
 
         <junit.jupiter.version>6.1.0</junit.jupiter.version>
-        <mockk.version>1.14.9</mockk.version>
+        <mockk.version>1.14.11</mockk.version>
         <kotest.version>6.1.11</kotest.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <spring-boot.version>4.0.6</spring-boot.version>
