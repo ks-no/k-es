@@ -233,8 +233,6 @@
                     <version>${kotlin.version}</version>
                     <configuration>
                         <jvmTarget>${java.version}</jvmTarget>
-                        <languageVersion>1.9</languageVersion>
-                        <apiVersion>1.9</apiVersion>
                     </configuration>
                     <executions>
                         <execution>
