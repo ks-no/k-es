@@ -51,7 +51,7 @@
         <mongodb-driver-version>5.9.0</mongodb-driver-version>
         <rxjava.version>3.1.12</rxjava.version>
         <netty.version>4.2.16.Final</netty.version>
-        <grpc.version>1.82.1</grpc.version>
+        <grpc.version>1.82.2</grpc.version>
         <bouncycastle.version>1.84</bouncycastle.version>
 
         <junit.jupiter.version>6.1.1</junit.jupiter.version>
