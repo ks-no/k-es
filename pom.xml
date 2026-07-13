@@ -52,9 +52,9 @@
         <rxjava.version>3.1.12</rxjava.version>
         <netty.version>4.2.16.Final</netty.version>
         <grpc.version>1.82.2</grpc.version>
-        <bouncycastle.version>1.84</bouncycastle.version>
+        <bouncycastle.version>1.85</bouncycastle.version>
 
-        <junit.jupiter.version>6.1.1</junit.jupiter.version>
+        <junit.jupiter.version>6.1.2</junit.jupiter.version>
         <mockk.version>1.14.11</mockk.version>
         <kotest.version>6.2.2</kotest.version>
         <testcontainers.version>1.21.4</testcontainers.version>
