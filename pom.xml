@@ -48,15 +48,15 @@
         <db-client-java.version>5.4.5</db-client-java.version>
         <mssql-jdbc.version>13.4.0.jre11</mssql-jdbc.version>
         <protobuf-java.version>4.32.0</protobuf-java.version>
-        <mongodb-driver-version>5.9.0</mongodb-driver-version>
+        <mongodb-driver-version>5.9.1</mongodb-driver-version>
         <rxjava.version>3.1.12</rxjava.version>
         <netty.version>4.2.16.Final</netty.version>
-        <grpc.version>1.82.2</grpc.version>
-        <bouncycastle.version>1.84</bouncycastle.version>
+        <grpc.version>1.83.0</grpc.version>
+        <bouncycastle.version>1.85</bouncycastle.version>
 
-        <junit.jupiter.version>6.1.1</junit.jupiter.version>
+        <junit.jupiter.version>6.1.2</junit.jupiter.version>
         <mockk.version>1.14.11</mockk.version>
-        <kotest.version>6.2.2</kotest.version>
+        <kotest.version>6.2.3</kotest.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <spring-boot.version>4.1.0</spring-boot.version>
         <central-publishing-maven-plugin.ignorePublishedComponents>true</central-publishing-maven-plugin.ignorePublishedComponents>
