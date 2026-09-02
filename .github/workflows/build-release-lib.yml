@@ -1,0 +1,38 @@
+name: Build and Release Library
+
+on:
+  workflow_dispatch:
+    inputs:
+      # Choose either semver_increment OR version -- not both.
+      # If both are set, the reusable workflow will fail.
+      semver_increment:
+        description: 'Select semver increment (next major/minor/patch). Fails if version is also set.'
+        required: false
+        type: choice
+        options:
+          - ''
+          - next major
+          - next minor
+          - next patch
+      version:
+        description: 'Exact version number to release. Fails if semver_increment is also set.'
+        required: false
+      is_release:
+        description: 'Is this a release build?'
+        required: true
+        type: boolean
+        default: false
+      reviewer:
+        description: 'GitHub username of the reviewer'
+        required: true
+
+jobs:
+  build:
+    uses: ks-no/github-actions-public/.github/workflows/java-library-maven-central-build.yml@main
+    with:
+      java_version: 'java17'
+      semver_increment: ${{ inputs.semver_increment }}
+      version: ${{ inputs.version }}
+      is_release: ${{ inputs.is_release }}
+      reviewer: ${{ inputs.reviewer }}
+    secrets: inherit
