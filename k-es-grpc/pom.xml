@@ -15,11 +15,17 @@
 
     <properties>
         <awaitility.version>4.3.0</awaitility.version>
-
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
@@ -54,10 +60,6 @@
             <artifactId>kotlin-logging-jvm</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.eventstore</groupId>
-            <artifactId>db-client-java</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.reactivex.rxjava3</groupId>
             <artifactId>rxjava</artifactId>
         </dependency>
@@ -65,12 +67,6 @@
             <groupId>io.grpc</groupId>
             <artifactId>grpc-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib</artifactId>
-            <version>${kotlin.version}</version>
-        </dependency>
-
 
         <!--test-->
         <dependency>
@@ -142,6 +138,11 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.eventstore</groupId>
+            <artifactId>db-client-java</artifactId>
         </dependency>
     </dependencies>
 
