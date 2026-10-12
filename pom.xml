@@ -50,8 +50,8 @@
         <protobuf-java.version>4.32.0</protobuf-java.version>
         <mongodb-driver-version>5.13.0</mongodb-driver-version>
         <rxjava.version>3.1.12</rxjava.version>
-        <netty.version>4.2.18.Final</netty.version>
-        <grpc.version>1.84.0</grpc.version>
+        <netty.version>4.2.19.Final</netty.version>
+        <grpc.version>1.84.1</grpc.version>
         <bouncycastle.version>1.86</bouncycastle.version>
         <flyway.version>13.9.0</flyway.version>
 
