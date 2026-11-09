@@ -54,7 +54,7 @@
         <grpc.version>1.85.1</grpc.version>
         <bouncycastle.version>1.86</bouncycastle.version>
         <flyway.version>13.12.0</flyway.version>
-        <guava.version>33.7.2-android</guava.version>
+        <guava.version>33.8.0-android</guava.version>
 
         <junit.jupiter.version>6.1.3</junit.jupiter.version>
         <mockk.version>1.14.11</mockk.version>
