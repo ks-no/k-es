@@ -50,10 +50,10 @@
         <protobuf-java.version>4.32.0</protobuf-java.version>
         <mongodb-driver-version>5.14.0</mongodb-driver-version>
         <rxjava.version>3.1.12</rxjava.version>
-        <netty.version>4.2.19.Final</netty.version>
+        <netty.version>4.2.20.Final</netty.version>
         <grpc.version>1.85.1</grpc.version>
-        <bouncycastle.version>1.86</bouncycastle.version>
-        <flyway.version>13.12.0</flyway.version>
+        <bouncycastle.version>1.87</bouncycastle.version>
+        <flyway.version>13.12.1</flyway.version>
         <guava.version>33.8.0-android</guava.version>
 
         <junit.jupiter.version>6.1.3</junit.jupiter.version>
