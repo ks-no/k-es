@@ -44,7 +44,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <kotlinx-coroutines.version>1.11.0</kotlinx-coroutines.version>
-        <jackson.version>2.22.4</jackson.version>
+        <jackson.version>2.23.0</jackson.version>
         <db-client-java.version>5.4.5</db-client-java.version>
         <mssql-jdbc.version>13.6.2.jre11</mssql-jdbc.version>
         <protobuf-java.version>4.32.0</protobuf-java.version>
@@ -57,7 +57,7 @@
         <guava.version>33.8.0-android</guava.version>
 
         <junit.jupiter.version>6.1.3</junit.jupiter.version>
-        <mockk.version>1.14.11</mockk.version>
+        <mockk.version>1.14.12</mockk.version>
         <kotest.version>6.2.6</kotest.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <spring-boot.version>4.1.2</spring-boot.version>
